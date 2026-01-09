@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:medicare/logic/sevices/firebase_services.dart';
 
 class ForgotPasswordViewModel extends ChangeNotifier {
-  // Add your forgot password logic here
+  final FirebaseAuthService _authService = FirebaseAuthService();
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _authService.sendPasswordResetEmail(email);
+  }
 }

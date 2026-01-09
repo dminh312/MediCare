@@ -1,8 +1,8 @@
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
+import 'package:medicare/UI/home/home_view.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({super.key});
@@ -13,17 +13,62 @@ class SignUpView extends StatefulWidget {
 
 class _SignUpViewState extends State<SignUpView> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _agreeToTerms = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _signUp() async {
+    if (!_formKey.currentState!.validate() || !_agreeToTerms) {
+      if (!_agreeToTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please agree to the terms of service.')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final signUpViewModel = Provider.of<SignUpViewModel>(context, listen: false);
+    String? errorMessage;
+    try {
+      errorMessage = await signUpViewModel.signUp(_emailController.text, _passwordController.text, _nameController.text);
+    } catch (e) {
+      errorMessage = e.toString();
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+
+    if (mounted && errorMessage == null) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
+    } else if (mounted && errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final signUpViewModel = Provider.of<SignUpViewModel>(context);
     const primaryColor = Color(0xFFea2a33);
     const textColor = Color(0xFF202124);
     const secondaryTextColor = Color(0xFF5F6368);
     const backgroundColor = Color(0xFFF8F6F6);
 
-    // Custom InputDecoration for TextFields to match the design
     InputDecoration customInputDecoration({required String hintText, required IconData suffixIcon}) {
       return InputDecoration(
         hintText: hintText,
@@ -32,18 +77,9 @@ class _SignUpViewState extends State<SignUpView> {
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.0),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.0),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.0),
-          borderSide: const BorderSide(color: primaryColor, width: 1.5),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14.0), borderSide: BorderSide(color: Colors.grey.shade300, width: 1)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.0), borderSide: BorderSide(color: Colors.grey.shade200, width: 1)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14.0), borderSide: const BorderSide(color: primaryColor, width: 1.5)),
       );
     }
 
@@ -52,10 +88,7 @@ class _SignUpViewState extends State<SignUpView> {
       appBar: AppBar(
         backgroundColor: backgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: textColor, size: 22),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: textColor, size: 22), onPressed: () => Navigator.of(context).pop()),
       ),
       body: Column(
         children: [
@@ -71,75 +104,58 @@ class _SignUpViewState extends State<SignUpView> {
                       Container(
                         width: 52,
                         height: 52,
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.health_and_safety, // Corrected Icon: Filled version
-                          color: primaryColor,
-                          size: 30,
-                        ),
+                        decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                        child: const Icon(Icons.health_and_safety, color: primaryColor, size: 30),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Create Account',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
+                      const Text('Create Account', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor)),
                       const SizedBox(height: 8.0),
-                      const Text(
-                        'Start your journey to better health today.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: secondaryTextColor,
-                        ),
-                      ),
+                      const Text('Start your journey to better health today.', style: TextStyle(fontSize: 16, color: secondaryTextColor)),
                       const SizedBox(height: 24),
-                      // Form Section
                       const Text('Full Name', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 8),
                       TextFormField(
-                        decoration: customInputDecoration(hintText: 'Enter your full name', suffixIcon: Icons.person), // Corrected Icon
+                        controller: _nameController,
+                        decoration: customInputDecoration(hintText: 'Enter your full name', suffixIcon: Icons.person),
+                        validator: (value) => (value == null || value.isEmpty) ? 'Please enter your name' : null,
                       ),
                       const SizedBox(height: 16),
                       const Text('Email Address', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: customInputDecoration(hintText: 'Enter your email', suffixIcon: Icons.mail), // Corrected Icon
+                        decoration: customInputDecoration(hintText: 'Enter your email', suffixIcon: Icons.mail),
+                        validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
                       ),
                       const SizedBox(height: 16),
                       const Text('Password', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _passwordController,
                         obscureText: true,
-                        decoration: customInputDecoration(hintText: 'Create a password', suffixIcon: Icons.lock), // Corrected Icon
+                        decoration: customInputDecoration(hintText: 'Create a password', suffixIcon: Icons.lock),
+                        validator: (value) => (value == null || value.length < 6) ? 'Password must be at least 6 characters' : null,
                       ),
                       const SizedBox(height: 16),
                       const Text('Confirm Password', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
                       const SizedBox(height: 8),
                       TextFormField(
+                        controller: _confirmPasswordController,
                         obscureText: true,
-                        decoration: customInputDecoration(hintText: 'Re-enter password', suffixIcon: Icons.lock_reset), // Corrected Icon
+                        decoration: customInputDecoration(hintText: 'Re-enter password', suffixIcon: Icons.lock_reset),
+                        validator: (value) => (value != _passwordController.text) ? 'Passwords do not match' : null,
                       ),
                       const SizedBox(height: 16),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start, // Align to top
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
                             height: 24.0,
                             width: 24.0,
                             child: Checkbox(
                               value: _agreeToTerms,
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  _agreeToTerms = value ?? false;
-                                });
-                              },
+                              onChanged: (bool? value) => setState(() => _agreeToTerms = value ?? false),
                               activeColor: primaryColor,
                               side: BorderSide(color: Colors.grey.shade400, width: 2),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
@@ -155,13 +171,13 @@ class _SignUpViewState extends State<SignUpView> {
                                   TextSpan(
                                     text: 'Terms of Service',
                                     style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-                                    recognizer: TapGestureRecognizer()..onTap = () { /* Handle tap */ },
+                                    recognizer: TapGestureRecognizer()..onTap = () {},
                                   ),
                                   const TextSpan(text: ' and '),
                                   TextSpan(
                                     text: 'Privacy Policy',
                                     style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-                                    recognizer: TapGestureRecognizer()..onTap = () { /* Handle tap */ },
+                                    recognizer: TapGestureRecognizer()..onTap = () {},
                                   ),
                                 ],
                               ),
@@ -169,17 +185,17 @@ class _SignUpViewState extends State<SignUpView> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16), // Adjusted space
+                      const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _signUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
-                          minimumSize: const Size(double.infinity, 48),
+                          minimumSize: const Size(double.infinity, 58),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
                           elevation: 5,
                           shadowColor: primaryColor.withOpacity(0.4),
                         ),
-                        child: const Text('Sign Up', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: _isLoading ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)) : const Text('Sign Up', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(height: 24.0),
                       const Row(
@@ -224,18 +240,17 @@ class _SignUpViewState extends State<SignUpView> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24.0), // Padding at the end of scroll
+                      const SizedBox(height: 24.0),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-          // Footer Section
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 22), // Increased padding
+            padding: const EdgeInsets.symmetric(vertical: 24),
             width: double.infinity,
-            color: backgroundColor.withAlpha(200), // Semi-transparent to blend
+            color: backgroundColor.withAlpha(200),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
