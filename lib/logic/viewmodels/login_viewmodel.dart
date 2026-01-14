@@ -10,7 +10,6 @@ class LoginViewModel extends ChangeNotifier {
       await _authService.signInWithEmailAndPassword(email, password);
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
-      // Return a user-friendly error message
       switch (e.code) {
         case 'user-not-found':
           return 'No user found for that email.';

@@ -20,7 +20,7 @@ class _HomeViewState extends State<HomeView> {
   static final List<Widget> _widgetOptions = <Widget>[
     const HomePage(),
     const TrackPage(),
-    const MedsPage(),
+    const MedsScreen(),
     const ProfilePage(),
   ];
 

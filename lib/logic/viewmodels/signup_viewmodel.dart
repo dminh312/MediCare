@@ -10,7 +10,6 @@ class SignUpViewModel extends ChangeNotifier {
       await _authService.signUpWithEmailAndPassword(email, password, name);
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
-      // Return a user-friendly error message
       switch (e.code) {
         case 'email-already-in-use':
           return 'The email address is already in use by another account.';
