@@ -1,25 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:medicare/UI/meds/add_meds/add_meds_screen.dart';
+import 'package:medicare/logic/models/medication_log_model.dart';
+import 'package:medicare/logic/models/medication_model.dart';
 
-enum MedicationType { pill, injection }
-enum MedicationStatus { taken, missed, upcoming }
-
-class Medication {
-  final String name;
-  final String dose;
-  final String timing;
-  final MedicationType type;
+class MedicationViewData {
+  final MedicationModel medication;
   final MedicationStatus status;
-  final TimeOfDay scheduleTime;
 
-  Medication({
-    required this.name,
-    required this.dose,
-    required this.timing,
-    required this.type,
-    required this.status,
-    required this.scheduleTime,
-  });
+  MedicationViewData({required this.medication, required this.status});
 }
 
 class MedsScreen extends StatefulWidget {
@@ -30,20 +21,82 @@ class MedsScreen extends StatefulWidget {
 }
 
 class _MedsScreenState extends State<MedsScreen> {
-  final List<Medication> _morningMeds = [
-    Medication(name: 'Vitamin C', dose: '1 Pill', timing: 'After Breakfast', type: MedicationType.pill, status: MedicationStatus.taken, scheduleTime: const TimeOfDay(hour: 8, minute: 0)),
-    Medication(name: 'Aspirin', dose: '500mg', timing: 'Before Breakfast', type: MedicationType.pill, status: MedicationStatus.missed, scheduleTime: const TimeOfDay(hour: 7, minute: 30)),
-  ];
+  late int _selectedDayIndex;
+  Stream<List<MedicationViewData>>? _medsStream;
+  final _auth = FirebaseAuth.instance;
+  late DateTime _today;
 
-  final List<Medication> _afternoonMeds = [
-    Medication(name: 'Insulin', dose: '10 Units', timing: 'Before Lunch', type: MedicationType.injection, status: MedicationStatus.upcoming, scheduleTime: const TimeOfDay(hour: 12, minute: 30)),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _today = DateTime.now();
+    // Show 3 days before, today, and 3 days after. Today is at index 3.
+    _selectedDayIndex = 3;
+    if (_auth.currentUser != null) {
+      _updateMedsStream();
+    }
+  }
 
-  final List<Medication> _eveningMeds = [
-    Medication(name: 'Magnesium', dose: '250mg', timing: 'Before Bed', type: MedicationType.pill, status: MedicationStatus.upcoming, scheduleTime: const TimeOfDay(hour: 21, minute: 0)),
-  ];
-  
-  int _selectedDayIndex = 2; // Wednesday
+  DateTime get _selectedDate {
+    return _today.add(Duration(days: _selectedDayIndex - 3));
+  }
+
+  void _updateMedsStream() {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final selectedDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+
+    setState(() {
+      _medsStream = FirebaseFirestore.instance
+          .collection('medications')
+          .where('userId', isEqualTo: user.uid)
+          .snapshots()
+          .asyncMap((medicationSnapshot) async {
+        final medications = medicationSnapshot.docs
+            .map((doc) => MedicationModel.fromFirestore(doc))
+            .toList();
+
+        final logSnapshot = await FirebaseFirestore.instance
+            .collection('medication_logs')
+            .where('userId', isEqualTo: user.uid)
+            .where('date', isEqualTo: Timestamp.fromDate(selectedDay))
+            .get();
+
+        final logs = logSnapshot.docs
+            .map((doc) => MedicationLogModel.fromFirestore(doc))
+            .toList();
+
+        return medications.map((med) {
+          final log = logs
+              .cast<MedicationLogModel?>()
+              .firstWhere((log) => log?.medicationId == med.id, orElse: () => null);
+
+          MedicationStatus status;
+          if (log != null) {
+            status = log.status;
+          } else {
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final medTime = DateTime(now.year, now.month, now.day, med.time.hour, med.time.minute);
+
+            if (selectedDay.isBefore(today)) {
+              status = MedicationStatus.missed;
+            } else if (selectedDay.isAfter(today)) {
+              status = MedicationStatus.upcoming;
+            } else {
+              if (medTime.isAfter(now)) {
+                status = MedicationStatus.upcoming;
+              } else {
+                status = MedicationStatus.missed;
+              }
+            }
+          }
+          return MedicationViewData(medication: med, status: status);
+        }).toList();
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,28 +121,52 @@ class _MedsScreenState extends State<MedsScreen> {
               child: IconButton(
                 icon: Icon(Icons.add, color: primaryColor),
                 onPressed: () {
-                  // TODO: Implement Add Medication
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddMedsScreen()),
+                  ).then((_) => _updateMedsStream());
                 },
               ),
             ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
+      body: Column(
         children: [
           _buildDaySelector(),
           const SizedBox(height: 24),
-          if (_morningMeds.isNotEmpty) _buildScheduleSection('Morning Schedule', Icons.light_mode, Colors.orange, _morningMeds, surfaceColor),
-          if (_afternoonMeds.isNotEmpty) _buildScheduleSection('Afternoon Schedule', Icons.sunny, primaryColor, _afternoonMeds, surfaceColor),
-          if (_eveningMeds.isNotEmpty) _buildScheduleSection('Evening Schedule', Icons.dark_mode, Colors.indigo, _eveningMeds, surfaceColor),
+          Expanded(
+            child: StreamBuilder<List<MedicationViewData>>(
+              stream: _medsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No medications added yet.'));
+                }
+                final meds = snapshot.data!;
+                final morningMeds = meds.where((m) => m.medication.time.hour < 12).toList();
+                final afternoonMeds = meds.where((m) => m.medication.time.hour >= 12 && m.medication.time.hour < 18).toList();
+                final eveningMeds = meds.where((m) => m.medication.time.hour >= 18).toList();
+
+                return ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  children: [
+                    if (morningMeds.isNotEmpty) _buildScheduleSection('Morning Schedule', Icons.light_mode, Colors.orange, morningMeds, surfaceColor),
+                    if (afternoonMeds.isNotEmpty) _buildScheduleSection('Afternoon Schedule', Icons.sunny, primaryColor, afternoonMeds, surfaceColor),
+                    if (eveningMeds.isNotEmpty) _buildScheduleSection('Evening Schedule', Icons.dark_mode, Colors.indigo, eveningMeds, surfaceColor),
+                  ],
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildDaySelector() {
-    final today = DateTime.now();
     return SizedBox(
       height: 80,
       child: ListView.builder(
@@ -97,10 +174,13 @@ class _MedsScreenState extends State<MedsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 7,
         itemBuilder: (context, index) {
-          final day = today.add(Duration(days: index - _selectedDayIndex));
+          final day = _today.add(Duration(days: index - 3));
           final isSelected = index == _selectedDayIndex;
           return GestureDetector(
-            onTap: () => setState(() => _selectedDayIndex = index),
+            onTap: () => setState(() {
+              _selectedDayIndex = index;
+              _updateMedsStream();
+            }),
             child: Container(
               width: 55,
               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -128,7 +208,7 @@ class _MedsScreenState extends State<MedsScreen> {
     );
   }
 
-  Widget _buildScheduleSection(String title, IconData icon, Color iconColor, List<Medication> meds, Color surfaceColor) {
+  Widget _buildScheduleSection(String title, IconData icon, Color iconColor, List<MedicationViewData> meds, Color surfaceColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -148,21 +228,28 @@ class _MedsScreenState extends State<MedsScreen> {
     );
   }
 
-  Widget _buildMedicationItem(Medication med, Color surfaceColor) {
+  Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor) {
+    final med = medViewData.medication;
+    final status = medViewData.status;
     IconData medIcon;
     Color iconBgColor, iconColor, statusColor;
     String statusText;
 
-    switch (med.type) {
-      case MedicationType.pill:
+    switch (med.form) {
+      case MedicationForm.pill:
+      case MedicationForm.tablet:
+      case MedicationForm.capsule:
         medIcon = Icons.medication;
         break;
-      case MedicationType.injection:
+      case MedicationForm.injection:
         medIcon = Icons.vaccines;
+        break;
+      case MedicationForm.syrup:
+        medIcon = Icons.medication_liquid;
         break;
     }
 
-    switch (med.status) {
+    switch (status) {
       case MedicationStatus.taken:
         statusText = 'Taken';
         statusColor = Colors.green;
@@ -186,7 +273,7 @@ class _MedsScreenState extends State<MedsScreen> {
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
-        border: med.status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
+        border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]
       ),
       child: Row(
@@ -203,7 +290,7 @@ class _MedsScreenState extends State<MedsScreen> {
               children: [
                 Text(med.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
-                Text('${med.dose} • ${med.timing}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('${med.dosage} • ${med.timing}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
@@ -219,7 +306,7 @@ class _MedsScreenState extends State<MedsScreen> {
                 child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 4),
-              Text(med.scheduleTime.format(context), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(med.time.format(context), style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           )
         ],
