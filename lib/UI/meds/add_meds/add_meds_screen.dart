@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:medicare/logic/models/medication_model.dart';
 
 class AddMedsScreen extends StatefulWidget {
-  const AddMedsScreen({super.key});
+  final MedicationModel? medication;
+
+  const AddMedsScreen({super.key, this.medication});
 
   @override
   State<AddMedsScreen> createState() => _AddMedsScreenState();
@@ -12,13 +14,15 @@ class AddMedsScreen extends StatefulWidget {
 
 class _AddMedsScreenState extends State<AddMedsScreen> {
   final _formKey = GlobalKey<FormState>();
+  late bool _isEditMode;
+
   String? _medName;
   String? _dosage;
-  String _form = 'Pill';
-  String _frequency = 'Daily';
-  TimeOfDay _time = const TimeOfDay(hour: 8, minute: 0);
-  String _timing = 'Before Breakfast';
-  bool _setReminder = true;
+  late String _form;
+  late String _frequency;
+  late TimeOfDay _time;
+  late String _timing;
+  late bool _setReminder;
   String? _notes;
 
   final List<String> _formOptions = ['Pill', 'Injection', 'Syrup', 'Tablet', 'Capsule'];
@@ -32,6 +36,30 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     'After Dinner',
     'Before Bed',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _isEditMode = widget.medication != null;
+
+    if (_isEditMode) {
+      final med = widget.medication!;
+      _medName = med.name;
+      _dosage = med.dosage;
+      _form = med.form.name[0].toUpperCase() + med.form.name.substring(1);
+      _frequency = med.frequency;
+      _time = med.time;
+      _timing = med.timing;
+      _setReminder = med.reminderEnabled;
+      _notes = med.notes;
+    } else {
+      _form = 'Pill';
+      _frequency = 'Daily';
+      _time = const TimeOfDay(hour: 8, minute: 0);
+      _timing = 'Before Breakfast';
+      _setReminder = true;
+    }
+  }
 
   IconData get dosageIcon {
     try {
@@ -65,8 +93,8 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         return;
       }
 
-      final newMed = MedicationModel(
-        id: '', // Firestore will generate this
+      final medicationData = MedicationModel(
+        id: _isEditMode ? widget.medication!.id : '', // Firestore will generate on add
         userId: user.uid,
         name: _medName!,
         dosage: _dosage!,
@@ -76,11 +104,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         timing: _timing,
         reminderEnabled: _setReminder,
         notes: _notes,
-        createdAt: Timestamp.now(),
+        createdAt: _isEditMode ? widget.medication!.createdAt : Timestamp.now(),
       );
 
       try {
-        await FirebaseFirestore.instance.collection('medications').add(newMed.toFirestore());
+        if (_isEditMode) {
+          await FirebaseFirestore.instance.collection('medications').doc(widget.medication!.id).update(medicationData.toFirestore());
+        } else {
+          await FirebaseFirestore.instance.collection('medications').add(medicationData.toFirestore());
+        }
         if (mounted) {
           Navigator.of(context).pop();
         }
@@ -118,7 +150,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
           child: const Text('Cancel', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500)),
         ),
         leadingWidth: 80,
-        title: Text('Add Medication', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(_isEditMode ? 'Edit Medication' : 'Add Medication', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         actions: [
           TextButton(
@@ -159,6 +191,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   _buildSection(
                     label: 'Medication Name',
                     child: _buildTextFormField(
+                      initialValue: _medName,
                       hintText: 'e.g. Vitamin C',
                       onSaved: (value) => _medName = value,
                       validator: (value) {
@@ -173,6 +206,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   _buildSection(
                     label: 'Dosage',
                     child: _buildTextFormField(
+                      initialValue: _dosage,
                       hintText: 'e.g. 500mg',
                       onSaved: (value) => _dosage = value,
                       suffixIcon: Icon(dosageIcon, color: mutedTextColor),
@@ -231,6 +265,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   _buildSection(
                     label: 'Instructions (Optional)',
                     child: _buildTextFormField(
+                      initialValue: _notes,
                       hintText: 'e.g. Take with food',
                       maxLines: 3,
                       onSaved: (value) => _notes = value,
@@ -281,6 +316,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
 
   Widget _buildTextFormField({
     required String hintText,
+    String? initialValue,
     int? maxLines = 1,
     void Function(String?)? onSaved,
     Widget? suffixIcon,
@@ -294,6 +330,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     final placeholderColor = isDarkMode ? Colors.grey[600] : Colors.grey[300];
 
     return TextFormField(
+      initialValue: initialValue,
       maxLines: maxLines,
       onSaved: onSaved,
       validator: validator,

@@ -22,4 +22,15 @@ class LoginViewModel extends ChangeNotifier {
       }
     }
   }
+
+  Future<String?> signInWithGoogle() async {
+    try {
+      await _authService.signInWithGoogle();
+      return null; // Return null on success
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return 'An unknown error occurred. Please try again.';
+    }
+  }
 }

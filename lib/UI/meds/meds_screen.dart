@@ -98,6 +98,19 @@ class _MedsScreenState extends State<MedsScreen> {
     });
   }
 
+  void _deleteMedication(String medId) {
+    FirebaseFirestore.instance.collection('medications').doc(medId).delete();
+  }
+
+  void _editMedication(MedicationModel medication) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddMedsScreen(medication: medication),
+      ),
+    ).then((_) => _updateMedsStream());
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -229,6 +242,38 @@ class _MedsScreenState extends State<MedsScreen> {
   }
 
   Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor) {
+    final med = medViewData.medication;
+    return Dismissible(
+      key: Key(med.id),
+      background: Container(
+        color: Colors.blue,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        child: const Icon(Icons.edit, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        if (direction == DismissDirection.endToStart) {
+          _deleteMedication(med.id);
+        }
+      },
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          _editMedication(med);
+          return false;
+        }
+        return true;
+      },
+      child: _buildMedicationListItem(medViewData, surfaceColor),
+    );
+  }
+
+  Widget _buildMedicationListItem(MedicationViewData medViewData, Color surfaceColor) {
     final med = medViewData.medication;
     final status = medViewData.status;
     IconData medIcon;

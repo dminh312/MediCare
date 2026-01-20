@@ -91,11 +91,22 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            await forgotPasswordViewModel.sendPasswordResetEmail(_emailController.text);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Password reset link sent! Check your email.')),
-                              );
+                            try {
+                              await forgotPasswordViewModel
+                                  .sendPasswordResetEmail(_emailController.text);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Password reset link sent! Check your email.')),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
                             }
                           }
                         },

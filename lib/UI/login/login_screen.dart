@@ -83,6 +83,24 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  void _signInWithGoogle() async {
+    final loginViewModel = Provider.of<LoginViewModel>(context, listen: false);
+    String? errorMessage;
+    try {
+      errorMessage = await loginViewModel.signInWithGoogle();
+    } catch (e) {
+      errorMessage = e.toString();
+    }
+
+    if (mounted && errorMessage == null) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
+    } else if (mounted && errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // New Design Colors
@@ -270,17 +288,17 @@ class _LoginViewState extends State<LoginView> {
         const Row(children: <Widget>[Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 16.0), child: Text('Or continue with', style: TextStyle(color: slate500, fontFamily: 'Plus Jakarta Sans'))), Expanded(child: Divider())]),
         const SizedBox(height: 24.0),
         Row(children: <Widget>[
-          Expanded(child: _socialButton(context, 'assets/google_logo.png', 'Google', textColor, formBgColor, ringColor)),
+          Expanded(child: _socialButton(context, 'assets/google_logo.png', 'Google', textColor, formBgColor, ringColor, onPressed: _signInWithGoogle)),
           const SizedBox(width: 16),
-          Expanded(child: _socialButton(context, null, 'Apple', textColor, formBgColor, ringColor, iconData: Icons.apple)),
+          Expanded(child: _socialButton(context, null, 'Apple', textColor, formBgColor, ringColor, iconData: Icons.apple, onPressed: () {})),
         ]),
       ],
     );
   }
 
-  Widget _socialButton(BuildContext context, String? assetPath, String label, Color textColor, Color formBgColor, Color? ringColor, {IconData? iconData}){
+  Widget _socialButton(BuildContext context, String? assetPath, String label, Color textColor, Color formBgColor, Color? ringColor, {IconData? iconData, required VoidCallback onPressed}){
     return OutlinedButton.icon(
-      onPressed: () {},
+      onPressed: onPressed,
       icon: assetPath != null ? Image.asset(assetPath, height: 20) : Icon(iconData, color: textColor, size: 24),
       label: Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Plus Jakarta Sans')),
       style: OutlinedButton.styleFrom(

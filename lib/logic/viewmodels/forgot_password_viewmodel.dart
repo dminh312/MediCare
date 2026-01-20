@@ -5,6 +5,10 @@ class ForgotPasswordViewModel extends ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();
 
   Future<void> sendPasswordResetEmail(String email) async {
-    await _authService.sendPasswordResetEmail(email);
+    try {
+      await _authService.sendPasswordResetEmail(email);
+    } catch (e) {
+      rethrow;
+    }
   }
 }
