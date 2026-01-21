@@ -18,6 +18,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
 
   String? _medName;
   String? _dosage;
+  String? _dosageEntireTreatment;
   late String _form;
   late String _frequency;
   late TimeOfDay _time;
@@ -46,6 +47,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       final med = widget.medication!;
       _medName = med.name;
       _dosage = med.dosage;
+      _dosageEntireTreatment = med.dosageEntireTreatment;
       _form = med.form.name[0].toUpperCase() + med.form.name.substring(1);
       _frequency = med.frequency;
       _time = med.time;
@@ -98,6 +100,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         userId: user.uid,
         name: _medName!,
         dosage: _dosage!,
+        dosageEntireTreatment: _dosageEntireTreatment,
         form: MedicationForm.values.byName(_form.toLowerCase()),
         frequency: _frequency,
         time: _time,
@@ -119,7 +122,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to save medication: $e')),
+            SnackBar(content: Text('Failed to save medication: \$e')),
           );
         }
       }
@@ -204,7 +207,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   ),
                   const SizedBox(height: 20),
                   _buildSection(
-                    label: 'Dosage',
+                    label: 'Dosage (per use)',
                     child: _buildTextFormField(
                       initialValue: _dosage,
                       hintText: 'e.g. 500mg',
@@ -216,6 +219,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                         }
                         return null;
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSection(
+                    label: 'Dosage (for entire treatment)',
+                    child: _buildTextFormField(
+                      initialValue: _dosageEntireTreatment,
+                      hintText: 'e.g. 30 pills',
+                      onSaved: (value) => _dosageEntireTreatment = value,
                     ),
                   ),
                   const SizedBox(height: 20),

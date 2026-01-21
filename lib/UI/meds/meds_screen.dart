@@ -265,9 +265,74 @@ class _MedsScreenState extends State<MedsScreen> {
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
           _editMedication(med);
-          return false;
+          return false; // Do not dismiss, just navigate
+        } else if (direction == DismissDirection.endToStart) {
+          final bool? shouldDelete = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+              final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : Colors.white;
+              final primaryColor = const Color(0xFFff5252);
+              final textColor = isDarkMode ? Colors.white : const Color(0xFF111714);
+
+              return AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                icon: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                      Icons.delete_outline,
+                      color: primaryColor,
+                      size: 24)
+                ),
+                title: Text('Confirm Deletion', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+                content: Text(
+                  'Are you sure you want to delete this medication? This action cannot be undone.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 14),
+                ),
+                actionsAlignment: MainAxisAlignment.center,
+                actionsPadding: const EdgeInsets.only(bottom: 16, top: 16),
+                actions: <Widget>[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(120, 44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
+                          ),
+                        ),
+                        child: Text('Cancel', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          minimumSize: const Size(120, 44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          shadowColor: primaryColor.withOpacity(0.2),
+                        ),
+                        child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  )
+                ],
+              );
+            },
+          );
+          return shouldDelete ?? false;
         }
-        return true;
+        return false; // Should not happen for other directions
       },
       child: _buildMedicationListItem(medViewData, surfaceColor),
     );

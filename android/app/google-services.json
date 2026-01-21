@@ -12,7 +12,20 @@
           "package_name": "com.example.medicare"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "714175393232-88lqhofi5frba2gsskpnlilpqvftrb4d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.medicare",
+            "certificate_hash": "16a3d271c9528d51ce20dd4cc1f7be2361f41b8a"
+          }
+        },
+        {
+          "client_id": "714175393232-mm17m89avhqqiec4rgfqqs1mbs6o8vo3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCzpClxdkiPnU8vc7uiIXs3gcz0v1U9Rws"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "714175393232-mm17m89avhqqiec4rgfqqs1mbs6o8vo3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "714175393232-kd87ifikvl5crs8ckemh11qv93ibev7u.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.medicare"
+              }
+            }
+          ]
         }
       }
     }
