@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:medicare/UI/chatbot/chatbot_screen.dart';
 import 'package:medicare/UI/home/home_screen.dart';
 import 'package:medicare/UI/meds/meds_screen.dart';
 import 'package:medicare/UI/profile/profile_screen.dart';
@@ -19,7 +20,7 @@ class _HomeViewState extends State<HomeView> {
   // List of pages to be displayed
   static final List<Widget> _widgetOptions = <Widget>[
     const HomePage(),
-    const TrackPage(),
+    const TrackScreen(),
     const MedsScreen(),
     const ProfilePage(),
   ];
@@ -39,7 +40,7 @@ class _HomeViewState extends State<HomeView> {
       body: _widgetOptions.elementAt(_selectedIndex),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Implement Chatbot navigation/modal
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotScreen()));
         },
         backgroundColor: primaryColor,
         shape: const CircleBorder(),

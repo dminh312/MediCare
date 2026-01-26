@@ -201,9 +201,9 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                       const SizedBox(height: 24),
                       Row(
                         children: [
-                          Expanded(child: _buildTextField(label: 'Weight (kg)', controller: _weightController, hintText: 'e.g. 60', keyboardType: TextInputType.number, primaryColor: primaryColor, surfaceColor: surfaceColor)),
+                          Expanded(child: _buildTextField(label: 'Weight (kg)', controller: _weightController, hintText: 'e.g. 60.5', keyboardType: const TextInputType.numberWithOptions(decimal: true), primaryColor: primaryColor, surfaceColor: surfaceColor)),
                           const SizedBox(width: 16),
-                          Expanded(child: _buildTextField(label: 'Height (cm)', controller: _heightController, hintText: 'e.g. 170', keyboardType: TextInputType.number, primaryColor: primaryColor, surfaceColor: surfaceColor)),
+                          Expanded(child: _buildTextField(label: 'Height (m)', controller: _heightController, hintText: 'e.g. 1.7', keyboardType: const TextInputType.numberWithOptions(decimal: true), primaryColor: primaryColor, surfaceColor: surfaceColor)),
                         ],
                       ),
                       const SizedBox(height: 48),
