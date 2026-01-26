@@ -1,6 +1,6 @@
-# medicare
+# Medicare Project
 
-A new Flutter project.
+A change for personal healthcare.
 
 ## Getting Started
 
