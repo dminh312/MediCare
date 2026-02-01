@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:medicare/UI/login/login_screen.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -56,10 +57,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password updated successfully. Please log in again.')),
         );
-        // Pop the screen after a short delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.of(context).pop();
-        });
+        // Logout and navigate to login screen
+        await FirebaseAuth.instance.signOut();
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginView()),
+          (route) => false,
+        );
       }
     } on FirebaseAuthException catch (e) {
        if (mounted) {
