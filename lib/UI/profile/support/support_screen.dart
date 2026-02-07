@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -49,7 +50,7 @@ class _SupportScreenState extends State<SupportScreen> {
           const SizedBox(height: 32),
           _buildFaqSection(primaryColor, surfaceColor, borderColor),
           const SizedBox(height: 32),
-          _buildContactSection(primaryColor, surfaceColor, borderColor),
+          _buildContactSection(context, primaryColor, surfaceColor, borderColor),
         ],
       ),
     );
@@ -121,7 +122,7 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  Widget _buildContactSection(Color primaryColor, Color surfaceColor, Color borderColor) {
+  Widget _buildContactSection(BuildContext context, Color primaryColor, Color surfaceColor, Color borderColor) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,6 +140,7 @@ class _SupportScreenState extends State<SupportScreen> {
           iconBgColor: isDarkMode ? primaryColor.withAlpha(51) : const Color(0xFFffebee),
           surfaceColor: surfaceColor,
           borderColor: borderColor,
+          onTap: () => _showContactSupportSheet(context),
         ),
         const SizedBox(height: 12),
         _buildContactOption(
@@ -149,6 +151,7 @@ class _SupportScreenState extends State<SupportScreen> {
           iconBgColor: isDarkMode ? Colors.pink.withAlpha(51) : Colors.pink[50],
           surfaceColor: surfaceColor,
           borderColor: borderColor,
+          onTap: () {},
         ),
       ],
     );
@@ -162,6 +165,7 @@ class _SupportScreenState extends State<SupportScreen> {
     Color? iconBgColor,
     required Color surfaceColor,
     required Color borderColor,
+    required VoidCallback onTap,
   }) {
     return Material(
       color: surfaceColor,
@@ -169,7 +173,7 @@ class _SupportScreenState extends State<SupportScreen> {
       shadowColor: Colors.black.withAlpha(13),
       elevation: 1,
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -199,6 +203,90 @@ class _SupportScreenState extends State<SupportScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showContactSupportSheet(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(32),
+                topRight: Radius.circular(32),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Contact Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                        foregroundColor: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildContactInfoRow(context, 'Email', 'medicare.support@gmail.com', Icons.email),
+                const SizedBox(height: 16),
+                _buildContactInfoRow(context, 'Phone (Vietnam user only)', '+84123456789', Icons.phone),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContactInfoRow(BuildContext context, String label, String value, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(icon, color: Colors.grey[400], size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
+            IconButton(
+              icon: const Icon(Icons.copy, size: 18),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Copied to clipboard', style: TextStyle(color: Theme.of(context).colorScheme.onInverseSurface))),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

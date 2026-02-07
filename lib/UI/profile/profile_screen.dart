@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:medicare/UI/login/login_screen.dart';
+import 'package:medicare/UI/profile/account_setting/health_records_screen.dart';
 import 'package:medicare/UI/profile/account_setting/personal_information_screen.dart';
 import 'package:medicare/UI/profile/account_setting/security_privacy_screen.dart';
 import 'package:medicare/UI/profile/notification_setting/notification_setting_screen.dart';
@@ -133,7 +134,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildSettingsItem(context, Icons.person, const Color(0xFFfce4ec), const Color(0xFFe91e63), 'Personal Information', isDarkMode, onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInformationScreen()));
                       }),
-                      _buildSettingsItem(context, Icons.description, const Color(0xFFffebee), primaryColor, 'Health Records', isDarkMode),
+                      _buildSettingsItem(context, Icons.description, const Color(0xFFffebee), primaryColor, 'Health Records', isDarkMode, onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const HealthRecordsScreen()));
+                      }),
                       _buildSettingsItem(context, Icons.notifications, const Color(0xFFfff3e0), const Color(0xFFFF9800), 'Notification Settings', isDarkMode, onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingScreen()));
                       }),
