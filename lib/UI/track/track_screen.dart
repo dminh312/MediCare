@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
 
 class TrackScreen extends StatefulWidget {
   const TrackScreen({super.key});
@@ -25,7 +26,10 @@ class _TrackScreenState extends State<TrackScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildStepsCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StepActivityScreen())),
+            child: _buildStepsCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+          ),
           const SizedBox(height: 16),
           _buildVitalsGrid(surfaceColor, borderColor, primaryColor, isDarkMode),
           const SizedBox(height: 16),
