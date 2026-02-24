@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:medicare/logic/services/notification_service.dart';
 
 class NotificationSettingScreen extends StatefulWidget {
   const NotificationSettingScreen({super.key});
@@ -57,10 +58,47 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
           _buildMasterToggle(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          _buildTestSection(surfaceColor, borderColor, primaryColor, isDarkMode),
+          const SizedBox(height: 24),
           _buildAlertCategories(surfaceColor, borderColor, primaryColor, isDarkMode),
           const SizedBox(height: 32),
           _buildQuietHours(surfaceColor, borderColor, primaryColor, isDarkMode),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestSection(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+    return _buildCard(
+      surfaceColor,
+      borderColor,
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('DIAGNOSTICS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await NotificationService().showTestNotification();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã gửi thông báo kiểm tra ngay lập tức!')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.send, size: 18),
+              label: const Text('Gửi thông báo test ngay'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: primaryColor,
+                side: BorderSide(color: primaryColor.withOpacity(0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -93,7 +131,12 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
               ],
             ),
           ),
-          _buildIOSStyleToggle(value: _pushNotifications, onChanged: (val) => setState(() => _pushNotifications = val)),
+          _buildIOSStyleToggle(value: _pushNotifications, onChanged: (val) {
+            setState(() => _pushNotifications = val);
+            if (val) {
+              NotificationService().init(); // Re-init to ensure permissions
+            }
+          }),
         ],
       ),
     );
@@ -110,7 +153,9 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text('ALERT CATEGORIES', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5)),
           ),
-          _buildCategoryItem('Medication Reminders', Icons.medical_services_outlined, _medicationReminders, (val) => setState(() => _medicationReminders = val), isDarkMode),
+          _buildCategoryItem('Medication Reminders', Icons.medical_services_outlined, _medicationReminders, (val) {
+            setState(() => _medicationReminders = val);
+          }, isDarkMode),
           _buildDivider(isDarkMode),
           _buildCategoryItem('Health Tips & Insights', Icons.lightbulb_outline, _healthTips, (val) => setState(() => _healthTips = val), isDarkMode),
            _buildDivider(isDarkMode),

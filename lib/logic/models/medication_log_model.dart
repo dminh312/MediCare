@@ -2,40 +2,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MedicationStatus { taken, missed, upcoming }
 
-class MedicationLogModel {
+class MedicationLog {
   final String id;
   final String medicationId;
   final String userId;
-  final DateTime date;
+  final Timestamp scheduledTime;
   final MedicationStatus status;
-  final Timestamp updatedAt;
+  final Timestamp? actualTakenTime;
 
-  MedicationLogModel({
+  MedicationLog({
     required this.id,
     required this.medicationId,
     required this.userId,
-    required this.date,
+    required this.scheduledTime,
     required this.status,
-    required this.updatedAt,
+    this.actualTakenTime,
   });
 
-  factory MedicationLogModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return MedicationLogModel(
+  factory MedicationLog.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return MedicationLog(
       id: doc.id,
-      medicationId: data['medicationId'],
-      userId: data['userId'],
-      date: (data['date'] as Timestamp).toDate(),
-      status: MedicationStatus.values.byName(data['status']),
-      updatedAt: data['updatedAt'],
+      medicationId: data['medicationId'] ?? '',
+      userId: data['userId'] ?? '',
+      scheduledTime: data['scheduledTime'] ?? Timestamp.now(),
+      status: MedicationStatus.values.byName(data['status'] ?? 'upcoming'),
+      actualTakenTime: data['actualTakenTime'],
     );
   }
 
-  Map<String, dynamic> toFirestore() => {
-    'medicationId': medicationId,
-    'userId': userId,
-    'date': Timestamp.fromDate(date),
-    'status': status.name,
-    'updatedAt': updatedAt,
-  };
+  Map<String, dynamic> toFirestore() {
+    return {
+      'medicationId': medicationId,
+      'userId': userId,
+      'scheduledTime': scheduledTime,
+      'status': status.name,
+      'actualTakenTime': actualTakenTime,
+    };
+  }
 }

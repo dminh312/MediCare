@@ -1,5 +1,5 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:medicare/UI/share/tos.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/UI/home/home_view.dart';
@@ -17,7 +17,6 @@ class _SignUpViewState extends State<SignUpView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _agreeToTerms = false;
   bool _isLoading = false;
 
   @override
@@ -29,16 +28,25 @@ class _SignUpViewState extends State<SignUpView> {
     super.dispose();
   }
 
-  void _signUp() async {
-    if (!_formKey.currentState!.validate() || !_agreeToTerms) {
-      if (!_agreeToTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please agree to the terms of service.')),
-        );
-      }
+  void _onSignUpPressed() async {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
+    // Navigate to TOS screen and wait for result
+    final bool? agreed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TermsOfServiceScreen(isReadOnly: false),
+      ),
+    );
+
+    if (agreed == true) {
+      _performSignUp();
+    }
+  }
+
+  void _performSignUp() async {
     setState(() => _isLoading = true);
 
     final signUpViewModel = Provider.of<SignUpViewModel>(context, listen: false);
@@ -146,48 +154,9 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: customInputDecoration(hintText: 'Re-enter password', suffixIcon: Icons.lock_reset),
                         validator: (value) => (value != _passwordController.text) ? 'Passwords do not match' : null,
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            height: 24.0,
-                            width: 24.0,
-                            child: Checkbox(
-                              value: _agreeToTerms,
-                              onChanged: (bool? value) => setState(() => _agreeToTerms = value ?? false),
-                              activeColor: primaryColor,
-                              side: BorderSide(color: Colors.grey.shade400, width: 2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                text: 'I agree to the ',
-                                style: const TextStyle(color: secondaryTextColor, fontSize: 14, height: 1.5),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                    text: 'Terms of Service',
-                                    style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-                                    recognizer: TapGestureRecognizer()..onTap = () {},
-                                  ),
-                                  const TextSpan(text: ' and '),
-                                  TextSpan(
-                                    text: 'Privacy Policy',
-                                    style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-                                    recognizer: TapGestureRecognizer()..onTap = () {},
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       ElevatedButton(
-                        onPressed: _isLoading ? null : _signUp,
+                        onPressed: _isLoading ? null : _onSignUpPressed,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           minimumSize: const Size(double.infinity, 58),

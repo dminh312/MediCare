@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:medicare/logic/sevices/firebase_services.dart';
+import 'package:medicare/logic/services/firebase_services.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();
@@ -14,7 +14,7 @@ class LoginViewModel extends ChangeNotifier {
         case 'user-not-found':
           return 'No user found for that email.';
         case 'wrong-password':
-          return 'Wrong password provided for that user.';
+          return 'Wrong password, Please try again.';
         case 'invalid-email':
           return 'The email address is not valid.';
         default:

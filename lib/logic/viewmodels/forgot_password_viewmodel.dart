@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:medicare/logic/sevices/firebase_services.dart';
+import 'package:medicare/logic/services/firebase_services.dart';
 
 class ForgotPasswordViewModel extends ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();

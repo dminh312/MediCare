@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:medicare/logic/models/medication_model.dart';
+import 'package:medicare/logic/services/medication_library_service.dart';
+import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
+import 'package:provider/provider.dart';
 
 class AddMedsScreen extends StatefulWidget {
   final MedicationModel? medication;
@@ -16,7 +20,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
   final _formKey = GlobalKey<FormState>();
   late bool _isEditMode;
 
-  String? _medName;
+  late TextEditingController _medNameController;
   String? _dosage;
   String? _dosageEntireTreatment;
   late String _form;
@@ -25,6 +29,8 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
   late String _timing;
   late bool _setReminder;
   String? _notes;
+
+  final MedicationLibraryService _libraryService = MedicationLibraryService();
 
   final List<String> _formOptions = ['Pill', 'Injection', 'Syrup', 'Tablet', 'Capsule'];
   final List<String> _frequencyOptions = ['Daily', 'Twice a day', 'Weekly', 'As needed'];
@@ -42,10 +48,11 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
   void initState() {
     super.initState();
     _isEditMode = widget.medication != null;
+    _medNameController = TextEditingController();
 
     if (_isEditMode) {
       final med = widget.medication!;
-      _medName = med.name;
+      _medNameController.text = med.name;
       _dosage = med.dosage;
       _dosageEntireTreatment = med.dosageEntireTreatment;
       _form = med.form.name[0].toUpperCase() + med.form.name.substring(1);
@@ -63,21 +70,27 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _medNameController.dispose();
+    super.dispose();
+  }
+
   IconData get dosageIcon {
     try {
       switch (MedicationForm.values.byName(_form.toLowerCase())) {
         case MedicationForm.syrup:
           return Icons.medication_liquid_outlined;
         case MedicationForm.injection:
-          return Icons.opacity; // A water drop icon
+          return Icons.opacity;
         case MedicationForm.pill:
         case MedicationForm.tablet:
         case MedicationForm.capsule:
         default:
-          return Icons.scale; // A scale icon for weight
+          return Icons.scale;
       }
     } catch (e) {
-      return Icons.scale; // Default icon
+      return Icons.scale;
     }
   }
 
@@ -86,19 +99,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       _formKey.currentState!.save();
 
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You must be logged in to add medication.')),
-          );
-        }
-        return;
-      }
+      if (user == null) return;
+
+      // Chỉ cần lấy ViewModel
+      final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
 
       final medicationData = MedicationModel(
-        id: _isEditMode ? widget.medication!.id : '', // Firestore will generate on add
+        id: _isEditMode ? widget.medication!.id : FirebaseFirestore.instance.collection('medications').doc().id,
         userId: user.uid,
-        name: _medName!,
+        name: _medNameController.text,
         dosage: _dosage!,
         dosageEntireTreatment: _dosageEntireTreatment,
         form: MedicationForm.values.byName(_form.toLowerCase()),
@@ -113,16 +122,23 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       try {
         if (_isEditMode) {
           await FirebaseFirestore.instance.collection('medications').doc(widget.medication!.id).update(medicationData.toFirestore());
+          // ViewModel sẽ tự động xử lý việc cập nhật thông báo
+          await medicationLogViewModel.updateLogsAndNotificationsForMedication(medicationData);
         } else {
-          await FirebaseFirestore.instance.collection('medications').add(medicationData.toFirestore());
+          await FirebaseFirestore.instance.collection('medications').doc(medicationData.id).set(medicationData.toFirestore());
+          // ViewModel sẽ tự động xử lý việc tạo thông báo
+          await medicationLogViewModel.createLogsForNewMedication(medicationData);
         }
+        
+        // === XOÁ HOÀN TOÀN KHỐI CODE ĐẶT LỊCH THỪA TẠI ĐÂY ===
+
         if (mounted) {
           Navigator.of(context).pop();
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to save medication: \$e')),
+            SnackBar(content: Text('Failed to save medication: $e')),
           );
         }
       }
@@ -193,17 +209,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   const SizedBox(height: 32),
                   _buildSection(
                     label: 'Medication Name',
-                    child: _buildTextFormField(
-                      initialValue: _medName,
-                      hintText: 'e.g. Vitamin C',
-                      onSaved: (value) => _medName = value,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a medication name.';
-                        }
-                        return null;
-                      },
-                    ),
+                    child: _buildMedNameTypeAhead(),
                   ),
                   const SizedBox(height: 20),
                   _buildSection(
@@ -323,6 +329,62 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         const SizedBox(height: 8),
         child,
       ],
+    );
+  }
+
+  Widget _buildMedNameTypeAhead() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
+    const primaryColor = Color(0xffff5252);
+    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
+    final placeholderColor = isDarkMode ? Colors.grey[600] : Colors.grey[300];
+
+    return TypeAheadField<String>(
+      controller: _medNameController,
+      builder: (context, controller, focusNode) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          style: const TextStyle(fontSize: 16),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: surfaceColor,
+            hintText: 'e.g. Vitamin C',
+            hintStyle: TextStyle(color: placeholderColor),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: ringColor, width: 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: ringColor, width: 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: primaryColor, width: 2.0),
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a medication name.';
+            }
+            return null;
+          },
+        );
+      },
+      suggestionsCallback: (pattern) async {
+        return await _libraryService.searchMedications(pattern);
+      },
+      itemBuilder: (context, suggestion) {
+        return ListTile(
+          title: Text(suggestion),
+        );
+      },
+      onSelected: (suggestion) {
+        _medNameController.text = suggestion;
+      },
     );
   }
 

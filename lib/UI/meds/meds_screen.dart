@@ -5,12 +5,14 @@ import 'package:intl/intl.dart';
 import 'package:medicare/UI/meds/add_meds/add_meds_screen.dart';
 import 'package:medicare/logic/models/medication_log_model.dart';
 import 'package:medicare/logic/models/medication_model.dart';
+import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
+import 'package:provider/provider.dart';
 
 class MedicationViewData {
   final MedicationModel medication;
-  final MedicationStatus status;
+  final MedicationLog log;
 
-  MedicationViewData({required this.medication, required this.status});
+  MedicationViewData({required this.medication, required this.log});
 }
 
 class MedsScreen extends StatefulWidget {
@@ -30,85 +32,108 @@ class _MedsScreenState extends State<MedsScreen> {
   void initState() {
     super.initState();
     _today = DateTime.now();
-    // Show 3 days before, today, and 3 days after. Today is at index 3.
-    _selectedDayIndex = 3;
+    _selectedDayIndex = 3; // Center on today
     if (_auth.currentUser != null) {
-      _updateMedsStream();
+      _updateMissedMedications().then((_) => _updateMedsStream());
+    }
+  }
+
+  Future<void> _updateMissedMedications() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final cutoff = DateTime.now().subtract(const Duration(minutes: 15));
+
+    try {
+      final logsToUpdate = await FirebaseFirestore.instance
+          .collection('medication_logs')
+          .where('userId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'upcoming')
+          .where('scheduledTime', isLessThan: Timestamp.fromDate(cutoff))
+          .get();
+
+      if (logsToUpdate.docs.isNotEmpty) {
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in logsToUpdate.docs) {
+          batch.update(doc.reference, {'status': MedicationStatus.missed.name});
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      debugPrint("Error updating missed medications: $e");
     }
   }
 
   DateTime get _selectedDate {
-    return _today.add(Duration(days: _selectedDayIndex - 3));
+    final now = DateTime.now();
+    final baseToday = DateTime(now.year, now.month, now.day);
+    return baseToday.add(Duration(days: _selectedDayIndex - 3));
   }
 
   void _updateMedsStream() {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    final selectedDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final startOfDay = _selectedDate;
+    final endOfDay = startOfDay.add(const Duration(days: 1));
 
     setState(() {
       _medsStream = FirebaseFirestore.instance
-          .collection('medications')
+          .collection('medication_logs')
           .where('userId', isEqualTo: user.uid)
+          .where('scheduledTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('scheduledTime', isLessThan: Timestamp.fromDate(endOfDay))
           .snapshots()
-          .asyncMap((medicationSnapshot) async {
-        final medications = medicationSnapshot.docs
-            .map((doc) => MedicationModel.fromFirestore(doc))
-            .toList();
+          .asyncMap((logSnapshot) async {
+        if (logSnapshot.docs.isEmpty) return [];
 
-        final logSnapshot = await FirebaseFirestore.instance
-            .collection('medication_logs')
-            .where('userId', isEqualTo: user.uid)
-            .where('date', isEqualTo: Timestamp.fromDate(selectedDay))
+        final medicationIds = logSnapshot.docs.map((doc) => doc.data()['medicationId'] as String).toSet().toList();
+        if (medicationIds.isEmpty) return [];
+
+        final medicationSnapshot = await FirebaseFirestore.instance
+            .collection('medications')
+            .where(FieldPath.documentId, whereIn: medicationIds)
             .get();
 
-        final logs = logSnapshot.docs
-            .map((doc) => MedicationLogModel.fromFirestore(doc))
-            .toList();
+        final medicationsMap = {for (var doc in medicationSnapshot.docs) doc.id: MedicationModel.fromFirestore(doc)};
 
-        return medications.map((med) {
-          final log = logs
-              .cast<MedicationLogModel?>()
-              .firstWhere((log) => log?.medicationId == med.id, orElse: () => null);
-
-          MedicationStatus status;
-          if (log != null) {
-            status = log.status;
-          } else {
-            final now = DateTime.now();
-            final today = DateTime(now.year, now.month, now.day);
-            final medTime = DateTime(now.year, now.month, now.day, med.time.hour, med.time.minute);
-
-            if (selectedDay.isBefore(today)) {
-              status = MedicationStatus.missed;
-            } else if (selectedDay.isAfter(today)) {
-              status = MedicationStatus.upcoming;
-            } else {
-              if (medTime.isAfter(now)) {
-                status = MedicationStatus.upcoming;
-              } else {
-                status = MedicationStatus.missed;
-              }
-            }
+        final viewDataList = <MedicationViewData>[];
+        for (final logDoc in logSnapshot.docs) {
+          final log = MedicationLog.fromFirestore(logDoc);
+          final medication = medicationsMap[log.medicationId];
+          if (medication != null) {
+            viewDataList.add(MedicationViewData(medication: medication, log: log));
           }
-          return MedicationViewData(medication: med, status: status);
-        }).toList();
+        }
+        viewDataList.sort((a, b) => a.log.scheduledTime.compareTo(b.log.scheduledTime));
+        return viewDataList;
       });
     });
   }
 
-  void _deleteMedication(String medId) {
-    FirebaseFirestore.instance.collection('medications').doc(medId).delete();
+  Future<void> _deleteMedication(MedicationModel medication) async {
+    final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
+
+    await FirebaseFirestore.instance.collection('medications').doc(medication.id).delete();
+
+    final logSnapshot = await FirebaseFirestore.instance.collection('medication_logs').where('medicationId', isEqualTo: medication.id).get();
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in logSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+
+    await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
   }
 
   void _editMedication(MedicationModel medication) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddMedsScreen(medication: medication),
-      ),
-    ).then((_) => _updateMedsStream());
+      MaterialPageRoute(builder: (context) => AddMedsScreen(medication: medication)),
+    ).then((_) {
+       _updateMissedMedications().then((_) => _updateMedsStream());
+    });
   }
 
   @override
@@ -122,22 +147,24 @@ class _MedsScreenState extends State<MedsScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text('My Medications', style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : const Color(0xFF111714))),
-        backgroundColor: isDarkMode ? backgroundColor.withOpacity(0.95) : backgroundColor.withOpacity(0.95),
+        backgroundColor: isDarkMode ? backgroundColor.withAlpha(242) : backgroundColor.withAlpha(242),
         elevation: 0,
         scrolledUnderElevation: 1,
-        shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withOpacity(0.1),
+        shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withAlpha(26),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: CircleAvatar(
-              backgroundColor: primaryColor.withOpacity(isDarkMode ? 0.2 : 0.1),
+              backgroundColor: primaryColor.withAlpha(isDarkMode ? 51 : 26),
               child: IconButton(
                 icon: Icon(Icons.add, color: primaryColor),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const AddMedsScreen()),
-                  ).then((_) => _updateMedsStream());
+                  ).then((_) {
+                     _updateMissedMedications().then((_) => _updateMedsStream());
+                  });
                 },
               ),
             ),
@@ -152,11 +179,23 @@ class _MedsScreenState extends State<MedsScreen> {
             child: StreamBuilder<List<MedicationViewData>>(
               stream: _medsStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        'Query Error: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  );
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No medications added yet.'));
+                  return const Center(child: Text('No medications scheduled for this day.'));
                 }
                 final meds = snapshot.data!;
                 final morningMeds = meds.where((m) => m.medication.time.hour < 12).toList();
@@ -200,12 +239,12 @@ class _MedsScreenState extends State<MedsScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFff5252) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2d1f1f) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFff5252).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFff5252).withAlpha(77), blurRadius: 8, offset: const Offset(0, 4))] : [],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(DateFormat.E().format(day), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isSelected ? Colors.white.withOpacity(0.9) : Colors.grey)),
+                  Text(DateFormat.E().format(day), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isSelected ? Colors.white.withAlpha(230) : Colors.grey)),
                   const SizedBox(height: 4),
                   Text(day.day.toString(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color)),
                   if(isSelected) ...[
@@ -243,8 +282,9 @@ class _MedsScreenState extends State<MedsScreen> {
 
   Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor) {
     final med = medViewData.medication;
+    // SỬA LỖI: Sử dụng log.id làm Key thay vì med.id để tránh trùng lặp
     return Dismissible(
-      key: Key(med.id),
+      key: Key(medViewData.log.id),
       background: Container(
         color: Colors.blue,
         alignment: Alignment.centerLeft,
@@ -259,80 +299,29 @@ class _MedsScreenState extends State<MedsScreen> {
       ),
       onDismissed: (direction) {
         if (direction == DismissDirection.endToStart) {
-          _deleteMedication(med.id);
+          _deleteMedication(med);
         }
       },
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
           _editMedication(med);
-          return false; // Do not dismiss, just navigate
+          return false;
         } else if (direction == DismissDirection.endToStart) {
-          final bool? shouldDelete = await showDialog<bool>(
+          return await showDialog<bool>(
             context: context,
             builder: (BuildContext context) {
-              final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-              final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : Colors.white;
-              final primaryColor = const Color(0xFFff5252);
-              final textColor = isDarkMode ? Colors.white : const Color(0xFF111714);
-
               return AlertDialog(
-                backgroundColor: surfaceColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                icon: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                      Icons.delete_outline,
-                      color: primaryColor,
-                      size: 24)
-                ),
-                title: Text('Confirm Deletion', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
-                content: Text(
-                  'Are you sure you want to delete this medication? This action cannot be undone.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 14),
-                ),
-                actionsAlignment: MainAxisAlignment.center,
-                actionsPadding: const EdgeInsets.only(bottom: 16, top: 16),
+                title: const Text('Confirm Deletion'),
+                content: const Text('Are you sure you want to delete this medication and all its reminders?'),
                 actions: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(120, 44),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
-                          ),
-                        ),
-                        child: Text('Cancel', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          minimumSize: const Size(120, 44),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
-                          shadowColor: primaryColor.withOpacity(0.2),
-                        ),
-                        child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  )
+                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+                  TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
                 ],
               );
             },
-          );
-          return shouldDelete ?? false;
+          ) ?? false;
         }
-        return false; // Should not happen for other directions
+        return false;
       },
       child: _buildMedicationListItem(medViewData, surfaceColor),
     );
@@ -340,7 +329,7 @@ class _MedsScreenState extends State<MedsScreen> {
 
   Widget _buildMedicationListItem(MedicationViewData medViewData, Color surfaceColor) {
     final med = medViewData.medication;
-    final status = medViewData.status;
+    final status = medViewData.log.status;
     IconData medIcon;
     Color iconBgColor, iconColor, statusColor;
     String statusText;
@@ -374,7 +363,7 @@ class _MedsScreenState extends State<MedsScreen> {
         break;
     }
     
-    iconBgColor = statusColor.withOpacity(0.1);
+    iconBgColor = statusColor.withAlpha(26);
     iconColor = statusColor;
 
     return Container(
@@ -384,7 +373,7 @@ class _MedsScreenState extends State<MedsScreen> {
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
         border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10)]
       ),
       child: Row(
         children: [
@@ -410,7 +399,7 @@ class _MedsScreenState extends State<MedsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
+                  color: statusColor.withAlpha(38),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),

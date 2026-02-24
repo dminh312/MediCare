@@ -1,73 +1,144 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
-import '../models/medication_log_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:medicare/logic/models/medication_log_model.dart';
+import 'package:medicare/logic/models/medication_model.dart';
+import 'package:medicare/logic/services/notification_service.dart';
 
 class MedicationLogViewModel extends ChangeNotifier {
-  final _db = FirebaseFirestore.instance.collection('med_logs');
-  StreamSubscription? _logSubscription;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  // Dependency Injection: Nhận notificationService từ bên ngoài
+  final NotificationService _notificationService;
 
-  List<MedicationLogModel> _logs = [];
-  List<MedicationLogModel> get logs => _logs;
+  MedicationLogViewModel({required NotificationService notificationService}) 
+      : _notificationService = notificationService;
 
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  Future<void> createLogsForNewMedication(MedicationModel medication) async {
+    final User? user = _auth.currentUser;
+    if (user == null) return;
 
-  String? _error;
-  String? get error => _error;
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String? error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  void _setLogs(List<MedicationLogModel> logs) {
-    _logs = logs;
-  }
-
-  Future<void> updateStatus(MedicationLogModel log) async {
-    try {
-      await _db.doc(log.id).set(log.toFirestore(), SetOptions(merge: true));
-    } catch (e) {
-      _setError("Error updating medication status.");
+    // 1. QUAN TRỌNG: Đặt lịch thông báo cho điện thoại NGAY LẬP TỨC
+    if (medication.reminderEnabled) {
+      try {
+        await _notificationService.scheduleDailyMedicationNotification(
+          id: medication.id.hashCode,
+          title: 'Đến giờ uống ${medication.name} rồi!',
+          body: 'Liều lượng: ${medication.dosage}. Đừng quên nhé!',
+          time: medication.time,
+          payload: medication.id,
+        );
+        debugPrint("[VM_NOTIF] Đã đặt lịch nhắc thuốc thành công: ${medication.name}");
+      } catch (e) {
+        debugPrint("[VM_NOTIF ERROR] Lỗi đặt lịch: $e");
+      }
     }
+
+    // 2. Lưu vào Firestore
+    final batch = _firestore.batch();
+    final now = DateTime.now();
+
+    for (int i = 0; i < 30; i++) {
+      final scheduledDateTime = DateTime(now.year, now.month, now.day + i, medication.time.hour, medication.time.minute);
+      final logRef = _firestore.collection('medication_logs').doc();
+      final log = MedicationLog(
+        id: logRef.id,
+        medicationId: medication.id,
+        userId: user.uid,
+        scheduledTime: Timestamp.fromDate(scheduledDateTime),
+        status: MedicationStatus.upcoming,
+      );
+      batch.set(logRef, log.toFirestore());
+    }
+
+    await batch.commit();
   }
 
-  void fetchLogsByDate(String userId, DateTime date) {
-    _setLoading(true);
-    _setError(null);
-    _logSubscription?.cancel(); // Hủy subscription trước đó
-
-    final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
-
-    final stream = _db
-        .where('userId', isEqualTo: userId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('date', isLessThan: Timestamp.fromDate(end))
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MedicationLogModel.fromFirestore(doc))
-            .toList());
-
-    _logSubscription = stream.listen((logs) {
-      _setLogs(logs);
-      _setLoading(false);
-    }, onError: (error) {
-      _setError("Error loading medication history.");
-      _setLoading(false);
+  Future<void> updateLogStatus(String logId, MedicationStatus status, {DateTime? actualTakenTime}) async {
+    await _firestore.collection('medication_logs').doc(logId).update({
+      'status': status.name,
+      'actualTakenTime': actualTakenTime != null ? Timestamp.fromDate(actualTakenTime) : null,
     });
   }
 
-  @override
-  void dispose() {
-    _logSubscription?.cancel();
-    super.dispose();
+  Future<void> handleNotificationTap(String medicationId) async {
+    final User? user = _auth.currentUser;
+    if (user == null) return;
+
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final querySnapshot = await _firestore
+        .collection('medication_logs')
+        .where('userId', isEqualTo: user.uid)
+        .where('medicationId', isEqualTo: medicationId)
+        .where('status', isEqualTo: 'upcoming')
+        .where('scheduledTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('scheduledTime', isLessThan: Timestamp.fromDate(endOfDay))
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final logDoc = querySnapshot.docs.first;
+      await updateLogStatus(logDoc.id, MedicationStatus.taken, actualTakenTime: now);
+    }
+  }
+
+  Future<void> cancelNotificationsForMedication(String medicationId) async {
+    await _notificationService.cancelNotification(medicationId.hashCode);
+  }
+
+  Future<void> updateLogsAndNotificationsForMedication(MedicationModel medication) async {
+    // Hủy nhắc nhở cũ
+    await cancelNotificationsForMedication(medication.id);
+    
+    // Xóa log cũ
+    try {
+      final querySnapshot = await _firestore
+          .collection('medication_logs')
+          .where('medicationId', isEqualTo: medication.id)
+          .where('scheduledTime', isGreaterThan: Timestamp.now())
+          .get();
+          
+      final batch = _firestore.batch();
+      for (var doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint("Lỗi dọn dẹp logs cũ: $e");
+    }
+
+    // Tạo nhắc nhở mới và log mới
+    await createLogsForNewMedication(medication);
+  }
+
+  Future<void> rescheduleAllNotifications() async {
+    final User? user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final medications = await _firestore
+          .collection('medications')
+          .where('userId', isEqualTo: user.uid)
+          .where('reminderEnabled', isEqualTo: true)
+          .get();
+
+      for (final doc in medications.docs) {
+        final med = MedicationModel.fromFirestore(doc);
+        await _notificationService.scheduleDailyMedicationNotification(
+          id: med.id.hashCode,
+          title: 'Đến giờ uống ${med.name} rồi!',
+          body: 'Liều lượng: ${med.dosage}. Đừng quên nhé!',
+          time: med.time,
+          payload: med.id,
+        );
+      }
+    } catch (e) {
+      debugPrint("Lỗi đặt lại lịch: $e");
+    }
   }
 }

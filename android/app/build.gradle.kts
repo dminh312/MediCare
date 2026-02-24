@@ -10,16 +10,18 @@ plugins {
 
 android {
     namespace = "com.example.medicare"
-    compileSdk = 36
+    compileSdk = 36 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Flag to enable support for the new language APIs
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -27,8 +29,9 @@ android {
         applicationId = "com.example.medicare"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion // Required for core library desugaring
+        // HẠ CẤP XUỐNG ANDROID 14 ĐỂ TRÁNH LỖI "ĐÓNG BĂNG" CỦA ANDROID 15
+        targetSdk = 34 
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -44,4 +47,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
