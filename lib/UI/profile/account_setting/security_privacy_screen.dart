@@ -16,7 +16,6 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Define colors based on the HTML mockup
     const primaryColor = Color(0xffff5252);
     final backgroundColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffdf8f8);
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;

@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:medicare/logic/services/notification_service.dart';
+import 'package:medicare/UI/home/notification/notification_center_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,36 +31,6 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('Home Page (brb)'),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () async {
-                await NotificationService().showTestNotification();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã gửi thông báo test! Hãy kiểm tra thanh trạng thái.')),
-                );
-              },
-              icon: const Icon(Icons.notification_add),
-              label: const Text('Bấm để Test Thông Báo Ngay'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFff5252),
-                foregroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 10), // Add some space
-            ElevatedButton.icon(
-              onPressed: () async {
-                await NotificationService().scheduleTestNotification10s();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã lên lịch thông báo test sau 10 giây!')),
-                );
-              },
-              icon: const Icon(Icons.timer),
-              label: const Text('Test Thông Báo sau 10 giây'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-              ),
-            ),
           ],
         ),
       ),
@@ -73,10 +43,10 @@ class _HomePageState extends State<HomePage> {
 
     return AppBar(
       toolbarHeight: 80,
-      backgroundColor: isDarkMode ? const Color(0xFF1a1111).withOpacity(0.95) : const Color(0xFFfffbfb).withOpacity(0.95),
+      backgroundColor: isDarkMode ? const Color(0xFF1a1111).withValues(alpha: 0.95) : const Color(0xFFfffbfb).withValues(alpha: 0.95),
       elevation: 0.5,
       scrolledUnderElevation: 1,
-      shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withOpacity(0.1),
+      shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withValues(alpha: 0.1),
       automaticallyImplyLeading: false,
       title: Row(
         children: [
@@ -105,11 +75,19 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_none_outlined, size: 28),
-          onPressed: () {
-             NotificationService().showTestNotification();
-          },
+        Badge(
+          label: const Text('3'), // Placeholder for future unread count mechanism
+          backgroundColor: const Color(0xFFff5252),
+          offset: const Offset(-6, 6),
+          child: IconButton(
+            icon: const Icon(Icons.notifications_none_outlined, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationCenterScreen()),
+              );
+            },
+          ),
         ),
         const SizedBox(width: 8),
       ],

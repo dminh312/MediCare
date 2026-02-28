@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/logic/services/notification_service.dart';
 
 class NotificationSettingScreen extends StatefulWidget {
@@ -19,6 +20,41 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
 
   TimeOfDay _startTime = const TimeOfDay(hour: 22, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 7, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushNotifications = prefs.getBool('pushNotifications') ?? true;
+      _medicationReminders = prefs.getBool('medicationReminders') ?? true;
+      _healthTips = prefs.getBool('healthTips') ?? true;
+      _dailyGoalReminders = prefs.getBool('dailyGoalReminders') ?? false;
+      _activityAlerts = prefs.getBool('activityAlerts') ?? true;
+      _quietHoursEnabled = prefs.getBool('quietHoursEnabled') ?? false;
+      
+      int startHour = prefs.getInt('quietStartHour') ?? 22;
+      int startMinute = prefs.getInt('quietStartMinute') ?? 0;
+      int endHour = prefs.getInt('quietEndHour') ?? 7;
+      int endMinute = prefs.getInt('quietEndMinute') ?? 0;
+      
+      _startTime = TimeOfDay(hour: startHour, minute: startMinute);
+      _endTime = TimeOfDay(hour: endHour, minute: endMinute);
+    });
+  }
+
+  Future<void> _saveSetting(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is bool) {
+      await prefs.setBool(key, value);
+    } else if (value is int) {
+      await prefs.setInt(key, value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,46 +95,9 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
         children: [
           _buildMasterToggle(surfaceColor, borderColor, primaryColor, isDarkMode),
           const SizedBox(height: 24),
-          _buildTestSection(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 24),
           _buildAlertCategories(surfaceColor, borderColor, primaryColor, isDarkMode),
           const SizedBox(height: 32),
           _buildQuietHours(surfaceColor, borderColor, primaryColor, isDarkMode),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTestSection(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
-    return _buildCard(
-      surfaceColor,
-      borderColor,
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('DIAGNOSTICS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5)),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                await NotificationService().showTestNotification();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã gửi thông báo kiểm tra ngay lập tức!')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.send, size: 18),
-              label: const Text('Gửi thông báo test ngay'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: primaryColor,
-                side: BorderSide(color: primaryColor.withOpacity(0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -133,6 +132,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           ),
           _buildIOSStyleToggle(value: _pushNotifications, onChanged: (val) {
             setState(() => _pushNotifications = val);
+            _saveSetting('pushNotifications', val);
             if (val) {
               NotificationService().init(); // Re-init to ensure permissions
             }
@@ -155,13 +155,23 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           ),
           _buildCategoryItem('Medication Reminders', Icons.medical_services_outlined, _medicationReminders, (val) {
             setState(() => _medicationReminders = val);
+            _saveSetting('medicationReminders', val);
           }, isDarkMode),
           _buildDivider(isDarkMode),
-          _buildCategoryItem('Health Tips & Insights', Icons.lightbulb_outline, _healthTips, (val) => setState(() => _healthTips = val), isDarkMode),
+          _buildCategoryItem('Health Tips & Insights', Icons.lightbulb_outline, _healthTips, (val) {
+            setState(() => _healthTips = val);
+            _saveSetting('healthTips', val);
+          }, isDarkMode),
            _buildDivider(isDarkMode),
-          _buildCategoryItem('Daily Goal Reminders', Icons.flag_outlined, _dailyGoalReminders, (val) => setState(() => _dailyGoalReminders = val), isDarkMode),
+          _buildCategoryItem('Daily Goal Reminders', Icons.flag_outlined, _dailyGoalReminders, (val) {
+            setState(() => _dailyGoalReminders = val);
+            _saveSetting('dailyGoalReminders', val);
+          }, isDarkMode),
            _buildDivider(isDarkMode),
-          _buildCategoryItem('Activity Alerts', Icons.bolt_outlined, _activityAlerts, (val) => setState(() => _activityAlerts = val), isDarkMode),
+          _buildCategoryItem('Activity Alerts', Icons.bolt_outlined, _activityAlerts, (val) {
+            setState(() => _activityAlerts = val);
+            _saveSetting('activityAlerts', val);
+          }, isDarkMode),
         ],
       ),
     );
@@ -193,7 +203,10 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                  Text('QUIET HOURS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5)),
-                 Transform.scale(scale: 0.75, child: _buildIOSStyleToggle(value: _quietHoursEnabled, onChanged: (val) => setState(() => _quietHoursEnabled = val))),
+                 Transform.scale(scale: 0.75, child: _buildIOSStyleToggle(value: _quietHoursEnabled, onChanged: (val) {
+                   setState(() => _quietHoursEnabled = val);
+                   _saveSetting('quietHoursEnabled', val);
+                 })),
               ],
             ),
           ),
@@ -208,9 +221,17 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: _buildTimePicker('Start Time', _startTime, (time) => setState(() => _startTime = time), isDarkMode)),
+                        Expanded(child: _buildTimePicker('Start Time', _startTime, (time) {
+                          setState(() => _startTime = time);
+                          _saveSetting('quietStartHour', time.hour);
+                          _saveSetting('quietStartMinute', time.minute);
+                        }, isDarkMode)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildTimePicker('End Time', _endTime, (time) => setState(() => _endTime = time), isDarkMode)),
+                        Expanded(child: _buildTimePicker('End Time', _endTime, (time) {
+                          setState(() => _endTime = time);
+                          _saveSetting('quietEndHour', time.hour);
+                          _saveSetting('quietEndMinute', time.minute);
+                        }, isDarkMode)),
                       ],
                     ),
                     const SizedBox(height: 12),

@@ -366,50 +366,169 @@ class _MedsScreenState extends State<MedsScreen> {
     iconBgColor = statusColor.withAlpha(26);
     iconColor = statusColor;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(24),
-        border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10)]
+    return GestureDetector(
+      onTap: () => _showMedicationDetailsDialog(context, medViewData),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(24),
+          border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
+          boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10)]
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: iconBgColor,
+              child: Icon(medIcon, color: iconColor, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(med.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text('${med.dosage} • ${med.timing}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(38),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 4),
+                Text(med.time.format(context), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
+            )
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: iconBgColor,
-            child: Icon(medIcon, color: iconColor, size: 28),
+    );
+  }
+
+  void _showMedicationDetailsDialog(BuildContext context, MedicationViewData medViewData) {
+    final med = medViewData.medication;
+    final status = medViewData.log.status;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Status text formatter
+    String statusText;
+    Color statusColor;
+    switch (status) {
+      case MedicationStatus.taken:
+        statusText = 'Taken';
+        statusColor = Colors.green;
+        break;
+      case MedicationStatus.missed:
+        statusText = 'Missed';
+        statusColor = Colors.red;
+        break;
+      case MedicationStatus.upcoming:
+        statusText = 'Upcoming';
+        statusColor = Colors.blue;
+        break;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF2d1f1f) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.medical_information, color: Theme.of(context).primaryColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  med.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(med.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 4),
-                Text('${med.dosage} • ${med.timing}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                const Divider(),
+                const SizedBox(height: 8),
+                _buildDetailRow(Icons.science, 'Dose/Form', '${med.dosage} (${med.form.name})'),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.access_time, 'Schedule', med.time.format(context)),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.calendar_today, 'Timing', med.timing),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Status', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withAlpha(38),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
-                decoration: BoxDecoration(
-                  color: statusColor.withAlpha(38),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 4),
-              Text(med.time.format(context), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
             ],
-          )
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

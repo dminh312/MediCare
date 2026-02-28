@@ -10,7 +10,6 @@ class MedicationLogViewModel extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
-  // Dependency Injection: Nhận notificationService từ bên ngoài
   final NotificationService _notificationService;
 
   MedicationLogViewModel({required NotificationService notificationService}) 
@@ -20,23 +19,22 @@ class MedicationLogViewModel extends ChangeNotifier {
     final User? user = _auth.currentUser;
     if (user == null) return;
 
-    // 1. QUAN TRỌNG: Đặt lịch thông báo cho điện thoại NGAY LẬP TỨC
     if (medication.reminderEnabled) {
       try {
         await _notificationService.scheduleDailyMedicationNotification(
           id: medication.id.hashCode,
-          title: 'Đến giờ uống ${medication.name} rồi!',
-          body: 'Liều lượng: ${medication.dosage}. Đừng quên nhé!',
+          title: 'Time to take ${medication.name}!',
+          body: 'Dosage: ${medication.dosage}. Don\'t forget!',
           time: medication.time,
           payload: medication.id,
         );
-        debugPrint("[VM_NOTIF] Đã đặt lịch nhắc thuốc thành công: ${medication.name}");
+        debugPrint("[VM_NOTIF] Successfully scheduled medication: ${medication.name}");
       } catch (e) {
-        debugPrint("[VM_NOTIF ERROR] Lỗi đặt lịch: $e");
+        debugPrint("[VM_NOTIF ERROR] Error scheduling: $e");
       }
     }
 
-    // 2. Lưu vào Firestore
+    // 2. Save to Firestore
     final batch = _firestore.batch();
     final now = DateTime.now();
 
@@ -92,10 +90,10 @@ class MedicationLogViewModel extends ChangeNotifier {
   }
 
   Future<void> updateLogsAndNotificationsForMedication(MedicationModel medication) async {
-    // Hủy nhắc nhở cũ
+    // Cancel old reminders
     await cancelNotificationsForMedication(medication.id);
     
-    // Xóa log cũ
+    // Delete old logs
     try {
       final querySnapshot = await _firestore
           .collection('medication_logs')
@@ -109,10 +107,10 @@ class MedicationLogViewModel extends ChangeNotifier {
       }
       await batch.commit();
     } catch (e) {
-      debugPrint("Lỗi dọn dẹp logs cũ: $e");
+      debugPrint("Error cleaning up old logs: $e");
     }
 
-    // Tạo nhắc nhở mới và log mới
+    // Create new reminders and new logs
     await createLogsForNewMedication(medication);
   }
 
@@ -131,14 +129,14 @@ class MedicationLogViewModel extends ChangeNotifier {
         final med = MedicationModel.fromFirestore(doc);
         await _notificationService.scheduleDailyMedicationNotification(
           id: med.id.hashCode,
-          title: 'Đến giờ uống ${med.name} rồi!',
-          body: 'Liều lượng: ${med.dosage}. Đừng quên nhé!',
+          title: 'Time to take ${med.name}!',
+          body: 'Dosage: ${med.dosage}. Don\'t forget!',
           time: med.time,
           payload: med.id,
         );
       }
     } catch (e) {
-      debugPrint("Lỗi đặt lại lịch: $e");
+      debugPrint("Error rescheduling: $e");
     }
   }
 }

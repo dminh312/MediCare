@@ -2,12 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
-  debugPrint("[BACKGROUND] Click: ${notificationResponse.payload}");
+  // Ensure timezones are loaded in this isolated background entry point 
+  if (!tz.timeZoneDatabase.isInitialized) {
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
+  }
+  debugPrint("[BACKGROUND] Clicked notification: ${notificationResponse.payload}");
 }
 
 class NotificationService {
@@ -18,13 +24,11 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   final BehaviorSubject<String?> onNotificationClick = BehaviorSubject();
 
-  // Đổi sang v8 tiêu chuẩn để reset mọi cài đặt cũ
-  static const String _channelId = 'medicare_standard_v8';
-  static const String _channelName = 'Nhắc nhở Thuốc';
+  static const String _channelId = 'medicare_urgent_v9';
+  static const String _channelName = 'Medication Reminders';
 
   Future<void> init() async {
-    tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
+    _initTimezone();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -56,19 +60,26 @@ class NotificationService {
         await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
           _channelId,
           _channelName,
-          description: 'Kênh nhắc nhở uống thuốc tiêu chuẩn.',
-          importance: Importance.max, // Để hiện Pop-up banner
+          description: 'Highest priority notification channel for medication reminders.',
+          importance: Importance.max,
           playSound: true,
           enableVibration: true,
         ));
 
+        // Request required permissions for Android 13+ and Android 12+
         await androidPlugin.requestNotificationsPermission();
-        
         final bool? canSchedule = await androidPlugin.canScheduleExactNotifications();
         if (canSchedule == false) {
           await androidPlugin.requestExactAlarmsPermission();
         }
       }
+    }
+  }
+
+  static void _initTimezone() {
+    if (!tz.timeZoneDatabase.isInitialized) {
+      tz.initializeTimeZones();
+      tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
     }
   }
 
@@ -80,22 +91,32 @@ class NotificationService {
     required String payload,
   }) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool masterEnabled = prefs.getBool('pushNotifications') ?? true;
+      final bool medsEnabled = prefs.getBool('medicationReminders') ?? true;
+
+      if (!masterEnabled || !medsEnabled) {
+        debugPrint("[SERVICE] Skipped medication reminder ($title) because user disabled notifications.");
+        return;
+      }
+
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(time);
+      final int safeId = id & 0x7FFFFFFF;
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        id & 0x7FFFFFFF,
+        safeId,
         title,
         body,
         scheduledDate,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
             importance: Importance.max,
-            priority: Priority.high,
+            priority: Priority.max,
             showWhen: true,
-            // Bỏ fullScreenIntent để tránh bị hệ thống chặn âm thầm
-            styleInformation: BigTextStyleInformation(''),
+            icon: '@mipmap/ic_launcher',
+            styleInformation: BigTextStyleInformation(body, contentTitle: title),
           ),
         ),
         payload: payload,
@@ -103,59 +124,18 @@ class NotificationService {
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      debugPrint("[SERVICE] Đã đặt lịch: $title lúc $scheduledDate");
+      debugPrint("[SERVICE] Scheduled medication: $title at $scheduledDate (ID: $safeId)");
     } catch (e) {
-      debugPrint("[SERVICE ERROR] Lỗi đặt lịch thuốc: $e");
+      debugPrint("[SERVICE ERROR] Error scheduling medication: $e");
     }
-  }
-
-  Future<void> scheduleTestNotification10s() async {
-    try {
-      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
-      debugPrint("[TEST] Đang đặt lịch 10 giây tại: $scheduledDate");
-
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        888,
-        '⏰ MediCare Test (10s)',
-        'Hệ thống đặt lịch đã hoạt động!',
-        scheduledDate,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            importance: Importance.max,
-            priority: Priority.high,
-            showWhen: true,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      );
-    } catch (e) {
-      debugPrint("[TEST ERROR] Lỗi 10s: $e");
-    }
-  }
-
-  Future<void> showTestNotification() async {
-    await flutterLocalNotificationsPlugin.show(
-      999,
-      'MediCare Now',
-      'Thông báo tức thì!',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId, 
-          _channelName, 
-          importance: Importance.max, 
-          priority: Priority.high
-        ),
-      ),
-    );
   }
 
   tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
+    _initTimezone();
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute);
     
+    // If the time already passed, schedule for tomorrow
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }

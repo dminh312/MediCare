@@ -17,14 +17,14 @@ void main() async {
   final notificationService = NotificationService();
   
   try {
-    debugPrint("[SYSTEM] Đang khởi tạo Firebase...");
+    debugPrint("[SYSTEM] Initializing Firebase...");
     await Firebase.initializeApp();
     
-    debugPrint("[SYSTEM] Đang khởi tạo Notification Service...");
+    debugPrint("[SYSTEM] Initializing Notification Service...");
     await notificationService.init();
-    debugPrint("[SYSTEM] Notification Service đã sẵn sàng!");
+    debugPrint("[SYSTEM] Notification Service is ready!");
   } catch (e) {
-    debugPrint("[SYSTEM ERROR] Lỗi khởi tạo: $e");
+    debugPrint("[SYSTEM ERROR] Initialization error: $e");
   }
 
   runApp(
@@ -64,7 +64,7 @@ class _MyAppState extends State<MyApp> {
     final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
     
     notificationService.onNotificationClick.stream.listen((payload) {
-      debugPrint("[APP] Người dùng nhấn vào thông báo với payload: $payload");
+      debugPrint("[APP] User clicked notification with payload: $payload");
       if (payload != null && payload.isNotEmpty) {
         medicationLogViewModel.handleNotificationTap(payload);
       }
@@ -79,6 +79,12 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
       ),
       home: const AuthWrapper(),
     );
@@ -111,10 +117,10 @@ class AuthWrapper extends StatelessWidget {
   void _performPostLoginTasks(BuildContext context) {
     final logViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
     
-    // Đặt lại lịch thông báo
+    // Reschedule notifications
     logViewModel.rescheduleAllNotifications();
     
-    // Khởi tạo thư viện thuốc
+    // Initialize medication library
     MedicationLibraryService().seedMedicationLibrary().catchError((e) {
       debugPrint("Error seeding medication library: $e");
     });

@@ -18,6 +18,7 @@ class _SignUpViewState extends State<SignUpView> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _agreedToTOS = false;
 
   @override
   void dispose() {
@@ -32,18 +33,7 @@ class _SignUpViewState extends State<SignUpView> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
-    // Navigate to TOS screen and wait for result
-    final bool? agreed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TermsOfServiceScreen(isReadOnly: false),
-      ),
-    );
-
-    if (agreed == true) {
-      _performSignUp();
-    }
+    _performSignUp();
   }
 
   void _performSignUp() async {
@@ -154,11 +144,56 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: customInputDecoration(hintText: 'Re-enter password', suffixIcon: Icons.lock_reset),
                         validator: (value) => (value != _passwordController.text) ? 'Passwords do not match' : null,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Checkbox(
+                            value: _agreedToTOS,
+                            activeColor: primaryColor,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _agreedToTOS = value ?? false;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const TermsOfServiceScreen(isReadOnly: true),
+                                  ),
+                                );
+                              },
+                              child: RichText(
+                                text: const TextSpan(
+                                  text: 'I agree to the ',
+                                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Terms of Service',
+                                      style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                    ),
+                                    TextSpan(text: ' & '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _isLoading ? null : _onSignUpPressed,
+                        onPressed: (_isLoading || !_agreedToTOS) ? null : _onSignUpPressed,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
+                          disabledBackgroundColor: primaryColor.withOpacity(0.5),
                           minimumSize: const Size(double.infinity, 58),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
                           elevation: 5,
