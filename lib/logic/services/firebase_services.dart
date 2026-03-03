@@ -29,6 +29,9 @@ class FirebaseAuthService {
         );
 
         await _firestore.collection('users').doc(user.uid).set(userModel.toFirestore());
+        
+        // Dispatch verification email immediately
+        await user.sendEmailVerification();
       }
       
       return user;

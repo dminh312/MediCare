@@ -29,18 +29,31 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       final medicationIds = logSnapshot.docs.map((doc) => doc.data()['medicationId'] as String).toSet().toList();
       if (medicationIds.isEmpty) return [];
 
-      final medicationSnapshot = await FirebaseFirestore.instance
-          .collection('medications')
-          .where(FieldPath.documentId, whereIn: medicationIds)
-          .get();
+      final Map<String, MedicationModel> medicationsMap = {};
 
-      final medicationsMap = {for (var doc in medicationSnapshot.docs) doc.id: MedicationModel.fromFirestore(doc)};
+      for (var i = 0; i < medicationIds.length; i += 10) {
+        final chunk = medicationIds.sublist(
+          i, 
+          i + 10 > medicationIds.length ? medicationIds.length : i + 10
+        );
+        
+        final medicationSnapshot = await FirebaseFirestore.instance
+            .collection('medications')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+            
+        for (var doc in medicationSnapshot.docs) {
+          medicationsMap[doc.id] = MedicationModel.fromFirestore(doc);
+        }
+      }
 
       final viewDataList = <Map<String, dynamic>>[];
       for (final logDoc in logSnapshot.docs) {
         final log = MedicationLog.fromFirestore(logDoc);
         final medication = medicationsMap[log.medicationId];
-        if (medication != null) {
+        
+        // Only show historical logs (past or present), ignore future scheduled alarms 
+        if (medication != null && log.scheduledTime.toDate().isBefore(DateTime.now())) {
           viewDataList.add({
             'log': log,
             'medication': medication,

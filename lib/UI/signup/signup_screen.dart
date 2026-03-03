@@ -3,6 +3,7 @@ import 'package:medicare/UI/share/tos.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/UI/home/home_view.dart';
+import 'package:medicare/main.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({super.key});
@@ -52,7 +53,10 @@ class _SignUpViewState extends State<SignUpView> {
     }
 
     if (mounted && errorMessage == null) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const AuthWrapper()),
+        (route) => false,
+      );
     } else if (mounted && errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),

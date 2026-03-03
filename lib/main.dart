@@ -10,6 +10,7 @@ import 'package:medicare/logic/viewmodels/login_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/logic/services/notification_service.dart';
+import 'package:medicare/UI/signup/verify_email_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +105,11 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData) {
+          final isVerified = snapshot.data!.emailVerified;
+          if (!isVerified) {
+            return const VerifyEmailScreen();
+          }
+
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _performPostLoginTasks(context);
           });

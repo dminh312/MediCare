@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
-  // Ensure timezones are loaded in this isolated background entry point 
+  // Ensure timezones are loaded in this isolated background entry point
   if (!tz.timeZoneDatabase.isInitialized) {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
@@ -134,7 +134,7 @@ class NotificationService {
     _initTimezone();
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute);
-    
+
     // If the time already passed, schedule for tomorrow
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));

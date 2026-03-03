@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:medicare/UI/home/notification/notification_center_screen.dart';
@@ -75,19 +76,42 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       actions: [
-        Badge(
-          label: const Text('3'), // Placeholder for future unread count mechanism
-          backgroundColor: const Color(0xFFff5252),
-          offset: const Offset(-6, 6),
-          child: IconButton(
-            icon: const Icon(Icons.notifications_none_outlined, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotificationCenterScreen()),
-              );
-            },
-          ),
+        StreamBuilder<QuerySnapshot>(
+          stream: _user != null 
+            ? FirebaseFirestore.instance
+                .collection('medication_logs')
+                .where('userId', isEqualTo: _user!.uid)
+                .where('status', isEqualTo: 'upcoming')
+                .snapshots()
+            : const Stream.empty(),
+          builder: (context, snapshot) {
+            int unreadCount = 0;
+            if (snapshot.hasData) {
+              final now = DateTime.now();
+              for (var doc in snapshot.data!.docs) {
+                final scheduledTime = (doc.data() as Map<String, dynamic>)['scheduledTime'] as Timestamp?;
+                if (scheduledTime != null && scheduledTime.toDate().isBefore(now)) {
+                  unreadCount++;
+                }
+              }
+            }
+
+            return Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount.toString()),
+              backgroundColor: const Color(0xFFff5252),
+              offset: const Offset(-6, 6),
+              child: IconButton(
+                icon: const Icon(Icons.notifications_none_outlined, size: 28),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NotificationCenterScreen()),
+                  );
+                },
+              ),
+            );
+          }
         ),
         const SizedBox(width: 8),
       ],
