@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:medicare/UI/profile/account_setting/change_password_screen.dart';
 import 'package:medicare/UI/profile/account_setting/data_sharing.dart';
+import 'package:medicare/UI/share/pp.dart';
+import 'package:medicare/UI/share/tos.dart';
 
 class SecurityPrivacyScreen extends StatefulWidget {
   const SecurityPrivacyScreen({super.key});
@@ -101,6 +103,26 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       title: 'Data Sharing Permissions',
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const DataSharingScreen()));
+                      },
+                      iconBackgroundColor: iconBackgroundColor,
+                      primaryColor: primaryColor,
+                    ),
+                    _buildDivider(borderColor),
+                    _buildSettingsItem(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Privacy Policy',
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()));
+                      },
+                      iconBackgroundColor: iconBackgroundColor,
+                      primaryColor: primaryColor,
+                    ),
+                    _buildDivider(borderColor),
+                    _buildSettingsItem(
+                      icon: Icons.assignment_outlined,
+                      title: 'Terms of Service',
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServiceScreen(isReadOnly: true)));
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
