@@ -7,7 +7,14 @@ class LoginViewModel extends ChangeNotifier {
 
   Future<String?> signIn(String email, String password) async {
     try {
-      await _authService.signInWithEmailAndPassword(email, password);
+      final user = await _authService.signInWithEmailAndPassword(email, password);
+      
+      // Check if email is verified
+      if (user != null && !user.emailVerified) {
+        await _authService.signOut();
+        return 'Please verify your email before logging in.';
+      }
+
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {

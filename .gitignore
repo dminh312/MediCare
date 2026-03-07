@@ -46,3 +46,6 @@ app.*.map.json
 
 Fixing Meds screen/
 Fixing change pw, security enhacement/
+
+# Environment Variables
+.env

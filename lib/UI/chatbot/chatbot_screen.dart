@@ -1,5 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final DateTime time;
+
+  ChatMessage({required this.text, required this.isUser, required this.time});
+}
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -10,6 +24,404 @@ class ChatbotScreen extends StatefulWidget {
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
+  List<ChatMessage> _messages = [];
+  bool _isLoading = false;
+  late final GenerativeModel _model;
+  late ChatSession _chat;
+  String? _currentSessionId;
+  final String _systemInstructionText = "You are Medicare+ AI Chatbot, a helpful and empathetic medical assistant.\n"
+      "You can answer questions about health, medications, and general wellness.\n"
+      "Always provide safe, general advice and remind the user to consult a doctor for serious concerns. Keep your answers concise, friendly and in the language the user is speaking.";
+
+  @override
+  void initState() {
+    super.initState();
+    _initChatbot();
+  }
+
+  Future<void> _initChatbot() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    String userContext = "The user has no active medications recorded.";
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('medications')
+            .where('userId', isEqualTo: user.uid)
+            .get();
+        
+        if (snapshot.docs.isNotEmpty) {
+          userContext = "The user is currently taking the following medications:\n";
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            userContext += "- ${data['name']} (${data['dosage']}): ${data['frequency']} at ${data['timing']}\n";
+            if (data['notes'] != null && data['notes'].toString().trim().isNotEmpty) {
+              userContext += "  Notes: ${data['notes']}\n";
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching medications: $e");
+      }
+    }
+
+    final systemInstruction = Content.system(
+      "$_systemInstructionText\n"
+      "Here is the user's current medication profile to help you provide personalized answers and context:\n"
+      "$userContext\n"
+    );
+
+    _model = GenerativeModel(
+      model: 'gemini-2.5-flash',
+      apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+      systemInstruction: systemInstruction,
+    );
+    
+    _chat = _model.startChat();
+    
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (_messages.isEmpty) {
+          _messages.add(ChatMessage(
+            text: "Hello, I'm Medicare+ AI Chatbot, how can I help you today?",
+            isUser: false,
+            time: DateTime.now(),
+          ));
+        }
+      });
+    }
+  }
+
+  Future<void> _createNewChat() async {
+    setState(() {
+      _currentSessionId = null;
+      _messages = [
+        ChatMessage(
+          text: "Hello, I'm Medicare+ AI Chatbot, how can I help you today?",
+          isUser: false,
+          time: DateTime.now(),
+        )
+      ];
+    });
+    _chat = _model.startChat();
+  }
+
+  Future<void> _loadSession(String sessionId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('chat_sessions')
+          .doc(sessionId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        final messagesData = List<Map<String, dynamic>>.from(data['messages'] ?? []);
+        
+        final loadedMessages = messagesData.map((m) {
+          return ChatMessage(
+            text: m['text'],
+            isUser: m['isUser'],
+            time: (m['timestamp'] as Timestamp).toDate(),
+          );
+        }).toList();
+
+        // Reconstruct Generative AI chat history
+        List<Content> history = [];
+        for (var msg in loadedMessages) {
+          if (msg.text != "Hello, I'm Medicare+ AI Chatbot, how can I help you today?") {
+             history.add(msg.isUser ? Content.text(msg.text) : Content.model([TextPart(msg.text)]));
+          }
+        }
+
+        setState(() {
+          _currentSessionId = sessionId;
+          _messages = loadedMessages;
+          _chat = _model.startChat(history: history);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading session: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load chat history: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _scrollToBottom();
+      }
+    }
+  }
+
+  Future<void> _saveMessageToFirestore(ChatMessage message) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final messageData = {
+      'text': message.text,
+      'isUser': message.isUser,
+      'timestamp': Timestamp.fromDate(message.time),
+    };
+
+    try {
+      if (_currentSessionId == null) {
+        // Create new session
+        final docRef = await FirebaseFirestore.instance.collection('chat_sessions').add({
+          'userId': user.uid,
+          'title': message.text.length > 30 ? '${message.text.substring(0, 30)}...' : message.text,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'messages': [_messages[0].isUser ? messageData : {
+             'text': _messages[0].text,
+             'isUser': _messages[0].isUser,
+             'timestamp': Timestamp.fromDate(_messages[0].time),
+          }, messageData], // Include the initial greeting and the new message
+        });
+        _currentSessionId = docRef.id;
+      } else {
+        // Update existing session
+        await FirebaseFirestore.instance.collection('chat_sessions').doc(_currentSessionId).update({
+          'messages': FieldValue.arrayUnion([messageData]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint("Error saving message: $e");
+    }
+  }
+
+  Future<void> _deleteSession(String sessionId) async {
+    try {
+      await FirebaseFirestore.instance.collection('chat_sessions').doc(sessionId).delete();
+      if (_currentSessionId == sessionId) {
+        _createNewChat();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chat deleted')),
+        );
+        Navigator.pop(context); // Close the drawer/bottom sheet to refresh
+        _showHistoryBottomSheet(context); // Re-open to refresh the list
+      }
+    } catch (e) {
+      debugPrint("Error deleting session: $e");
+    }
+  }
+
+  void _showHistoryBottomSheet(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          builder: (_, controller) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xff1a1111) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    height: 4,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Chat History',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('chat_sessions')
+                          .where('userId', isEqualTo: user.uid)
+                          .orderBy('updatedAt', descending: true)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'No chat history found',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          );
+                        }
+
+                        final docs = snapshot.data!.docs;
+
+                        return ListView.builder(
+                          controller: controller,
+                          itemCount: docs.length,
+                          itemBuilder: (context, index) {
+                            final doc = docs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+                            final title = data['title'] ?? 'New Chat';
+                            final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                            final timeStr = DateFormat('MMM d, hh:mm a').format(updatedAt);
+                            final isSelected = doc.id == _currentSessionId;
+
+                            return ListTile(
+                              leading: Icon(
+                                Icons.chat_bubble_outline,
+                                color: isSelected ? const Color(0xffff5252) : Colors.grey,
+                              ),
+                              title: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                              subtitle: Text(
+                                timeStr,
+                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                              ),
+                              selected: isSelected,
+                              selectedTileColor: isDarkMode
+                                  ? const Color(0xffff5252).withAlpha(26)
+                                  : const Color(0xffff5252).withAlpha(13),
+                              onTap: () {
+                                Navigator.pop(context);
+                                if (!isSelected) {
+                                  _loadSession(doc.id);
+                                }
+                              },
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Chat'),
+                                      content: const Text('Are you sure you want to delete this chat session?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            _deleteSession(doc.id);
+                                          },
+                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+    
+    final userMsg = ChatMessage(text: text, isUser: true, time: DateTime.now());
+    
+    setState(() {
+      _messages.add(userMsg);
+      _isLoading = true;
+    });
+    _textController.clear();
+    _scrollToBottom();
+    
+    await _saveMessageToFirestore(userMsg);
+    
+    try {
+      final response = await _chat.sendMessage(Content.text(text));
+      final botMsgText = response.text ?? 'Sorry, I failed to process that.';
+      final botMsg = ChatMessage(text: botMsgText, isUser: false, time: DateTime.now());
+      
+      setState(() {
+         _isLoading = false;
+         _messages.add(botMsg);
+      });
+      _scrollToBottom();
+      await _saveMessageToFirestore(botMsg);
+      
+    } catch (e) {
+      setState(() {
+         _isLoading = false;
+         _messages.add(ChatMessage(text: 'Error: ${e.toString()}', isUser: false, time: DateTime.now()));
+      });
+      _scrollToBottom();
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,25 +436,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         children: [
           _buildAppBar(isDarkMode, surfaceColor, primaryColor),
           Expanded(
-            child: ListView(
+            child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-              children: [
-                _buildDateChip(isDarkMode),
-                const SizedBox(height: 24),
-                _buildBotMessage(
-                  isDarkMode,
-                  'Hello Sarah! I can help you with your medications or any health questions. How are you feeling today?',
-                  '10:24 AM',
-                ),
-                const SizedBox(height: 24),
-                _buildUserMessage(
-                  isDarkMode,
-                  'Is it safe to take Vitamin C with my current medications?',
-                  '10:25 AM',
-                ),
-                const SizedBox(height: 24),
-                _buildTypingIndicator(isDarkMode),
-              ],
+              itemCount: _messages.length + 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _buildDateChip(isDarkMode),
+                  );
+                }
+                if (index == _messages.length + 1) {
+                  return _isLoading 
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _buildTypingIndicator(isDarkMode),
+                        )
+                      : const SizedBox.shrink();
+                }
+                
+                final msg = _messages[index - 1];
+                final timeStr = DateFormat('hh:mm a').format(msg.time);
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: msg.isUser
+                      ? _buildUserMessage(isDarkMode, msg.text, timeStr)
+                      : _buildBotMessage(isDarkMode, msg.text, timeStr),
+                );
+              },
             ),
           ),
           _buildInputArea(isDarkMode, primaryColor),
@@ -100,15 +523,29 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              // "New chat" button
+              ActionChip(
+                avatar: Icon(Icons.add, color: primaryColor, size: 16),
+                label: const Text('New chat'),
+                onPressed: _createNewChat,
+                backgroundColor: isDarkMode ? primaryColor.withAlpha(26) : primaryColor.withAlpha(20),
+                labelStyle: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: primaryColor.withAlpha(128)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+              ),
+              const SizedBox(width: 8),
+              // History button
               SizedBox(
                 width: 36, height: 36,
                 child: FloatingActionButton(
-                  onPressed: () {},
-                  backgroundColor: isDarkMode ? primaryColor.withAlpha(51) : Colors.red[50],
+                  onPressed: () => _showHistoryBottomSheet(context),
+                  backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[200],
                   elevation: 0,
-                  heroTag: null, // Add this if you have multiple FABs
-                  child: Icon(Icons.call, color: primaryColor, size: 20),
+                  heroTag: null,
+                  child: Icon(Icons.history, color: isDarkMode ? Colors.white : Colors.black87, size: 20),
                 ),
               ),
             ],
@@ -244,6 +681,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               Expanded(
                 child: TextField(
                   controller: _textController,
+                  onSubmitted: _sendMessage,
                   style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 15),
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
@@ -257,7 +695,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(width: 8),
               FloatingActionButton(
-                onPressed: () { /* TODO: Send message */ },
+                onPressed: () { _sendMessage(_textController.text); },
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 elevation: 2,
@@ -277,7 +715,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       padding: const EdgeInsets.only(right: 8.0),
       child: ActionChip(
         label: Text(text),
-        onPressed: () => _textController.text = text,
+        onPressed: () {
+          _textController.text = text;
+          _sendMessage(text);
+        },
         backgroundColor: isDarkMode ? primaryColor.withAlpha(26) : primaryColor.withAlpha(13),
         labelStyle: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(

@@ -11,10 +11,13 @@ import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/logic/services/notification_service.dart';
 import 'package:medicare/UI/signup/verify_email_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await dotenv.load(fileName: ".env");
+
   final notificationService = NotificationService();
   
   try {
@@ -98,7 +101,7 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: FirebaseAuth.instance.userChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));

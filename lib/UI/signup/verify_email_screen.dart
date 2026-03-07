@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/firebase_services.dart';
@@ -12,6 +13,7 @@ class VerifyEmailScreen extends StatefulWidget {
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   bool isEmailVerified = false;
   bool canResendEmail = false;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -19,8 +21,18 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
 
     if (!isEmailVerified) {
-      sendVerificationEmail();
+      Future.delayed(const Duration(seconds: 15), () {
+        if (mounted) setState(() => canResendEmail = true);
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 3), (_) => checkEmailVerified());
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future sendVerificationEmail() async {
@@ -45,6 +57,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     setState(() {
       isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
     });
+    if (isEmailVerified) {
+      _timer?.cancel();
+    }
   }
 
   @override
