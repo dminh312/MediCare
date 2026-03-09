@@ -43,6 +43,10 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to your photo library to upload health records like medical reports and prescriptions.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera to take photos of your health records like medical reports and prescriptions.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 </dict>
