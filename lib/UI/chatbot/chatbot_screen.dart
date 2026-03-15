@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/UI/chatbot/accept_save_history.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class ChatMessage {
   final String text;
@@ -907,12 +908,15 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: isDarkMode ? Colors.grey[200] : Colors.grey[800],
+                MarkdownBody(
+                  data: text,
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(
+                      fontSize: 15,
+                      height: 1.5,
+                      color: isDarkMode ? Colors.grey[200] : Colors.grey[800],
+                    ),
+                    listBullet: TextStyle(color: isDarkMode ? Colors.grey[200] : Colors.grey[800]),
                   ),
                 ),
                 const SizedBox(height: 8),
