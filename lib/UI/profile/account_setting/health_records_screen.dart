@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:medicare/UI/profile/account_setting/record_viewer_screen.dart';
 import 'package:medicare/UI/profile/account_setting/upload_record_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class HealthRecordsScreen extends StatefulWidget {
   const HealthRecordsScreen({super.key});
@@ -204,15 +204,20 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
       child: InkWell(
         onTap: () async {
           if (fileUrl != null && fileUrl.isNotEmpty) {
-            final uri = Uri.parse(fileUrl);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            } else {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Could not open file')),
-                );
-              }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RecordViewerScreen(
+                  fileUrl: fileUrl,
+                  title: title,
+                ),
+              ),
+            );
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No file URL available.')),
+              );
             }
           }
         },

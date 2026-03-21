@@ -4,11 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:medicare/logic/models/medication_log_model.dart';
 import 'package:medicare/logic/models/medication_model.dart';
+import 'package:medicare/logic/services/local_medication_service.dart';
 import 'package:medicare/logic/services/notification_service.dart';
 
 class MedicationLogViewModel extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final LocalMedicationService _localService = LocalMedicationService();
   
   final NotificationService _notificationService;
 
@@ -69,6 +71,15 @@ class MedicationLogViewModel extends ChangeNotifier {
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
+    if (medicationId.startsWith('local_')) {
+      final localLogs = await _localService.getLocalLogsForDateRange(user.uid, startOfDay, endOfDay);
+      final upcomingLogs = localLogs.where((l) => l.status == MedicationStatus.upcoming).toList();
+      if (upcomingLogs.isNotEmpty) {
+        await _localService.updateLocalLogStatus(upcomingLogs.first.id, MedicationStatus.taken, actualTakenTime: now);
+      }
+      return;
+    }
+
     final querySnapshot = await _firestore
         .collection('medication_logs')
         .where('userId', isEqualTo: user.uid)
@@ -113,6 +124,32 @@ class MedicationLogViewModel extends ChangeNotifier {
     // Create new reminders and new logs
     await createLogsForNewMedication(medication);
   }
+
+  Future<void> createLocalLogsAndNotifications(MedicationModel medication) async {
+    if (medication.reminderEnabled) {
+      try {
+        await _notificationService.scheduleDailyMedicationNotification(
+          id: medication.id.hashCode,
+          title: 'Time to take ${medication.name}!',
+          body: 'Dosage: ${medication.dosage}. Don\'t forget!',
+          time: medication.time,
+          payload: medication.id,
+        );
+      } catch (e) {
+        debugPrint("[VM_NOTIF ERROR] Error scheduling local: $e");
+      }
+    }
+    
+    await _localService.createLocalLogsForMedication(medication);
+  }
+
+  Future<void> updateLocalLogsAndNotifications(MedicationModel medication) async {
+    await cancelNotificationsForMedication(medication.id);
+    await _localService.deleteMedicationLocally(medication.id);
+    await _localService.saveMedicationLocally(medication);
+    await createLocalLogsAndNotifications(medication);
+  }
+
 
   Future<void> rescheduleAllNotifications() async {
     final User? user = _auth.currentUser;

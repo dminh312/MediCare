@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:medicare/UI/meds/add_meds/add_meds_screen.dart';
 import 'package:medicare/logic/models/medication_log_model.dart';
 import 'package:medicare/logic/models/medication_model.dart';
+import 'package:medicare/logic/services/local_medication_service.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -24,9 +26,12 @@ class MedsScreen extends StatefulWidget {
 
 class _MedsScreenState extends State<MedsScreen> {
   late int _selectedDayIndex;
-  Stream<List<MedicationViewData>>? _medsStream;
   final _auth = FirebaseAuth.instance;
   late DateTime _today;
+
+  // StreamController so we can push merged (Firestore + local) data manually.
+  final _medsController = StreamController<List<MedicationViewData>>();
+  StreamSubscription? _firestoreSubscription;
 
   @override
   void initState() {
@@ -34,8 +39,15 @@ class _MedsScreenState extends State<MedsScreen> {
     _today = DateTime.now();
     _selectedDayIndex = 3; // Center on today
     if (_auth.currentUser != null) {
-      _updateMissedMedications().then((_) => _updateMedsStream());
+      _updateMissedMedications().then((_) => _refreshMeds());
     }
+  }
+
+  @override
+  void dispose() {
+    _firestoreSubscription?.cancel();
+    _medsController.close();
+    super.dispose();
   }
 
   Future<void> _updateMissedMedications() async {
@@ -70,61 +82,100 @@ class _MedsScreenState extends State<MedsScreen> {
     return baseToday.add(Duration(days: _selectedDayIndex - 3));
   }
 
-  void _updateMedsStream() {
+  void _refreshMeds() {
+    _updateMissedMedications().then((_) => _loadAndPushMeds());
+  }
+
+  Future<void> _loadAndPushMeds() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
     final startOfDay = _selectedDate;
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    setState(() {
-      _medsStream = FirebaseFirestore.instance
-          .collection('medication_logs')
-          .where('userId', isEqualTo: user.uid)
-          .where('scheduledTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('scheduledTime', isLessThan: Timestamp.fromDate(endOfDay))
-          .snapshots()
-          .asyncMap((logSnapshot) async {
-        if (logSnapshot.docs.isEmpty) return [];
+    // Cancel any previous Firestore listener.
+    await _firestoreSubscription?.cancel();
 
-        final medicationIds = logSnapshot.docs.map((doc) => doc.data()['medicationId'] as String).toSet().toList();
-        if (medicationIds.isEmpty) return [];
+    final localService = LocalMedicationService();
 
+    _firestoreSubscription = FirebaseFirestore.instance
+        .collection('medication_logs')
+        .where('userId', isEqualTo: user.uid)
+        .where('scheduledTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('scheduledTime', isLessThan: Timestamp.fromDate(endOfDay))
+        .snapshots()
+        .listen((logSnapshot) async {
+      // --- Local data ---
+      await localService.updateMissedLocalLogs(user.uid);
+      final localLogs = await localService.getLocalLogsForDateRange(user.uid, startOfDay, endOfDay);
+      final localMedsList = await localService.getLocalMedications(user.uid);
+      final localMedsMap = {for (var med in localMedsList) med.id: med};
+
+      // --- Firestore data ---
+      final medicationIds = logSnapshot.docs
+          .map((doc) => doc.data()['medicationId'] as String)
+          .toSet()
+          .toList();
+
+      Map<String, MedicationModel> medicationsMap = {};
+      if (medicationIds.isNotEmpty) {
         final medicationSnapshot = await FirebaseFirestore.instance
             .collection('medications')
             .where(FieldPath.documentId, whereIn: medicationIds)
             .get();
+        medicationsMap = {for (var doc in medicationSnapshot.docs) doc.id: MedicationModel.fromFirestore(doc)};
+      }
 
-        final medicationsMap = {for (var doc in medicationSnapshot.docs) doc.id: MedicationModel.fromFirestore(doc)};
+      // --- Merge ---
+      final viewDataList = <MedicationViewData>[];
 
-        final viewDataList = <MedicationViewData>[];
-        for (final logDoc in logSnapshot.docs) {
-          final log = MedicationLog.fromFirestore(logDoc);
-          final medication = medicationsMap[log.medicationId];
-          if (medication != null) {
-            viewDataList.add(MedicationViewData(medication: medication, log: log));
-          }
+      for (final logDoc in logSnapshot.docs) {
+        final log = MedicationLog.fromFirestore(logDoc);
+        final medication = medicationsMap[log.medicationId];
+        if (medication != null) {
+          viewDataList.add(MedicationViewData(medication: medication, log: log));
         }
-        viewDataList.sort((a, b) => a.log.scheduledTime.compareTo(b.log.scheduledTime));
-        return viewDataList;
-      });
+      }
+
+      for (final localLog in localLogs) {
+        final medication = localMedsMap[localLog.medicationId];
+        if (medication != null) {
+          viewDataList.add(MedicationViewData(medication: medication, log: localLog));
+        }
+      }
+
+      viewDataList.sort((a, b) => a.log.scheduledTime.compareTo(b.log.scheduledTime));
+
+      if (!_medsController.isClosed) {
+        _medsController.add(viewDataList);
+      }
+    }, onError: (e) {
+      if (!_medsController.isClosed) {
+        _medsController.addError(e);
+      }
     });
   }
 
   Future<void> _deleteMedication(MedicationModel medication) async {
     final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
+    final localService = LocalMedicationService();
 
-    await FirebaseFirestore.instance.collection('medications').doc(medication.id).delete();
+    if (medication.id.startsWith('local_')) {
+      await localService.deleteMedicationLocally(medication.id);
+      await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
+      _updateMissedMedications().then((_) => _loadAndPushMeds());
+    } else {
+      await FirebaseFirestore.instance.collection('medications').doc(medication.id).delete();
+      final logSnapshot = await FirebaseFirestore.instance.collection('medication_logs').where('medicationId', isEqualTo: medication.id).get();
 
-    final logSnapshot = await FirebaseFirestore.instance.collection('medication_logs').where('medicationId', isEqualTo: medication.id).get();
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in logSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
 
-    final batch = FirebaseFirestore.instance.batch();
-    for (final doc in logSnapshot.docs) {
-      batch.delete(doc.reference);
+      await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
     }
-    await batch.commit();
-
-    await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
   }
 
   void _editMedication(MedicationModel medication) {
@@ -132,7 +183,7 @@ class _MedsScreenState extends State<MedsScreen> {
       context,
       MaterialPageRoute(builder: (context) => AddMedsScreen(medication: medication)),
     ).then((_) {
-       _updateMissedMedications().then((_) => _updateMedsStream());
+       _updateMissedMedications().then((_) => _loadAndPushMeds());
     });
   }
 
@@ -163,7 +214,7 @@ class _MedsScreenState extends State<MedsScreen> {
                     context,
                     MaterialPageRoute(builder: (context) => const AddMedsScreen()),
                   ).then((_) {
-                     _updateMissedMedications().then((_) => _updateMedsStream());
+                     _updateMissedMedications().then((_) => _loadAndPushMeds());
                   });
                 },
               ),
@@ -177,7 +228,7 @@ class _MedsScreenState extends State<MedsScreen> {
           const SizedBox(height: 24),
           Expanded(
             child: StreamBuilder<List<MedicationViewData>>(
-              stream: _medsStream,
+              stream: _medsController.stream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
@@ -231,7 +282,7 @@ class _MedsScreenState extends State<MedsScreen> {
           return GestureDetector(
             onTap: () => setState(() {
               _selectedDayIndex = index;
-              _updateMedsStream();
+              _loadAndPushMeds();
             }),
             child: Container(
               width: 55,

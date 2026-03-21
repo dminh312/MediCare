@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:medicare/logic/models/medication_model.dart';
 import 'package:medicare/logic/services/medication_library_service.dart';
+import 'package:medicare/logic/services/local_medication_service.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -86,7 +87,6 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         case MedicationForm.pill:
         case MedicationForm.tablet:
         case MedicationForm.capsule:
-        default:
           return Icons.scale;
       }
     } catch (e) {
@@ -103,9 +103,23 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
 
       // Chỉ cần lấy ViewModel
       final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
+      final localService = LocalMedicationService();
+
+      bool isLocal = false;
+      if (_isEditMode) {
+        isLocal = widget.medication!.id.startsWith('local_');
+      } else {
+        final libraryResults = await _libraryService.searchMedications(_medNameController.text);
+        final isLibraryMed = libraryResults.any((name) => name.toLowerCase() == _medNameController.text.toLowerCase());
+        isLocal = !isLibraryMed;
+      }
+
+      final String medId = _isEditMode
+          ? widget.medication!.id
+          : (isLocal ? 'local_${DateTime.now().millisecondsSinceEpoch}' : FirebaseFirestore.instance.collection('medications').doc().id);
 
       final medicationData = MedicationModel(
-        id: _isEditMode ? widget.medication!.id : FirebaseFirestore.instance.collection('medications').doc().id,
+        id: medId,
         userId: user.uid,
         name: _medNameController.text,
         dosage: _dosage!,
@@ -120,17 +134,28 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       );
 
       try {
-        if (_isEditMode) {
-          await FirebaseFirestore.instance.collection('medications').doc(widget.medication!.id).update(medicationData.toFirestore());
-          // ViewModel sẽ tự động xử lý việc cập nhật thông báo
-          await medicationLogViewModel.updateLogsAndNotificationsForMedication(medicationData);
+        if (isLocal) {
+          if (_isEditMode) {
+            await localService.saveMedicationLocally(medicationData);
+            await medicationLogViewModel.updateLocalLogsAndNotifications(medicationData);
+          } else {
+            await localService.saveMedicationLocally(medicationData);
+            await medicationLogViewModel.createLocalLogsAndNotifications(medicationData);
+          }
         } else {
-          await FirebaseFirestore.instance.collection('medications').doc(medicationData.id).set(medicationData.toFirestore());
-          // ViewModel sẽ tự động xử lý việc tạo thông báo
-          await medicationLogViewModel.createLogsForNewMedication(medicationData);
+          if (_isEditMode) {
+            await FirebaseFirestore.instance.collection('medications').doc(widget.medication!.id).update(medicationData.toFirestore());
+            // ViewModel sẽ tự động xử lý việc cập nhật thông báo
+            await medicationLogViewModel.updateLogsAndNotificationsForMedication(medicationData);
+          } else {
+            await FirebaseFirestore.instance.collection('medications').doc(medicationData.id).set(medicationData.toFirestore());
+            // ViewModel sẽ tự động xử lý việc tạo thông báo
+            await medicationLogViewModel.createLogsForNewMedication(medicationData);
+          }
         }
         
         // === XOÁ HOÀN TOÀN KHỐI CODE ĐẶT LỊCH THỪA TẠI ĐÂY ===
+
 
         if (mounted) {
           Navigator.of(context).pop();
@@ -375,15 +400,41 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         );
       },
       suggestionsCallback: (pattern) async {
-        return await _libraryService.searchMedications(pattern);
+        // Don't show anything when field is empty
+        if (pattern.trim().isEmpty) return [];
+        final results = await _libraryService.searchMedications(pattern);
+        // Append an "Add as personal" sentinel when no exact match exists in the library
+        final exactMatch = results.any((r) => r.toLowerCase() == pattern.trim().toLowerCase());
+        if (!exactMatch) {
+          results.add('__add_personal__:${pattern.trim()}');
+        }
+        return results;
       },
       itemBuilder: (context, suggestion) {
+        if (suggestion.startsWith('__add_personal__:')) {
+          final name = suggestion.split(':').sublist(1).join(':');
+          return ListTile(
+            leading: const Icon(Icons.add_circle_outline, color: Color(0xffff5252)),
+            title: Text(
+              'Add "$name" as personal medication',
+              style: const TextStyle(color: Color(0xffff5252), fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text('Saved locally on this device only', style: TextStyle(fontSize: 11)),
+          );
+        }
         return ListTile(
+          leading: const Icon(Icons.medication_outlined, color: Colors.grey),
           title: Text(suggestion),
         );
       },
       onSelected: (suggestion) {
-        _medNameController.text = suggestion;
+        if (suggestion.startsWith('__add_personal__:')) {
+          // Strip the sentinel prefix and use the typed name
+          final name = suggestion.split(':').sublist(1).join(':');
+          _medNameController.text = name;
+        } else {
+          _medNameController.text = suggestion;
+        }
       },
     );
   }
