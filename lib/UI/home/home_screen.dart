@@ -38,12 +38,84 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24),
             _buildHealthMetrics(isDarkMode, surfaceColor, textColor),
             const SizedBox(height: 24),
-            _buildPlaceholder("More insights below...", isDarkMode),
+            _buildFindPharmaciesCard(isDarkMode, surfaceColor, textColor),
             const SizedBox(height: 16),
             _buildPlaceholder("History Log...", isDarkMode),
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFindPharmaciesCard(bool isDarkMode, Color surfaceColor, Color textColor) {
+    const primaryColor = Color(0xFFff5252);
+    final primaryLight = isDarkMode ? primaryColor.withValues(alpha: 0.2) : const Color(0xFFffebee);
+    
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -16,
+            top: -16,
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryColor.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: primaryLight,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.map, color: primaryColor, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Find Pharmacies", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                      const SizedBox(height: 2),
+                      Text("Locate the nearest medical stores", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(12),
+                    elevation: 4,
+                    shadowColor: primaryColor.withValues(alpha: 0.4),
+                  ),
+                  child: const Icon(Icons.arrow_forward, size: 24),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
