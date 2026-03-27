@@ -8,6 +8,7 @@ import 'package:medicare/logic/models/medication_log_model.dart';
 import 'package:medicare/logic/models/medication_model.dart';
 import 'package:medicare/logic/services/local_medication_service.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 class MedicationViewData {
@@ -325,13 +326,15 @@ class _MedsScreenState extends State<MedsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          ...meds.map((med) => _buildMedicationItem(med, surfaceColor)),
+          ...List.generate(meds.length, (index) {
+            return _buildMedicationItem(meds[index], surfaceColor, index);
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor) {
+  Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor, int index) {
     final med = medViewData.medication;
     // SỬA LỖI: Sử dụng log.id làm Key thay vì med.id để tránh trùng lặp
     return Dismissible(
@@ -375,7 +378,7 @@ class _MedsScreenState extends State<MedsScreen> {
         return false;
       },
       child: _buildMedicationListItem(medViewData, surfaceColor),
-    );
+    ).animate().fade(duration: 400.ms, delay: (50 * index).ms).slideX(begin: 0.1, curve: Curves.easeOut);
   }
 
   Widget _buildMedicationListItem(MedicationViewData medViewData, Color surfaceColor) {

@@ -16,6 +16,7 @@ class _SignUpViewState extends State<SignUpView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
@@ -23,6 +24,7 @@ class _SignUpViewState extends State<SignUpView> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -51,7 +53,7 @@ class _SignUpViewState extends State<SignUpView> {
     final signUpViewModel = Provider.of<SignUpViewModel>(context, listen: false);
     String? errorMessage;
     try {
-      errorMessage = await signUpViewModel.signUp(_emailController.text, _passwordController.text, _nameController.text);
+      errorMessage = await signUpViewModel.signUp(_emailController.text, _passwordController.text, _nameController.text, _phoneController.text);
     } catch (e) {
       errorMessage = e.toString();
     }
@@ -137,6 +139,15 @@ class _SignUpViewState extends State<SignUpView> {
                         keyboardType: TextInputType.emailAddress,
                         decoration: customInputDecoration(hintText: 'Enter your email', suffixIcon: Icons.mail),
                         validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Phone Number', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: customInputDecoration(hintText: 'Enter your phone number', suffixIcon: Icons.phone),
+                        validator: (value) => (value == null || value.isEmpty) ? 'Please enter your phone number' : null,
                       ),
                       const SizedBox(height: 16),
                       const Text('Password', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),

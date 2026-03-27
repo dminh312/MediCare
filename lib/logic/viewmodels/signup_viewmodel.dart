@@ -5,9 +5,9 @@ import 'package:medicare/logic/services/firebase_services.dart';
 class SignUpViewModel extends ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();
 
-  Future<String?> signUp(String email, String password, String name) async {
+  Future<String?> signUp(String email, String password, String name, String phoneNumber) async {
     try {
-      await _authService.signUpWithEmailAndPassword(email, password, name);
+      await _authService.signUpWithEmailAndPassword(email, password, name, phoneNumber);
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {

@@ -16,6 +16,7 @@ class PersonalInformationScreen extends StatefulWidget {
 class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
   final _weightController = TextEditingController();
   final _heightController = TextEditingController();
@@ -46,6 +47,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         _nameController.text = data['displayName'] ?? '';
+        _phoneController.text = data['phoneNumber'] ?? '';
         if (data['dob'] != null) {
           _dobController.text = DateFormat('MM/dd/yyyy').format((data['dob'] as Timestamp).toDate());
         }
@@ -119,6 +121,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
     try {
       Map<String, dynamic> dataToUpdate = {
         'displayName': _nameController.text,
+        'phoneNumber': _phoneController.text,
         'gender': _selectedGender,
         'weight': double.tryParse(_weightController.text),
         'height': double.tryParse(_heightController.text),
@@ -155,6 +158,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _dobController.dispose();
     _weightController.dispose();
     _heightController.dispose();
@@ -194,6 +198,8 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                       _buildProfilePicture(isDarkMode, surfaceColor, primaryColor),
                       const SizedBox(height: 40),
                       _buildTextField(label: 'Full Name', controller: _nameController, hintText: 'Enter your full name', primaryColor: primaryColor, surfaceColor: surfaceColor),
+                      const SizedBox(height: 24),
+                      _buildTextField(label: 'Phone Number', controller: _phoneController, hintText: 'Enter your phone number', keyboardType: TextInputType.phone, primaryColor: primaryColor, surfaceColor: surfaceColor),
                       const SizedBox(height: 24),
                       _buildDateField(label: 'Date of Birth', controller: _dobController, primaryColor: primaryColor, surfaceColor: surfaceColor),
                       const SizedBox(height: 24),

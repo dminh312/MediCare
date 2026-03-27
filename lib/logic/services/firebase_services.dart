@@ -9,7 +9,7 @@ class FirebaseAuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Sign up with email and password
-  Future<User?> signUpWithEmailAndPassword(String email, String password, String name) async {
+  Future<User?> signUpWithEmailAndPassword(String email, String password, String name, String phoneNumber) async {
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       User? user = credential.user;
@@ -23,6 +23,7 @@ class FirebaseAuthService {
           uid: user.uid,
           email: email,
           displayName: name,
+          phoneNumber: phoneNumber,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
           preferences: model.UserPreferences(),

@@ -4,6 +4,7 @@ class UserModel {
   final String uid;
   final String email;
   final String displayName;
+  final String? phoneNumber;
   final String role;
   final String? photoURL;
   final Timestamp createdAt;
@@ -14,6 +15,7 @@ class UserModel {
     required this.uid,
     required this.email,
     required this.displayName,
+    this.phoneNumber,
     this.role = 'user',
     this.photoURL,
     required this.createdAt,
@@ -27,6 +29,7 @@ class UserModel {
       uid: doc.id,
       email: data['email'],
       displayName: data['displayName'],
+      phoneNumber: data['phoneNumber'],
       role: data['role'] ?? 'user',
       photoURL: data['photoURL'],
       createdAt: data['createdAt'],
@@ -40,6 +43,7 @@ class UserModel {
       'uid': uid,
       'email': email,
       'displayName': displayName,
+      'phoneNumber': phoneNumber,
       'role': role,
       'photoURL': photoURL,
       'createdAt': createdAt,

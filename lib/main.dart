@@ -89,6 +89,12 @@ class _MyAppState extends State<MyApp> {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       home: const AuthWrapper(),
     );

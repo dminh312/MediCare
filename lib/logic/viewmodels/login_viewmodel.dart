@@ -18,6 +18,8 @@ class LoginViewModel extends ChangeNotifier {
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
+        case 'invalid-credential':
+          return 'Invalid email or password. Please try again.';
         case 'user-not-found':
           return 'No user found for that email.';
         case 'wrong-password':
@@ -33,7 +35,7 @@ class LoginViewModel extends ChangeNotifier {
   Future<String?> signInWithGoogle() async {
     try {
       await _authService.signInWithGoogle();
-      return null; // Return null on success
+      return null;
     } on FirebaseAuthException catch (e) {
       return e.message;
     } catch (e) {

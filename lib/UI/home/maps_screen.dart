@@ -217,7 +217,7 @@ class _MapsScreenState extends State<MapsScreen> {
       Position? position = await Geolocator.getLastKnownPosition();
       position ??= await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 3),
+        timeLimit: const Duration(seconds: 10),
       );
 
       _initialPosition = LatLng(position.latitude, position.longitude);
