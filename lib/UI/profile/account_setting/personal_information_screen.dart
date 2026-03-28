@@ -238,7 +238,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                 ),
               ),
             ),
-    );
+    ));
   }
 
   Widget _buildProfilePicture(bool isDarkMode, Color surfaceColor, Color primaryColor) {

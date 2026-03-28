@@ -137,9 +137,5 @@ class AuthWrapper extends StatelessWidget {
     // Reschedule notifications
     logViewModel.rescheduleAllNotifications();
     
-    // Initialize medication library
-    MedicationLibraryService().seedMedicationLibrary().catchError((e) {
-      debugPrint("Error seeding medication library: $e");
-    });
   }
 }

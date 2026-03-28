@@ -236,7 +236,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   // Helper to build the main container card

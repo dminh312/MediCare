@@ -166,7 +166,7 @@ class _LoginViewState extends State<LoginView> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildHeader(Color primaryColor, Color textColor) {

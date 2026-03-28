@@ -132,6 +132,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad),
               ),
             ),
-          );
+          ));
   }
 }

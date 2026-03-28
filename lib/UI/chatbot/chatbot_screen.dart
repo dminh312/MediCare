@@ -1127,7 +1127,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         ],
       ),
       ),
-    );
+    ));
   }
 
   Widget _buildSuggestionChip(

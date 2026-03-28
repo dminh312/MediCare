@@ -207,7 +207,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildPasswordField({

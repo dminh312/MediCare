@@ -204,7 +204,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildSettingsItem({
