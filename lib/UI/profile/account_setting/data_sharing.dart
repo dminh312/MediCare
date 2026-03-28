@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DataSharingScreen extends StatefulWidget {
   const DataSharingScreen({super.key});
@@ -35,33 +36,28 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     // Re-using the color scheme from previous screens
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
-    final backgroundColor = isDarkMode
-        ? const Color(0xff1a1111)
-        : const Color(0xfffdf8f8);
-    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
+    final surfaceColor = isDarkMode ? const Color(0xff1E293B) : Colors.white;
     final Color borderColor = isDarkMode
-        ? Colors.red.shade900.withAlpha(26)
+        ? Colors.white10
         : Colors.red.shade50;
     final Color iconBackgroundColor = isDarkMode
         ? Colors.red.shade900.withAlpha(51)
         : Colors.red.shade50;
-    final textColor = isDarkMode ? Colors.grey[100] : Colors.grey[900];
-    final subtleTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtleTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[600];
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         // AppBar styling similar to other screens
-        backgroundColor: (isDarkMode ? surfaceColor : Colors.white).withAlpha(
-          204,
-        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(
             Icons.chevron_left,
             size: 28,
-            color: isDarkMode ? Colors.grey[200] : Colors.grey[700],
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -69,19 +65,28 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
           'Data Sharing',
           style: TextStyle(
             color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.4,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Plus Jakarta Sans',
           ),
         ),
         centerTitle: true,
-        actions: [const SizedBox(width: 48)],
-        shape: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+        actions: const [SizedBox(width: 48)],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: ListView(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode 
+                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
               // Description Text
@@ -93,18 +98,20 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 child: Text(
                   'Control how your health data is shared with our trusted third-party partners and medical research institutions to improve your healthcare experience and support medical breakthroughs.',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     color: subtleTextColor,
+                    fontFamily: 'Plus Jakarta Sans',
                     height: 1.6,
                   ),
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               const SizedBox(height: 24),
 
               // Sharing Options Card
               _buildCard(
                 surfaceColor: surfaceColor,
                 borderColor: borderColor,
+                isDarkMode: isDarkMode,
                 child: Column(
                   children: [
                     _buildSharingOption(
@@ -115,6 +122,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                           setState(() => _healthStatsSharing = val),
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSharingOption(
@@ -125,6 +133,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                           setState(() => _activityDataSharing = val),
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSharingOption(
@@ -135,6 +144,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                           setState(() => _medicationHistorySharing = val),
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSharingOption(
@@ -151,6 +161,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSharingOption(
@@ -161,11 +172,12 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                           setState(() => _anonymizedResearchSharing = val),
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                       isLast: true,
                     ),
                   ],
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               const SizedBox(height: 40),
 
               // Connected Apps Section
@@ -174,16 +186,18 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 child: Text(
                   'CONNECTED APPS',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor.withAlpha(204),
+                    color: primaryColor,
+                    fontFamily: 'Plus Jakarta Sans',
                     letterSpacing: 0.5,
                   ),
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               _buildCard(
                 surfaceColor: surfaceColor,
                 borderColor: borderColor,
+                isDarkMode: isDarkMode,
                 child: Column(
                   children: [
                     _buildConnectedApp(
@@ -208,15 +222,15 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                     ),
                   ],
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 400.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               const SizedBox(height: 40),
 
               // Footer Text
               Text(
                 'Third-party apps are subject to their own privacy policies.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+                style: TextStyle(color: subtleTextColor, fontSize: 12, fontFamily: 'Plus Jakarta Sans'),
+              ).animate().fade(duration: 400.ms, delay: 500.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               const SizedBox(height: 20),
             ],
           ),
@@ -229,6 +243,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
   Widget _buildCard({
     required Color surfaceColor,
     required Color borderColor,
+    required bool isDarkMode,
     required Widget child,
   }) {
     return Container(
@@ -238,11 +253,10 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: borderColor, width: 1.0),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          if (!isDarkMode)
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8))
+          else
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 8)),
         ],
       ),
       child: child,
@@ -257,6 +271,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     required ValueChanged<bool> onChanged,
     required Color iconBackgroundColor,
     required Color primaryColor,
+    required bool isDarkMode,
     bool isLast = false,
   }) {
     return Padding(
@@ -276,7 +291,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87, fontFamily: 'Plus Jakarta Sans'),
             ),
           ),
           Switch(
@@ -324,15 +339,17 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
               children: [
                 Text(
                   appName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    fontFamily: 'Plus Jakarta Sans',
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   status,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[500] : Colors.grey[600], fontFamily: 'Plus Jakarta Sans'),
                 ),
               ],
             ),

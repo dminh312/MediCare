@@ -12,6 +12,7 @@ import 'package:medicare/UI/profile/account_setting/security_privacy_screen.dart
 import 'package:medicare/UI/profile/notification_setting/notification_setting_screen.dart';
 import 'package:medicare/UI/profile/support/support_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 // Profile Page Widget
 class ProfilePage extends StatefulWidget {
@@ -119,7 +120,8 @@ class _ProfilePageState extends State<ProfilePage> {
         body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildProfileHeader(context, isDarkMode, primaryColor, textColor, secondaryTextColor),
+            _buildProfileHeader(context, isDarkMode, primaryColor, textColor, secondaryTextColor)
+                .animate().fade(duration: 500.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -144,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const SecurityPrivacyScreen()));
                       }),
                     ],
-                  ),
+                  ).animate().fade(duration: 400.ms, delay: 200.ms).slideX(begin: 0.1, curve: Curves.easeOutQuad),
                   const SizedBox(height: 24),
                   _buildSettingsSection(
                     context: context,
@@ -157,9 +159,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportScreen()));
                       }),
                     ],
-                  ),
+                  ).animate().fade(duration: 400.ms, delay: 400.ms).slideX(begin: 0.1, curve: Curves.easeOutQuad),
                   const SizedBox(height: 32),
-                  _buildLogoutButton(context, primaryLightColor, primaryColor, isDarkMode),
+                  _buildLogoutButton(context, primaryLightColor, primaryColor, isDarkMode)
+                      .animate().fade(duration: 400.ms, delay: 600.ms).scaleXY(begin: 0.9, curve: Curves.easeOutQuad),
                   const SizedBox(height: 24),
                   Text(
                     'Version 2.4.1 (Build 108)',
@@ -188,13 +191,17 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.only(top: 60, bottom: 32),
       decoration: BoxDecoration(
         gradient: isDarkMode
-            ? null
+            ? const LinearGradient(
+                colors: [Color(0xFF2d1f1f), Color(0xFF1a1111)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              )
             : const LinearGradient(
                 colors: [Color(0xFFffebee), Color(0xFFfdf8f8)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
-        color: isDarkMode ? const Color(0xFF2d1f1f) : null,
+        color: isDarkMode ? null : null,
       ),
       child: Column(
         children: [
@@ -206,12 +213,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   shape: BoxShape.circle,
                   border: Border.all(color: isDarkMode ? Colors.red[900]!.withOpacity(0.3) : Colors.white, width: 4),
                   boxShadow: isDarkMode
-                      ? []
-                      : [
+                      ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.4),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
+                          )
+                        ]
+                      : [
+                          BoxShadow(
+                            color: primaryColor.withOpacity(0.2),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
                           )
                         ],
                 ),
@@ -266,12 +279,12 @@ class _ProfilePageState extends State<ProfilePage> {
         color: surfaceColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: isDarkMode
-            ? []
+            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))]
             : [
                 BoxShadow(
                   color: Colors.red.withOpacity(0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 5),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
       ),
@@ -348,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage> {
         style: TextButton.styleFrom(
           backgroundColor: isDarkMode ? primaryColor.withOpacity(0.1) : primaryLightColor,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

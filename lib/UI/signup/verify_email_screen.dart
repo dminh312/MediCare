@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/firebase_services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -64,13 +65,29 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = isDarkMode 
+        ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+        : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)];
+
     return isEmailVerified
         ? const SizedBox() // Main logic stream will handle routing to HomeView
-        : Scaffold(
-            appBar: AppBar(
-              title: const Text('Verify Email'),
-              centerTitle: true,
+        : Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradientColors,
+              ),
             ),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                title: const Text('Verify Email'),
+                centerTitle: true,
+              ),
             body: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -112,7 +129,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     onPressed: () => FirebaseAuthService().signOut(),
                     child: const Text('Cancel / Logout', style: TextStyle(color: Colors.red)),
                   ),
-                ],
+                ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad),
               ),
             ),
           );

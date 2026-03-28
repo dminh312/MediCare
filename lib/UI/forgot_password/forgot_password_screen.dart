@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/forgot_password_viewmodel.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
@@ -27,20 +28,33 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     const secondaryTextColor = Color(0xFF5e4b4d);
     const backgroundColor = Color(0xFFf8f6f6);
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: textColor, size: 22),
-          onPressed: () => Navigator.of(context).pop(),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = isDarkMode 
+        ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+        : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: textColor, size: 22),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            children: [
             Expanded(
               child: SingleChildScrollView(
                 child: Form(
@@ -52,8 +66,11 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                         width: 96,
                         height: 96,
                         decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
+                          color: Colors.white,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: primaryColor.withOpacity(0.15), spreadRadius: 4, blurRadius: 20, offset: const Offset(0, 8)),
+                          ],
                         ),
                         child: const Icon(Icons.lock_reset, color: primaryColor, size: 50),
                       ),
@@ -113,13 +130,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           minimumSize: const Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                          elevation: 5,
-                          shadowColor: primaryColor.withOpacity(0.3),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.0)),
+                          elevation: 8,
+                          shadowColor: primaryColor.withOpacity(0.4),
                         ),
                         child: const Text('Reset Password', style: TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
-                    ],
+                    ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad),
                   ),
                 ),
               ),

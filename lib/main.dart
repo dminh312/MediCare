@@ -12,6 +12,7 @@ import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/logic/services/notification_service.dart';
 import 'package:medicare/UI/signup/verify_email_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,6 +84,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(),
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(

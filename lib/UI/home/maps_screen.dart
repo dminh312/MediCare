@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PharmacyDetails {
   final String id;
@@ -44,11 +45,19 @@ class _MapsScreenState extends State<MapsScreen> {
   final List<PharmacyDetails> _pharmaciesList = [];
   BitmapDescriptor? _customIconRed;
   BitmapDescriptor? _customIconBlue;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeApp() async {
@@ -189,6 +198,112 @@ class _MapsScreenState extends State<MapsScreen> {
       }
     } catch (e) {
       debugPrint("Failed to fetch nearby pharmacies: $e");
+    } finally {
+      if (mounted && _isSearching) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _searchPharmacies(String query) async {
+    if (query.trim().isEmpty) {
+      if (_initialPosition != null) {
+        await _fetchNearbyPharmacies(_initialPosition!);
+      }
+      return;
+    }
+
+    if (_initialPosition == null) return;
+    
+    setState(() {
+      _isSearching = true;
+      _selectedPharmacy = null;
+    });
+
+    final apiKey = dotenv.env['MAPS_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      debugPrint("Google API key is missing");
+      setState(() => _isSearching = false);
+      return;
+    }
+
+    final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/textsearch/json'
+        '?query=${Uri.encodeComponent(query)}'
+        '&location=${_initialPosition!.latitude},${_initialPosition!.longitude}'
+        '&radius=5000' // slightly larger radius for text search
+        '&type=pharmacy'
+        '&key=$apiKey');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final results = data['results'] as List<dynamic>? ?? [];
+
+        _pharmaciesList.clear();
+        _customIconRed ??= await _getMarkerBitmap(36, false);
+        _customIconBlue ??= await _getMarkerBitmap(42, true);
+
+        for (var place in results) {
+          final baseGeometry = place['geometry'];
+          if (baseGeometry != null) {
+            final locationData = baseGeometry['location'];
+            final lat = locationData['lat'] as double;
+            final lng = locationData['lng'] as double;
+            final name = place['name'] ?? 'Pharmacy';
+            final address = place['formatted_address'] ?? place['vicinity'] ?? '';
+            final placeId = place['place_id'] as String;
+            final rating = (place['rating'] as num?)?.toDouble() ?? 4.5;
+            
+            final openingHours = place['opening_hours'];
+            final openNow = openingHours != null ? openingHours['open_now'] as bool? : null;
+
+            final distance = Geolocator.distanceBetween(
+              _initialPosition!.latitude,
+              _initialPosition!.longitude,
+              lat,
+              lng,
+            );
+
+            _pharmaciesList.add(
+              PharmacyDetails(
+                id: placeId,
+                name: name,
+                address: address,
+                position: LatLng(lat, lng),
+                rating: rating,
+                openNow: openNow,
+                distanceInMeters: distance,
+              )
+            );
+          }
+        }
+        
+        _pharmaciesList.sort((a, b) => a.distanceInMeters.compareTo(b.distanceInMeters));
+
+        if (mounted) {
+          setState(() {
+            if (_pharmaciesList.isNotEmpty) {
+              _selectedPharmacy = _pharmaciesList.first;
+              mapController?.animateCamera(CameraUpdate.newLatLng(_pharmaciesList.first.position));
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No pharmacies found matching your search.')));
+            }
+            _updateMarkers();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to search pharmacies: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
     }
   }
 
@@ -313,8 +428,8 @@ class _MapsScreenState extends State<MapsScreen> {
             mapToolbarEnabled: false,
             markers: _pharmacyMarkers,
             padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 120,
-              bottom: _selectedPharmacy != null ? 220 : 0,
+              top: MediaQuery.of(context).padding.top + 180,
+              bottom: _selectedPharmacy != null ? 240 : 0,
             ),
           ),
         ),
@@ -329,7 +444,7 @@ class _MapsScreenState extends State<MapsScreen> {
 
         // Quick Filters Overlay
         Positioned(
-          top: MediaQuery.of(context).padding.top + 60,
+          top: MediaQuery.of(context).padding.top + 140,
           left: 0,
           right: 0,
           child: _buildQuickFilters(isDarkMode),
@@ -369,30 +484,78 @@ class _MapsScreenState extends State<MapsScreen> {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          height: MediaQuery.of(context).padding.top + 50,
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, left: 8, right: 16),
-          color: isDarkMode ? Colors.black.withValues(alpha: 0.5) : const Color(0xFFfffbfb).withValues(alpha: 0.8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+          padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
+          color: isDarkMode ? Colors.black.withOpacity(0.5) : const Color(0xFFfffbfb).withOpacity(0.8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black),
-                    onPressed: () => Navigator.pop(context),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black, size: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text("Find Pharmacy", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
+                    ],
                   ),
+                  IconButton(
+                    icon: Icon(Icons.notifications_none, color: isDarkMode ? Colors.grey[400] : Colors.grey[500]),
+                    onPressed: () {},
+                  )
                 ],
               ),
-              IconButton(
-                icon: Icon(Icons.notifications_none, color: isDarkMode ? Colors.grey[400] : Colors.grey[500]),
-                onPressed: () {},
-              )
+              const SizedBox(height: 16),
+              TextField(
+                controller: _searchController,
+                onSubmitted: _searchPharmacies,
+                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Search for a specific pharmacy...',
+                  hintStyle: TextStyle(color: isDarkMode ? Colors.grey[500] : Colors.grey[400], fontSize: 14),
+                  filled: true,
+                  fillColor: isDarkMode ? Colors.grey[900]!.withOpacity(0.8) : Colors.white.withOpacity(0.9),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFFff5252)),
+                  suffixIcon: _isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFff5252)),
+                          ),
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(color: isDarkMode ? Colors.white10 : Colors.grey[200]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide(color: isDarkMode ? Colors.white10 : Colors.grey[200]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(color: Color(0xFFff5252)),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
-    );
+    ).animate().fade(duration: 400.ms).slideY(begin: -0.2, curve: Curves.easeOut);
   }
 
 
@@ -413,7 +576,7 @@ class _MapsScreenState extends State<MapsScreen> {
           _buildFilterChip("24/7 Service", false, isDarkMode),
         ],
       ),
-    );
+    ).animate().fade(duration: 400.ms, delay: 200.ms).slideX(begin: 0.1, curve: Curves.easeOut);
   }
 
   Widget _buildFilterChip(String label, bool isPrimary, bool isDarkMode) {
@@ -573,6 +736,6 @@ class _MapsScreenState extends State<MapsScreen> {
           ),
         ],
       ),
-    );
+    ).animate().fade(duration: 300.ms).slideY(begin: 0.2, curve: Curves.easeOut);
   }
 }

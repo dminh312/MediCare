@@ -3,6 +3,7 @@ import 'package:medicare/UI/profile/account_setting/change_password_screen.dart'
 import 'package:medicare/UI/profile/account_setting/data_sharing.dart';
 import 'package:medicare/UI/share/pp.dart';
 import 'package:medicare/UI/share/tos.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SecurityPrivacyScreen extends StatefulWidget {
   const SecurityPrivacyScreen({super.key});
@@ -17,63 +18,63 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     const primaryColor = Color(0xffff5252);
-    final backgroundColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffdf8f8);
-    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
-    final Color borderColor = isDarkMode ? Colors.red.shade900.withAlpha(26) : Colors.red.shade50;
+    final surfaceColor = isDarkMode ? const Color(0xff1E293B) : Colors.white;
+    final Color borderColor = isDarkMode ? Colors.white10 : Colors.red.shade50;
     final Color iconBackgroundColor = isDarkMode ? Colors.red.shade900.withAlpha(51) : Colors.red.shade50;
-    final textColor = isDarkMode ? Colors.grey[100] : Colors.grey[900];
-    final subtleTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[500];
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtleTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[600];
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: (isDarkMode ? surfaceColor : Colors.white).withAlpha(204),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.chevron_left, size: 28, color: isDarkMode ? Colors.grey[200] : Colors.grey[700]),
+          icon: Icon(Icons.chevron_left, size: 28, color: isDarkMode ? Colors.white : Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Security & Privacy',
           style: TextStyle(
-            color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.4,
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Plus Jakarta Sans'
           ),
         ),
         centerTitle: true,
-        actions: [
-          const SizedBox(width: 48), // To balance the leading icon button
+        actions: const [
+          SizedBox(width: 48), // To balance the leading icon button
         ],
-        shape: Border(
-          bottom: BorderSide(
-            color: borderColor,
-            width: 1.0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode 
+                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
           ),
         ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: ListView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
-              // Main Settings Card
               Container(
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: borderColor, width: 1.0),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(13),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                    if (!isDarkMode)
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8))
+                    else
+                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 8)),
                   ],
                 ),
                 child: Column(
@@ -86,6 +87,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildTwoFactorAuthItem(
@@ -95,7 +97,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       onChanged: (value) => setState(() => _isTwoFactorEnabled = value),
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
-
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSettingsItem(
@@ -106,6 +108,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSettingsItem(
@@ -116,6 +119,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                     _buildDivider(borderColor),
                     _buildSettingsItem(
@@ -126,37 +130,37 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       },
                       iconBackgroundColor: iconBackgroundColor,
                       primaryColor: primaryColor,
+                      isDarkMode: isDarkMode,
                     ),
                   ],
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               const SizedBox(height: 32),
 
-              // Account Security Section
               Padding(
                 padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
                 child: Text(
                   'ACCOUNT SECURITY',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor.withAlpha(204),
+                    color: primaryColor,
+                    fontFamily: 'Plus Jakarta Sans',
                     letterSpacing: 0.5,
                   ),
                 ),
-              ),
+              ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOut),
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: borderColor, width: 1.0),
-                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(13),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                  boxShadow: [
+                    if (!isDarkMode)
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8))
+                    else
+                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 8)),
                   ],
                 ),
                 child: Column(
@@ -166,6 +170,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                       style: TextStyle(
                         color: subtleTextColor,
                         fontSize: 14,
+                        fontFamily: 'Plus Jakarta Sans',
                         height: 1.5,
                       ),
                     ),
@@ -179,22 +184,22 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 56),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Plus Jakarta Sans'),
                         elevation: 4,
-                        shadowColor: primaryColor.withAlpha(51),
+                        shadowColor: primaryColor.withAlpha(64),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 40),
+              ).animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOut),
+              const SizedBox(height: 48),
 
               // Footer Text
               Text(
                 'Your health data is protected with 256-bit encryption.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+                style: TextStyle(color: subtleTextColor, fontSize: 12, fontFamily: 'Plus Jakarta Sans'),
+              ).animate().fade(duration: 400.ms, delay: 400.ms).slideY(begin: 0.1, curve: Curves.easeOut),
             ],
           ),
         ),
@@ -208,6 +213,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     required VoidCallback onTap,
     required Color iconBackgroundColor,
     required Color primaryColor,
+    required bool isDarkMode,
   }) {
     return Material(
       color: Colors.transparent,
@@ -230,10 +236,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87, fontFamily: 'Plus Jakarta Sans'),
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey[400]),
+              Icon(Icons.chevron_right, color: isDarkMode ? Colors.grey[600] : Colors.grey[400]),
             ],
           ),
         ),
@@ -248,6 +254,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     required ValueChanged<bool> onChanged,
     required Color iconBackgroundColor,
     required Color primaryColor,
+    required bool isDarkMode,
   }) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -266,7 +273,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87, fontFamily: 'Plus Jakarta Sans'),
             ),
           ),
           Switch(

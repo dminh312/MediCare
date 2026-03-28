@@ -192,17 +192,27 @@ class _MedsScreenState extends State<MedsScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = const Color(0xFFff5252);
-    final backgroundColor = isDarkMode ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
     final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : Colors.white;
+    final gradientColors = isDarkMode 
+        ? [const Color(0xFF1a1111), const Color(0xFF2d1f1f)] 
+        : [const Color(0xFFfffbfb), const Color(0xFFf5eaea)];
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: Text('My Medications', style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : const Color(0xFF111714))),
-        backgroundColor: isDarkMode ? backgroundColor.withAlpha(242) : backgroundColor.withAlpha(242),
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withAlpha(26),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: gradientColors,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text('My Medications', style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : const Color(0xFF111714))),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          shadowColor: Colors.transparent,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
@@ -267,6 +277,7 @@ class _MedsScreenState extends State<MedsScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -290,8 +301,10 @@ class _MedsScreenState extends State<MedsScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFff5252) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2d1f1f) : Colors.white),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: isSelected ? [BoxShadow(color: const Color(0xFFff5252).withAlpha(77), blurRadius: 8, offset: const Offset(0, 4))] : [],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: isSelected 
+                    ? [BoxShadow(color: const Color(0xFFff5252).withAlpha(100), blurRadius: 12, offset: const Offset(0, 6))] 
+                    : [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -429,7 +442,13 @@ class _MedsScreenState extends State<MedsScreen> {
           color: surfaceColor,
           borderRadius: BorderRadius.circular(24),
           border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10)]
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withAlpha(100) : Colors.black.withAlpha(20), 
+              blurRadius: 16, 
+              offset: const Offset(0, 6),
+            )
+          ]
         ),
         child: Row(
           children: [

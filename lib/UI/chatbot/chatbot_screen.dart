@@ -9,6 +9,7 @@ import 'package:medicare/UI/chatbot/accept_save_history.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ChatMessage {
   final String text;
@@ -895,9 +896,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
               borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
               border: Border.all(
                 color: isDarkMode
@@ -905,6 +906,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     : Colors.red.shade50,
                 width: 1.0,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -930,7 +938,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
         ),
       ],
-    );
+    ).animate().fade(duration: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad);
   }
 
   Widget _buildUserMessage(bool isDarkMode, String text, String time) {
@@ -943,13 +951,24 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.8,
             ),
-            decoration: const BoxDecoration(
-              color: Color(0xffff5252),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFff7777), Color(0xffff5252)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xffff5252).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -975,7 +994,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
         ),
       ],
-    );
+    ).animate().fade(duration: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad);
   }
 
   Widget _buildTypingIndicator(bool isDarkMode) {
@@ -1020,24 +1039,27 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   }
 
   Widget _buildInputArea(bool isDarkMode, Color primaryColor) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        MediaQuery.of(context).padding.bottom + 16,
-      ),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: isDarkMode
-                ? Colors.red.shade900.withAlpha(26)
-                : Colors.red.shade50,
-            width: 1.0,
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            MediaQuery.of(context).padding.bottom + 16,
           ),
-        ),
-      ),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xff2d1f1f).withOpacity(0.8) : Colors.white.withOpacity(0.8),
+            border: Border(
+              top: BorderSide(
+                color: isDarkMode
+                    ? Colors.red.shade900.withAlpha(51)
+                    : Colors.red.shade50,
+                width: 1.0,
+              ),
+            ),
+          ),
       child: Column(
         children: [
           SizedBox(
@@ -1103,6 +1125,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

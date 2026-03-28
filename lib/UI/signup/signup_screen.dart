@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/UI/home/home_view.dart';
 import 'package:medicare/main.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({super.key});
@@ -95,14 +96,27 @@ class _SignUpViewState extends State<SignUpView> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: textColor, size: 22), onPressed: () => Navigator.of(context).pop()),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = isDarkMode 
+        ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+        : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
       ),
-      body: Column(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: textColor, size: 22), onPressed: () => Navigator.of(context).pop()),
+        ),
+        body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
@@ -116,7 +130,13 @@ class _SignUpViewState extends State<SignUpView> {
                       Container(
                         width: 52,
                         height: 52,
-                        decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: primaryColor.withOpacity(0.15), spreadRadius: 4, blurRadius: 20, offset: const Offset(0, 8)),
+                          ],
+                        ),
                         child: const Icon(Icons.health_and_safety, color: primaryColor, size: 30),
                       ),
                       const SizedBox(height: 16),
@@ -175,8 +195,8 @@ class _SignUpViewState extends State<SignUpView> {
                           backgroundColor: primaryColor,
                           disabledBackgroundColor: primaryColor.withOpacity(0.5),
                           minimumSize: const Size(double.infinity, 58),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                          elevation: 5,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.0)),
+                          elevation: 8,
                           shadowColor: primaryColor.withOpacity(0.4),
                         ),
                         child: _isLoading ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)) : const Text('Sign Up', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
@@ -225,7 +245,7 @@ class _SignUpViewState extends State<SignUpView> {
                         ],
                       ),
                       const SizedBox(height: 24.0),
-                    ],
+                    ].animate(interval: 30.ms).fade(duration: 400.ms).slideY(begin: 0.05, curve: Curves.easeOutQuad),
                   ),
                 ),
               ),
@@ -234,7 +254,7 @@ class _SignUpViewState extends State<SignUpView> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 24),
             width: double.infinity,
-            color: backgroundColor.withAlpha(200),
+            color: Colors.transparent,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

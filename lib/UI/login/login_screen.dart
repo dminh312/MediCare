@@ -6,6 +6,7 @@ import 'package:medicare/UI/signup/signup_screen.dart';
 import 'package:medicare/UI/forgot_password/forgot_password_screen.dart';
 import 'package:medicare/UI/home/home_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -21,6 +22,8 @@ class _LoginViewState extends State<LoginView> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+  bool _hasLoginError = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -51,7 +54,11 @@ class _LoginViewState extends State<LoginView> {
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasLoginError = false;
+      _errorMessage = null;
+    });
 
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
@@ -77,9 +84,10 @@ class _LoginViewState extends State<LoginView> {
     if (mounted && errorMessage == null) {
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
     } else if (mounted && errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      setState(() {
+        _hasLoginError = true;
+        _errorMessage = errorMessage;
+      });
     }
   }
 
@@ -95,9 +103,10 @@ class _LoginViewState extends State<LoginView> {
     if (mounted && errorMessage == null) {
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
     } else if (mounted && errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      setState(() {
+        _hasLoginError = true;
+        _errorMessage = errorMessage;
+      });
     }
   }
 
@@ -118,27 +127,42 @@ class _LoginViewState extends State<LoginView> {
     final formBgColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white; // slate-800
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode 
+                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
           children: [
             const SizedBox(height: 48),
-            _buildHeader(primaryColor, textColor),
+            _buildHeader(primaryColor, textColor)
+                .animate().fade(duration: 400.ms).scaleXY(begin: 0.9, curve: Curves.easeOutBack),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 children: [
                   const SizedBox(height: 24),
-                  _buildWelcomeText(textColor, secondaryTextColor),
+                  _buildWelcomeText(textColor, secondaryTextColor)
+                      .animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1),
                   const SizedBox(height: 32),
-                  _buildLoginForm(context, textColor, formBgColor, primaryColor, ringColor, secondaryTextColor),
+                  _buildLoginForm(context, textColor, formBgColor, primaryColor, ringColor, secondaryTextColor)
+                      .animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1),
                   const SizedBox(height: 24),
-                  _buildSocialButtons(context, textColor, formBgColor, ringColor),
+                  _buildSocialButtons(context, textColor, formBgColor, ringColor)
+                      .animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1),
                   const SizedBox(height: 24),
                 ],
               ),
             ),
-            _buildSignUpFooter(context, secondaryTextColor, primaryColor),
+            _buildSignUpFooter(context, secondaryTextColor, primaryColor)
+                .animate().fade(duration: 400.ms, delay: 400.ms),
           ],
         ),
       ),
@@ -153,8 +177,10 @@ class _LoginViewState extends State<LoginView> {
           height: 64,
           decoration: BoxDecoration(
             color: primaryColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), spreadRadius: 4, blurRadius: 12, offset: const Offset(0, 6))],
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(color: primaryColor.withOpacity(0.4), spreadRadius: 4, blurRadius: 20, offset: const Offset(0, 8)),
+            ],
           ),
           child: const Icon(Icons.medical_services, color: Colors.white, size: 36),
         ),
@@ -193,7 +219,7 @@ class _LoginViewState extends State<LoginView> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(color: textColor, fontFamily: 'Plus Jakarta Sans'),
-            decoration: _customInputDecoration(hintText: 'example@medicare.plus', prefixIcon: Icons.mail, primaryColor: primaryColor, ringColor: ringColor, formBgColor: formBgColor, secondaryTextColor: secondaryTextColor),
+            decoration: _customInputDecoration(hintText: 'example@medicare.com', prefixIcon: Icons.mail, primaryColor: primaryColor, ringColor: ringColor, formBgColor: formBgColor, secondaryTextColor: secondaryTextColor, hasError: _hasLoginError),
             validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
           ),
           const SizedBox(height: 16.0),
@@ -209,7 +235,8 @@ class _LoginViewState extends State<LoginView> {
               primaryColor: primaryColor,
               ringColor: ringColor,
               formBgColor: formBgColor,
-              secondaryTextColor: secondaryTextColor
+              secondaryTextColor: secondaryTextColor,
+              hasError: _hasLoginError
             ).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: secondaryTextColor, size: 20),
@@ -220,17 +247,31 @@ class _LoginViewState extends State<LoginView> {
           ),
           const SizedBox(height: 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Checkbox(
-                value: _rememberMe,
-                onChanged: (bool? value) => setState(() => _rememberMe = value ?? false),
-                activeColor: primaryColor,
-                checkColor: Colors.white,
-                side: BorderSide(color: ringColor!, width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              if (_hasLoginError && _errorMessage != null)
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'Plus Jakarta Sans'),
+                  ),
+                )
+              else
+                const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: (bool? value) => setState(() => _rememberMe = value ?? false),
+                    activeColor: primaryColor,
+                    checkColor: Colors.white,
+                    side: BorderSide(color: ringColor!, width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  ),
+                  Text('Remember me', style: TextStyle(fontWeight: FontWeight.w600, color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans')),
+                ],
               ),
-              Text('Remember me', style: TextStyle(fontWeight: FontWeight.w600, color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans')),
             ],
           ),
           const SizedBox(height: 16),
@@ -240,8 +281,8 @@ class _LoginViewState extends State<LoginView> {
               backgroundColor: primaryColor,
               minimumSize: const Size(double.infinity, 56),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.0)),
-              elevation: 4,
-              shadowColor: primaryColor.withOpacity(0.2),
+              elevation: 8,
+              shadowColor: primaryColor.withOpacity(0.4),
             ),
             child: _isLoading
                 ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
@@ -267,17 +308,28 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  InputDecoration _customInputDecoration({required String hintText, required IconData prefixIcon, required Color primaryColor, Color? ringColor, Color? formBgColor, Color? secondaryTextColor}) {
+  InputDecoration _customInputDecoration({
+    required String hintText, 
+    required IconData prefixIcon, 
+    required Color primaryColor, 
+    Color? ringColor, 
+    Color? formBgColor, 
+    Color? secondaryTextColor,
+    bool hasError = false,
+  }) {
+    final effectiveRingColor = hasError ? Colors.red : (ringColor ?? Colors.transparent);
+    final effectiveBorderWidth = hasError ? 2.0 : 1.0;
+    
     return InputDecoration(
       hintText: hintText,
       hintStyle: TextStyle(color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans'),
-      prefixIcon: Icon(prefixIcon, color: secondaryTextColor, size: 20),
+      prefixIcon: Icon(prefixIcon, color: hasError ? Colors.red : secondaryTextColor, size: 20),
       filled: true,
       fillColor: formBgColor,
       contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: ringColor ?? Colors.transparent, width: 1)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: primaryColor, width: 2)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: effectiveRingColor, width: effectiveBorderWidth)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: hasError ? Colors.red : primaryColor, width: 2)),
     );
   }
 

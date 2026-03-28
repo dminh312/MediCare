@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/logic/services/notification_service.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class NotificationSettingScreen extends StatefulWidget {
   const NotificationSettingScreen({super.key});
@@ -60,12 +61,11 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
-    final backgroundColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffdf8f8);
-    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
-    final Color borderColor = isDarkMode ? Colors.red.shade900.withAlpha(26) : Colors.red.shade50;
+    final surfaceColor = isDarkMode ? const Color(0xff1E293B) : Colors.white;
+    final Color borderColor = isDarkMode ? Colors.white10 : Colors.red.shade50;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         toolbarHeight: 80,
         backgroundColor: Colors.transparent,
@@ -90,15 +90,30 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
         ),
         title: Text('Notification Settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        children: [
-          _buildMasterToggle(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 24),
-          _buildAlertCategories(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 32),
-          _buildQuietHours(surfaceColor, borderColor, primaryColor, isDarkMode),
-        ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode 
+                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          children: [
+            _buildMasterToggle(surfaceColor, borderColor, primaryColor, isDarkMode)
+                .animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOut),
+            const SizedBox(height: 24),
+            _buildAlertCategories(surfaceColor, borderColor, primaryColor, isDarkMode)
+                .animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOut),
+            const SizedBox(height: 32),
+            _buildQuietHours(surfaceColor, borderColor, primaryColor, isDarkMode)
+                .animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOut),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
@@ -202,7 +217,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                 Text('QUIET HOURS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5)),
+                 Text('QUIET HOURS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor, letterSpacing: 0.5, fontFamily: 'Plus Jakarta Sans')),
                  Transform.scale(scale: 0.75, child: _buildIOSStyleToggle(value: _quietHoursEnabled, onChanged: (val) {
                    setState(() => _quietHoursEnabled = val);
                    _saveSetting('quietHoursEnabled', val);
@@ -210,39 +225,39 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
               ],
             ),
           ),
-          AnimatedOpacity(
-            opacity: _quietHoursEnabled ? 1.0 : 0.5,
+          AnimatedSize(
             duration: const Duration(milliseconds: 300),
-            child: IgnorePointer(
-              ignoring: !_quietHoursEnabled,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
-                  children: [
-                    Row(
+            curve: Curves.easeInOut,
+            child: _quietHoursEnabled
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
                       children: [
-                        Expanded(child: _buildTimePicker('Start Time', _startTime, (time) {
-                          setState(() => _startTime = time);
-                          _saveSetting('quietStartHour', time.hour);
-                          _saveSetting('quietStartMinute', time.minute);
-                        }, isDarkMode)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildTimePicker('End Time', _endTime, (time) {
-                          setState(() => _endTime = time);
-                          _saveSetting('quietEndHour', time.hour);
-                          _saveSetting('quietEndMinute', time.minute);
-                        }, isDarkMode)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTimePicker('Start Time', _startTime, (time) {
+                              setState(() => _startTime = time);
+                              _saveSetting('quietStartHour', time.hour);
+                              _saveSetting('quietStartMinute', time.minute);
+                            }, isDarkMode)),
+                            const SizedBox(width: 16),
+                            Expanded(child: _buildTimePicker('End Time', _endTime, (time) {
+                              setState(() => _endTime = time);
+                              _saveSetting('quietEndHour', time.hour);
+                              _saveSetting('quietEndMinute', time.minute);
+                            }, isDarkMode)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'All notifications except emergency medication alerts will be silenced during this period.',
+                          style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[500] : Colors.grey[600], fontStyle: FontStyle.italic, height: 1.4, fontFamily: 'Plus Jakarta Sans'),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'All notifications except emergency medication alerts will be silenced during this period.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[400], fontStyle: FontStyle.italic, height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -286,13 +301,19 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
 
 
   Widget _buildCard(Color surfaceColor, Color borderColor, {required Widget child, EdgeInsets? padding}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor, width: 1.0),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          if (!isDarkMode)
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8))
+          else
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 8)),
+        ],
       ),
       child: child,
     );
