@@ -58,7 +58,7 @@
             android:value="2" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBMQLAgLzc5JQylZIKe2OCbP-adhPQV9pY" />
+            android:value="${mapsApiKey}" />
     </application>
 
     <!-- Required for url_launcher on Android 11+ to query available browsers -->

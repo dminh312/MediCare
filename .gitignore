@@ -53,3 +53,4 @@ ios/Runner/GoogleService-Info.plist
 
 # Environment Variables
 .env
+local.properties
