@@ -110,7 +110,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 number: '1',
                 title: 'Data Collection',
-                content: 'We collect information you provide directly to us, including your name, email address, date of birth, and health metrics such as weight, height, and activity levels. We may also sync data from integrated health devices (like Apple Health or wearable trackers) if you grant explicit permission.',
+                content: 'We collect information you provide directly to us, including your name, email address, date of birth, and health metrics such as weight, height, and activity levels. We may also sync data from integrated health devices (like Samsung Health or wearable trackers) if you grant explicit permission, We only access health data after you provide explicit consent via system permissions.',
                 primaryColor: primaryColor,
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
@@ -120,7 +120,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 number: '2',
                 title: 'How We Use Your Data',
-                content: 'Your data is strictly used to provide personalized health insights, track your long-term progress, and offer tailored wellness recommendations. We process anonymized, aggregated data to improve our diagnostic algorithms and app performance.',
+                content: 'We integrate with trusted platforms such as Health Connect to securely access health data with user authorization, your data is strictly used to provide personalized health insights, track your long-term progress, and offer tailored wellness recommendations. We process anonymized, aggregated data to improve our diagnostic algorithms and app performance.',
                 primaryColor: primaryColor,
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
@@ -130,7 +130,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 number: '3',
                 title: 'Data Security',
-                content: 'MediCare+ employs enterprise-grade encryption (AES-256) for all data at rest and in transit. Your health records are stored in HIPAA-compliant cloud infrastructure with strict multi-factor authentication protocols for all administrative access.',
+                content: 'We use industry-standard security measures to protect your data, including encryption in transit and secure cloud storage with access control.',
                 primaryColor: primaryColor,
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
@@ -146,11 +146,21 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 secondaryTextColor: secondaryTextColor,
               ),
               const SizedBox(height: 32),
-              
+
               _buildSection(
                 number: '5',
+                title: 'Data Transparency',
+                content: 'We are committed to transparency in how your data is used. You can view all collected health data directly within the app.',
+                primaryColor: primaryColor,
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
+              const SizedBox(height: 32),
+              
+              _buildSection(
+                number: '6',
                 title: 'Your Rights',
-                content: 'You maintain full ownership of your data. You have the right to access, correct, or delete your health profile at any time. Upon account deletion, all personal data is permanently purged from our primary servers and backups within a 30-day window.',
+                content: 'You maintain full ownership of your data. You have the right to withdraw consent at any time, access, correct, or delete your health profile at any time. Upon account deletion, all personal data is permanently purged from our primary servers and backups within a 30-day window.',
                 primaryColor: primaryColor,
                 textColor: textColor,
                 secondaryTextColor: secondaryTextColor,
