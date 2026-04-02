@@ -94,7 +94,11 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
           'updatedAt': Timestamp.now(),
         });
 
-        setState(() => _photoUrl = downloadUrl);
+        // Reload user to sync the latest photoURL from Firebase Auth
+        await FirebaseAuth.instance.currentUser?.reload();
+        _user = FirebaseAuth.instance.currentUser;
+
+        setState(() => _photoUrl = _user?.photoURL ?? downloadUrl);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

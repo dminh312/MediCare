@@ -165,7 +165,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       .animate().fade(duration: 400.ms, delay: 600.ms).scaleXY(begin: 0.9, curve: Curves.easeOutQuad),
                   const SizedBox(height: 24),
                   Text(
-                    'Version 2.4.1 (Build 108)',
+                    'Version 0.0.1',
                     style: TextStyle(color: secondaryTextColor, fontSize: 12),
                   ),
                   const SizedBox(height: 120), // Padding for the bottom nav bar

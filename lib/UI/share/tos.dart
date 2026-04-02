@@ -186,7 +186,7 @@ class TermsOfServiceScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Text('If you have any questions about these Terms, please reach out to our legal department or support team.', style: TextStyle(fontSize: 15, color: subtleTextColor, height: 1.7)),
         const SizedBox(height: 24),
-        _buildContactButton(primaryColor, Icons.mail, 'support@medicareplus.app'),
+        _buildContactButton(primaryColor, Icons.mail, 'medicare.support@gmail.com'),
         const SizedBox(height: 12),
         _buildContactButton(primaryColor, Icons.language, 'Help Center & Documentation'),
       ],
@@ -272,7 +272,7 @@ class TermsOfServiceScreen extends StatelessWidget {
           child: const Text('Accept and Continue', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         ),
         const SizedBox(height: 24),
-        Text('Version 2.4.0 • MediCare+ Legal', style: TextStyle(fontSize: 11, color: subtleTextColor, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+        Text('Version 0.0.1 • MediCare+ Legal', style: TextStyle(fontSize: 11, color: subtleTextColor, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
       ],
     );
   }

@@ -2,6 +2,8 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
+import 'package:medicare/UI/track/sleep_screen/sleep_ana_screen.dart';
 import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
 
 class TrackScreen extends StatefulWidget {
@@ -238,8 +240,14 @@ class _TrackScreenState extends State<TrackScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _buildHeartRateCard(surfaceColor, borderColor, primaryColor, isDarkMode),
-        _buildSleepCard(surfaceColor, borderColor, isDarkMode),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen())),
+          child: _buildHeartRateCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+        ),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SleepAnaScreen())),
+          child: _buildSleepCard(surfaceColor, borderColor, isDarkMode),
+        ),
       ],
     );
   }

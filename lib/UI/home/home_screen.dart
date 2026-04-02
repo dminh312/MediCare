@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:medicare/UI/home/notification/notification_center_screen.dart';
 import 'package:medicare/UI/home/maps_screen.dart';
+import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
 import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
@@ -277,7 +278,10 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 16),
-        _buildHeartRateCard(isDarkMode, surfaceColor, textColor),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen())),
+          child: _buildHeartRateCard(isDarkMode, surfaceColor, textColor),
+        ),
       ],
     );
   }
