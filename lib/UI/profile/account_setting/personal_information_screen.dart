@@ -176,8 +176,18 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDarkMode 
+              ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+              : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -188,17 +198,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode 
-                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
-                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
-          ),
-        ),
-        child: _isLoading
+        body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Padding(

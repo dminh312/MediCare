@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:medicare/logic/services/health_services.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class DataSharingScreen extends StatefulWidget {
   const DataSharingScreen({super.key});
@@ -16,6 +19,9 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
   bool _medicationHistorySharing = false;
   bool _anonymizedResearchSharing = true;
   bool _chatbotHistorySharing = true;
+  
+  bool _isHealthConnectConnected = false;
+  bool _isSyncingHealthConnect = false;
 
   @override
   void initState() {
@@ -28,6 +34,8 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     setState(() {
       _chatbotHistorySharing =
           prefs.getBool('chatbot_save_history_preference') ?? true;
+      _isHealthConnectConnected = 
+          prefs.getBool('health_connect_connected') ?? false;
     });
   }
 
@@ -46,8 +54,18 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     final subtleTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[600];
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDarkMode 
+              ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+              : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
       appBar: AppBar(
         // AppBar styling similar to other screens
         backgroundColor: Colors.transparent,
@@ -73,17 +91,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
         centerTitle: true,
         actions: const [SizedBox(width: 48)],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode 
-                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
-                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
-          ),
-        ),
-        child: Center(
+        body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
@@ -201,23 +209,36 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 child: Column(
                   children: [
                     _buildConnectedApp(
-                      icon: Icons.bubble_chart, // Placeholder for Google Fit
-                      appName: 'Google Fit',
-                      status: 'Connected',
-                      iconColor: Colors.blue.shade500,
-                      iconBg: Colors.blue.shade50,
+                      icon: Icons.monitor_heart, 
+                      appName: 'Health Connect',
+                      status: _isHealthConnectConnected ? 'Connected' : 'Not connected',
+                      iconColor: Colors.teal.shade500,
+                      iconBg: Colors.teal.shade50,
                       isDarkMode: isDarkMode,
                       primaryColor: primaryColor,
-                    ),
-                    _buildDivider(borderColor),
-                    _buildConnectedApp(
-                      icon: Icons.favorite,
-                      appName: 'Apple Health',
-                      status: 'Connected',
-                      iconColor: primaryColor,
-                      iconBg: Colors.grey.shade50,
-                      isDarkMode: isDarkMode,
-                      primaryColor: primaryColor,
+                      isSyncing: _isSyncingHealthConnect,
+                      onManage: () async {
+                        setState(() => _isSyncingHealthConnect = true);
+                        bool success = await HealthService().syncHealthDataToFirebase();
+                        if (mounted) {
+                          setState(() {
+                            _isSyncingHealthConnect = false;
+                            if (success) _isHealthConnectConnected = true;
+                          });
+                          if (success) {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool('health_connect_connected', true);
+                            Provider.of<HealthDataViewModel>(context, listen: false).loadData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Successfully synced with Health Connect')),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Failed to connect or sync with Health Connect')),
+                            );
+                          }
+                        }
+                      },
                       isLast: true,
                     ),
                   ],
@@ -318,6 +339,8 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     required bool isDarkMode,
     required Color primaryColor,
     bool isLast = false,
+    bool isSyncing = false,
+    VoidCallback? onManage,
   }) {
     final manageButtonBg = isDarkMode
         ? Colors.red.shade900.withAlpha(51)
@@ -355,7 +378,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {},
+            onPressed: isSyncing ? null : onManage,
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               backgroundColor: manageButtonBg,
@@ -363,14 +386,20 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text(
-              'Manage',
-              style: TextStyle(
-                color: primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
+            child: isSyncing 
+              ? SizedBox(
+                  width: 12, 
+                  height: 12, 
+                  child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor)
+                )
+              : Text(
+                  'Connect',
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
           ),
         ],
       ),

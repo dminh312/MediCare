@@ -1,4 +1,6 @@
 import 'package:health/health.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HealthService {
   final Health _health = Health();
@@ -43,7 +45,7 @@ class HealthService {
       types: _types,
     );
 
-    return Health.removeDuplicates(dataPoints);
+    return _health.removeDuplicates(dataPoints);
   }
 
   // Fetch heart rate only
@@ -80,5 +82,98 @@ class HealthService {
       endTime: now,
       types: [HealthDataType.BLOOD_OXYGEN],
     );
+  }
+
+  // Sync data to Firebase
+  Future<bool> syncHealthDataToFirebase({int days = 1}) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print("HealthService sync: User not logged in.");
+        return false;
+      }
+
+      // Check and request permission
+      bool permitted = await hasPermission();
+      if (!permitted) {
+        permitted = await requestPermission();
+        if (!permitted) {
+          print("HealthService sync: Permission denied.");
+          return false;
+        }
+      }
+
+      // Fetch all data
+      final dataPoints = await fetchHealthData(days: days);
+
+      if (dataPoints.isEmpty) {
+        print("HealthService sync: No data to sync.");
+        return true; 
+      }
+
+      // Group data by date
+      Map<String, Map<String, List<Map<String, dynamic>>>> groupedData = {};
+
+      for (var point in dataPoints) {
+        final date = point.dateFrom;
+        final dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+        
+        if (!groupedData.containsKey(dateString)) {
+          groupedData[dateString] = {
+            'HEART_RATE': [],
+            'STEPS': [],
+            'SLEEP_ASLEEP': [],
+            'BLOOD_OXYGEN': [],
+            'OTHER': [],
+          };
+        }
+
+        String typeKey = point.type.name;
+        if (!groupedData[dateString]!.containsKey(typeKey)) {
+          typeKey = 'OTHER';
+        }
+
+        dynamic value;
+        if (point.value is NumericHealthValue) {
+          value = (point.value as NumericHealthValue).numericValue;
+        } else {
+          value = point.value.toString();
+        }
+
+        groupedData[dateString]![typeKey]!.add({
+          'value': value,
+          'unit': point.unit.name,
+          'dateFrom': point.dateFrom.toIso8601String(),
+          'dateTo': point.dateTo.toIso8601String(),
+          'sourceName': point.sourceName,
+          'sourceId': point.sourceId,
+        });
+      }
+
+      // Batch write to Firestore
+      final firestore = FirebaseFirestore.instance;
+      final batch = firestore.batch();
+
+      groupedData.forEach((dateString, typesMap) {
+        final docRef = firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('health_data')
+            .doc(dateString);
+
+        // We use set with merge: true to avoid overwriting existing data for the same day that wasn't updated
+        batch.set(docRef, {
+          'last_synced': FieldValue.serverTimestamp(),
+          'data': typesMap,
+        }, SetOptions(merge: true));
+      });
+
+      await batch.commit();
+      print("HealthService sync: Success.");
+      return true;
+    } catch (e) {
+      print("HealthService sync error: \$e");
+      return false;
+    }
   }
 }

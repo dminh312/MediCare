@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:medicare/UI/home/notification/notification_center_screen.dart';
 import 'package:medicare/UI/home/maps_screen.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -229,60 +232,192 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHealthMetrics(bool isDarkMode, Color surfaceColor, Color textColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<HealthDataViewModel>(
+      builder: (context, viewModel, child) {
+        final isConnected = viewModel.isConnected;
+        
+        // Define the content
+        final content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Health Metrics", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-            TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFFff5252), padding: EdgeInsets.zero),
-              child: const Text("See All", style: TextStyle(fontWeight: FontWeight.w600)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Health Metrics", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFff5252), padding: EdgeInsets.zero),
+                  child: const Text("See All", style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: isConnected 
+                    ? _buildMetricCard(
+                        title: "Steps",
+                        value: "\${viewModel.todaySteps}",
+                        icon: Icons.directions_walk,
+                        iconColor: Colors.orange[600]!,
+                        iconBgDark: Colors.orange[900]!.withValues(alpha: 0.3),
+                        iconBgLight: Colors.orange[100]!,
+                        trendValue: "Goal 10k",
+                        trendUp: true,
+                        isDarkMode: isDarkMode,
+                        surfaceColor: surfaceColor,
+                      )
+                    : _buildLockedCard(
+                        title: "Steps",
+                        icon: Icons.directions_walk,
+                        iconColor: Colors.orange[600]!,
+                        iconBgDark: Colors.orange[900]!.withValues(alpha: 0.3),
+                        iconBgLight: Colors.orange[100]!,
+                        isDarkMode: isDarkMode,
+                        surfaceColor: surfaceColor,
+                      ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildMetricCard(
+                    title: "Water",
+                    value: "1.5L",
+                    icon: Icons.water_drop,
+                    iconColor: Colors.blue[600]!,
+                    iconBgDark: Colors.blue[900]!.withValues(alpha: 0.3),
+                    iconBgLight: Colors.blue[100]!,
+                    trendValue: "12%",
+                    trendUp: true,
+                    isDarkMode: isDarkMode,
+                    surfaceColor: surfaceColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                if (isConnected) {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen()));
+                } else {
+                  _showUnauthorizedDialog(context);
+                }
+              },
+              child: isConnected
+                  ? _buildHeartRateCard(isDarkMode, surfaceColor, textColor, viewModel.latestHeartRate)
+                  : _buildLockedHeartRateCard(isDarkMode, surfaceColor, textColor),
             ),
           ],
+        );
+        
+        return content;
+      },
+    );
+  }
+
+  void _showUnauthorizedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("App Permission Required"),
+        content: const Text("You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockedCard({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgDark,
+    required Color iconBgLight,
+    required bool isDarkMode,
+    required Color surfaceColor,
+  }) {
+    return GestureDetector(
+      onTap: () => _showUnauthorizedDialog(context),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                title: "Steps",
-                value: "8,432",
-                icon: Icons.directions_walk,
-                iconColor: Colors.orange[600]!,
-                iconBgDark: Colors.orange[900]!.withValues(alpha: 0.3),
-                iconBgLight: Colors.orange[100]!,
-                trendValue: "5%",
-                trendUp: true,
-                isDarkMode: isDarkMode,
-                surfaceColor: surfaceColor,
-              ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? iconBgDark : iconBgLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(height: 12),
+                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                const SizedBox(height: 4),
+                const Text("Locked", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildMetricCard(
-                title: "Water",
-                value: "1.5L",
-                icon: Icons.water_drop,
-                iconColor: Colors.blue[600]!,
-                iconBgDark: Colors.blue[900]!.withValues(alpha: 0.3),
-                iconBgLight: Colors.blue[100]!,
-                trendValue: "12%",
-                trendUp: true,
-                isDarkMode: isDarkMode,
-                surfaceColor: surfaceColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLockedHeartRateCard(bool isDarkMode, Color surfaceColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.3) : Colors.red[100],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.favorite, color: Colors.red[600], size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Heart Rate", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                      const Text("Locked", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen())),
-          child: _buildHeartRateCard(isDarkMode, surfaceColor, textColor),
-        ),
-      ],
+      ),
     );
   }
 
@@ -343,7 +478,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHeartRateCard(bool isDarkMode, Color surfaceColor, Color textColor) {
+  Widget _buildHeartRateCard(bool isDarkMode, Color surfaceColor, Color textColor, int heartRate) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -377,7 +512,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text("72", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                      Text("$heartRate", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                       const SizedBox(width: 4),
                       Text("bpm", style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
                     ],

@@ -10,9 +10,11 @@ import 'package:medicare/logic/viewmodels/login_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/signup_viewmodel.dart';
 import 'package:medicare/logic/services/notification_service.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 import 'package:medicare/UI/signup/verify_email_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:medicare/logic/services/health_services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +44,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => MedicationLogViewModel(notificationService: notificationService),
         ),
+        ChangeNotifierProvider(create: (_) => HealthDataViewModel()),
       ],
       child: const MyApp(),
     ),
@@ -136,6 +139,5 @@ class AuthWrapper extends StatelessWidget {
     
     // Reschedule notifications
     logViewModel.rescheduleAllNotifications();
-    
   }
 }

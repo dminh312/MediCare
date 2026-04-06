@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
 import 'package:medicare/UI/track/sleep_screen/sleep_ana_screen.dart';
 import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class TrackScreen extends StatefulWidget {
   const TrackScreen({super.key});
@@ -25,17 +27,47 @@ class _TrackScreenState extends State<TrackScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: _buildAppBar(isDarkMode, surfaceColor, borderColor),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StepActivityScreen())),
-            child: _buildStepsCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+      body: Consumer<HealthDataViewModel>(
+        builder: (context, viewModel, child) {
+          final isConnected = viewModel.isConnected;
+          
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (isConnected) {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const StepActivityScreen()));
+                  } else {
+                    _showUnauthorizedDialog(context);
+                  }
+                },
+                child: isConnected 
+                  ? _buildStepsCard(surfaceColor, borderColor, primaryColor, isDarkMode, viewModel.todaySteps)
+                  : _buildLockedStepsCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+              ),
+              const SizedBox(height: 16),
+              _buildVitalsGrid(surfaceColor, borderColor, primaryColor, isDarkMode, isConnected, viewModel.latestHeartRate, viewModel.sleepDuration),
+              const SizedBox(height: 16),
+              _buildWaterIntakeCard(context, surfaceColor, borderColor, primaryColor, isDarkMode),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showUnauthorizedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("App Permission Required"),
+        content: const Text("You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
           ),
-          const SizedBox(height: 16),
-          _buildVitalsGrid(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 16),
-          _buildWaterIntakeCard(context, surfaceColor, borderColor, primaryColor, isDarkMode),
         ],
       ),
     );
@@ -200,7 +232,7 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
 
-  Widget _buildStepsCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+  Widget _buildStepsCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode, int steps) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
@@ -214,7 +246,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Steps', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[500])),
-                  const Text('8,432', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text('\$steps', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                   Text('Goal: 10,000', style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -232,7 +264,45 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
   
-  Widget _buildVitalsGrid(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+  Widget _buildLockedStepsCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+    return _buildMetricCard(
+      surfaceColor: surfaceColor,
+      borderColor: borderColor,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Steps', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                      const Text('Locked', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                      Text('Goal: Locked', style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: _buildStepsRing(0.0, primaryColor, isDarkMode),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildBarChart(primaryColor, isDarkMode),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVitalsGrid(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode, bool isConnected, int heartRate, String sleepDuration) {
      return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 16,
@@ -241,12 +311,28 @@ class _TrackScreenState extends State<TrackScreen> {
       physics: const NeverScrollableScrollPhysics(),
       children: [
         GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen())),
-          child: _buildHeartRateCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+          onTap: () {
+            if (isConnected) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen()));
+            } else {
+              _showUnauthorizedDialog(context);
+            }
+          },
+          child: isConnected 
+            ? _buildHeartRateCard(surfaceColor, borderColor, primaryColor, isDarkMode, heartRate)
+            : _buildLockedVitalCard(surfaceColor, borderColor, primaryColor, 'Heart Rate', Icons.favorite, isDarkMode),
         ),
         GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SleepAnaScreen())),
-          child: _buildSleepCard(surfaceColor, borderColor, isDarkMode),
+          onTap: () {
+            if (isConnected) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SleepAnaScreen()));
+            } else {
+              _showUnauthorizedDialog(context);
+            }
+          },
+          child: isConnected
+            ? _buildSleepCard(surfaceColor, borderColor, isDarkMode, sleepDuration)
+            : _buildLockedVitalCard(surfaceColor, borderColor, Colors.indigo[400]!, 'Sleep', Icons.bedtime, isDarkMode),
         ),
       ],
     );
@@ -306,7 +392,7 @@ class _TrackScreenState extends State<TrackScreen> {
   );
 }
 
-  Widget _buildHeartRateCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+  Widget _buildHeartRateCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode, int heartRate) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
@@ -321,11 +407,11 @@ class _TrackScreenState extends State<TrackScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('72', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Text('\$heartRate', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               SizedBox(width: 4),
               Text('BPM', style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
@@ -342,7 +428,7 @@ class _TrackScreenState extends State<TrackScreen> {
     );
   }
   
-  Widget _buildSleepCard(Color surfaceColor, Color borderColor, bool isDarkMode) {
+  Widget _buildSleepCard(Color surfaceColor, Color borderColor, bool isDarkMode, String sleepDuration) {
      final sleepColor1 = isDarkMode ? Colors.indigo[700] : Colors.indigo[200];
      final sleepColor2 = isDarkMode ? Colors.indigo[500] : Colors.indigo[400];
      final sleepColor3 = isDarkMode ? Colors.indigo[300] : Colors.indigo[600];
@@ -361,7 +447,7 @@ class _TrackScreenState extends State<TrackScreen> {
             ],
           ),
           const SizedBox(height: 8),
-           const Text('7h 20m', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          Text(sleepDuration, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
            const Spacer(),
            ClipRRect(
              borderRadius: BorderRadius.circular(10),
@@ -376,6 +462,33 @@ class _TrackScreenState extends State<TrackScreen> {
            const SizedBox(height: 8),
            const Text('Deep sleep: 2h 15m', style: TextStyle(fontSize: 10, color: Colors.grey)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLockedVitalCard(Color surfaceColor, Color borderColor, Color primaryColor, String title, IconData icon, bool isDarkMode) {
+    return _buildMetricCard(
+      surfaceColor: surfaceColor,
+      borderColor: borderColor,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [ 
+                  Icon(icon, color: primaryColor, size: 20),
+                  const SizedBox(width: 8),
+                  Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text('Locked', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
       ),
     );
   }

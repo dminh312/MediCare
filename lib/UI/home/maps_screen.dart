@@ -480,15 +480,21 @@ class _MapsScreenState extends State<MapsScreen> {
   }
 
   Widget _buildCustomTopBar(bool isDarkMode) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
-          color: isDarkMode ? Colors.black.withOpacity(0.5) : const Color(0xFFfffbfb).withOpacity(0.8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFFfffbfb).withOpacity(0.95),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -553,8 +559,6 @@ class _MapsScreenState extends State<MapsScreen> {
               ),
             ],
           ),
-        ),
-      ),
     ).animate().fade(duration: 400.ms).slideY(begin: -0.2, curve: Curves.easeOut);
   }
 

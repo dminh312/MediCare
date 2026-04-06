@@ -39,7 +39,7 @@ android {
         applicationId = "com.example.medicare"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion // Required for core library desugaring
+        minSdk = 26 // Required for latest health plugin
         // HẠ CẤP XUỐNG ANDROID 14 ĐỂ TRÁNH LỖI "ĐÓNG BĂNG" CỦA ANDROID 15
         targetSdk = 34 
         versionCode = flutter.versionCode

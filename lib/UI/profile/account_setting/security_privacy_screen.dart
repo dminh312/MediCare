@@ -25,8 +25,18 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     final subtleTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[600];
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDarkMode 
+              ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+              : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -49,17 +59,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
           SizedBox(width: 48), // To balance the leading icon button
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode 
-                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
-                : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
-          ),
-        ),
-        child: Center(
+        body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
