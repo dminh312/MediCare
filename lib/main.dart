@@ -1,10 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:medicare/logic/services/app_lifecycle_manager.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:medicare/UI/home/home_view.dart';
 import 'package:medicare/UI/login/login_screen.dart';
-import 'package:medicare/logic/services/medication_library_service.dart';
 import 'package:medicare/logic/viewmodels/forgot_password_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/login_viewmodel.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
@@ -14,19 +15,24 @@ import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 import 'package:medicare/UI/signup/verify_email_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:medicare/logic/services/health_services.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:medicare/UI/onboarding/welcome_screen.dart';
+
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await dotenv.load(fileName: ".env");
 
   final notificationService = NotificationService();
-  
+
   try {
     debugPrint("[SYSTEM] Initializing Firebase...");
     await Firebase.initializeApp();
-    
+
     debugPrint("[SYSTEM] Initializing Notification Service...");
     await notificationService.init();
     debugPrint("[SYSTEM] Notification Service is ready!");
@@ -42,7 +48,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SignUpViewModel()),
         ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
         ChangeNotifierProvider(
-          create: (_) => MedicationLogViewModel(notificationService: notificationService),
+          create: (_) =>
+              MedicationLogViewModel(notificationService: notificationService),
         ),
         ChangeNotifierProvider(create: (_) => HealthDataViewModel()),
       ],
@@ -64,13 +71,40 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupNotificationListener();
+      _checkInternetConnection();
     });
   }
 
+  Future<void> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result[0].rawAddress.isEmpty) {
+        throw Exception('Offline');
+      }
+    } catch (_) {
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No internet connection',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _setupNotificationListener() {
-    final notificationService = Provider.of<NotificationService>(context, listen: false);
-    final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
-    
+    final notificationService = Provider.of<NotificationService>(
+      context,
+      listen: false,
+    );
+    final medicationLogViewModel = Provider.of<MedicationLogViewModel>(
+      context,
+      listen: false,
+    );
+
     notificationService.onNotificationClick.stream.listen((payload) {
       debugPrint("[APP] User clicked notification with payload: $payload");
       if (payload != null && payload.isNotEmpty) {
@@ -82,8 +116,13 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: scaffoldMessengerKey,
       title: 'MediCare',
       debugShowCheckedModeBanner: false,
+      builder: BotToastInit(), // Initialize BotToast
+      navigatorObservers: [
+        BotToastNavigatorObserver(),
+      ], // Register BotToast observer
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
@@ -101,10 +140,11 @@ class _MyAppState extends State<MyApp> {
           },
         ),
       ),
-      home: const AuthWrapper(),
+      home: const AppLifecycleManager(child: AuthWrapper()),
     );
   }
 }
+
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -115,9 +155,11 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.userChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-        
+
         if (snapshot.hasData) {
           final isVerified = snapshot.data!.emailVerified;
           if (!isVerified) {
@@ -127,7 +169,26 @@ class AuthWrapper extends StatelessWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _performPostLoginTasks(context);
           });
-          return const HomeView();
+
+          return FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, prefSnapshot) {
+              if (prefSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              final prefs = prefSnapshot.data;
+              final hasCompletedOnboarding =
+                  prefs?.getBool('has_completed_onboarding') ?? false;
+
+              if (!hasCompletedOnboarding) {
+                return const WelcomeScreen();
+              }
+
+              return const HomeView();
+            },
+          );
         }
         return const LoginView();
       },
@@ -135,8 +196,11 @@ class AuthWrapper extends StatelessWidget {
   }
 
   void _performPostLoginTasks(BuildContext context) {
-    final logViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
-    
+    final logViewModel = Provider.of<MedicationLogViewModel>(
+      context,
+      listen: false,
+    );
+
     // Reschedule notifications
     logViewModel.rescheduleAllNotifications();
   }

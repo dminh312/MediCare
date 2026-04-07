@@ -102,72 +102,104 @@ class _MedsScreenState extends State<MedsScreen> {
     _firestoreSubscription = FirebaseFirestore.instance
         .collection('medication_logs')
         .where('userId', isEqualTo: user.uid)
-        .where('scheduledTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where(
+          'scheduledTime',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+        )
         .where('scheduledTime', isLessThan: Timestamp.fromDate(endOfDay))
         .snapshots()
-        .listen((logSnapshot) async {
-      // --- Local data ---
-      await localService.updateMissedLocalLogs(user.uid);
-      final localLogs = await localService.getLocalLogsForDateRange(user.uid, startOfDay, endOfDay);
-      final localMedsList = await localService.getLocalMedications(user.uid);
-      final localMedsMap = {for (var med in localMedsList) med.id: med};
+        .listen(
+          (logSnapshot) async {
+            // --- Local data ---
+            await localService.updateMissedLocalLogs(user.uid);
+            final localLogs = await localService.getLocalLogsForDateRange(
+              user.uid,
+              startOfDay,
+              endOfDay,
+            );
+            final localMedsList = await localService.getLocalMedications(
+              user.uid,
+            );
+            final localMedsMap = {for (var med in localMedsList) med.id: med};
 
-      // --- Firestore data ---
-      final medicationIds = logSnapshot.docs
-          .map((doc) => doc.data()['medicationId'] as String)
-          .toSet()
-          .toList();
+            // --- Firestore data ---
+            final medicationIds = logSnapshot.docs
+                .map((doc) => doc.data()['medicationId'] as String)
+                .toSet()
+                .toList();
 
-      Map<String, MedicationModel> medicationsMap = {};
-      if (medicationIds.isNotEmpty) {
-        final medicationSnapshot = await FirebaseFirestore.instance
-            .collection('medications')
-            .where(FieldPath.documentId, whereIn: medicationIds)
-            .get();
-        medicationsMap = {for (var doc in medicationSnapshot.docs) doc.id: MedicationModel.fromFirestore(doc)};
-      }
+            Map<String, MedicationModel> medicationsMap = {};
+            if (medicationIds.isNotEmpty) {
+              final medicationSnapshot = await FirebaseFirestore.instance
+                  .collection('medications')
+                  .where(FieldPath.documentId, whereIn: medicationIds)
+                  .get();
+              medicationsMap = {
+                for (var doc in medicationSnapshot.docs)
+                  doc.id: MedicationModel.fromFirestore(doc),
+              };
+            }
 
-      // --- Merge ---
-      final viewDataList = <MedicationViewData>[];
+            // --- Merge ---
+            final viewDataList = <MedicationViewData>[];
 
-      for (final logDoc in logSnapshot.docs) {
-        final log = MedicationLog.fromFirestore(logDoc);
-        final medication = medicationsMap[log.medicationId];
-        if (medication != null) {
-          viewDataList.add(MedicationViewData(medication: medication, log: log));
-        }
-      }
+            for (final logDoc in logSnapshot.docs) {
+              final log = MedicationLog.fromFirestore(logDoc);
+              final medication = medicationsMap[log.medicationId];
+              if (medication != null) {
+                viewDataList.add(
+                  MedicationViewData(medication: medication, log: log),
+                );
+              }
+            }
 
-      for (final localLog in localLogs) {
-        final medication = localMedsMap[localLog.medicationId];
-        if (medication != null) {
-          viewDataList.add(MedicationViewData(medication: medication, log: localLog));
-        }
-      }
+            for (final localLog in localLogs) {
+              final medication = localMedsMap[localLog.medicationId];
+              if (medication != null) {
+                viewDataList.add(
+                  MedicationViewData(medication: medication, log: localLog),
+                );
+              }
+            }
 
-      viewDataList.sort((a, b) => a.log.scheduledTime.compareTo(b.log.scheduledTime));
+            viewDataList.sort(
+              (a, b) => a.log.scheduledTime.compareTo(b.log.scheduledTime),
+            );
 
-      if (!_medsController.isClosed) {
-        _medsController.add(viewDataList);
-      }
-    }, onError: (e) {
-      if (!_medsController.isClosed) {
-        _medsController.addError(e);
-      }
-    });
+            if (!_medsController.isClosed) {
+              _medsController.add(viewDataList);
+            }
+          },
+          onError: (e) {
+            if (!_medsController.isClosed) {
+              _medsController.addError(e);
+            }
+          },
+        );
   }
 
   Future<void> _deleteMedication(MedicationModel medication) async {
-    final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
+    final medicationLogViewModel = Provider.of<MedicationLogViewModel>(
+      context,
+      listen: false,
+    );
     final localService = LocalMedicationService();
 
     if (medication.id.startsWith('local_')) {
       await localService.deleteMedicationLocally(medication.id);
-      await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
+      await medicationLogViewModel.cancelNotificationsForMedication(
+        medication.id,
+      );
       _updateMissedMedications().then((_) => _loadAndPushMeds());
     } else {
-      await FirebaseFirestore.instance.collection('medications').doc(medication.id).delete();
-      final logSnapshot = await FirebaseFirestore.instance.collection('medication_logs').where('medicationId', isEqualTo: medication.id).get();
+      await FirebaseFirestore.instance
+          .collection('medications')
+          .doc(medication.id)
+          .delete();
+      final logSnapshot = await FirebaseFirestore.instance
+          .collection('medication_logs')
+          .where('medicationId', isEqualTo: medication.id)
+          .get();
 
       final batch = FirebaseFirestore.instance.batch();
       for (final doc in logSnapshot.docs) {
@@ -175,16 +207,20 @@ class _MedsScreenState extends State<MedsScreen> {
       }
       await batch.commit();
 
-      await medicationLogViewModel.cancelNotificationsForMedication(medication.id);
+      await medicationLogViewModel.cancelNotificationsForMedication(
+        medication.id,
+      );
     }
   }
 
   void _editMedication(MedicationModel medication) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddMedsScreen(medication: medication)),
+      MaterialPageRoute(
+        builder: (context) => AddMedsScreen(medication: medication),
+      ),
     ).then((_) {
-       _updateMissedMedications().then((_) => _loadAndPushMeds());
+      _updateMissedMedications().then((_) => _loadAndPushMeds());
     });
   }
 
@@ -193,8 +229,8 @@ class _MedsScreenState extends State<MedsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = const Color(0xFFff5252);
     final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : Colors.white;
-    final gradientColors = isDarkMode 
-        ? [const Color(0xFF1a1111), const Color(0xFF2d1f1f)] 
+    final gradientColors = isDarkMode
+        ? [const Color(0xFF1a1111), const Color(0xFF2d1f1f)]
         : [const Color(0xFFfffbfb), const Color(0xFFf5eaea)];
 
     return Container(
@@ -208,75 +244,121 @@ class _MedsScreenState extends State<MedsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text('My Medications', style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : const Color(0xFF111714))),
+          title: Text(
+            'My Medications',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : const Color(0xFF111714),
+            ),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
           shadowColor: Colors.transparent,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              backgroundColor: primaryColor.withAlpha(isDarkMode ? 51 : 26),
-              child: IconButton(
-                icon: Icon(Icons.add, color: primaryColor),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AddMedsScreen()),
-                  ).then((_) {
-                     _updateMissedMedications().then((_) => _loadAndPushMeds());
-                  });
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                backgroundColor: primaryColor.withAlpha(isDarkMode ? 51 : 26),
+                child: IconButton(
+                  icon: Icon(Icons.add, color: primaryColor),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddMedsScreen(),
+                      ),
+                    ).then((_) {
+                      _updateMissedMedications().then(
+                        (_) => _loadAndPushMeds(),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            _buildDaySelector(),
+            const SizedBox(height: 24),
+            Expanded(
+              child: StreamBuilder<List<MedicationViewData>>(
+                stream: _medsController.stream,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Text(
+                          'Query Error: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text('No medications scheduled for this day.'),
+                    );
+                  }
+                  final meds = snapshot.data!;
+                  final morningMeds = meds
+                      .where((m) => m.medication.time.hour < 12)
+                      .toList();
+                  final afternoonMeds = meds
+                      .where(
+                        (m) =>
+                            m.medication.time.hour >= 12 &&
+                            m.medication.time.hour < 18,
+                      )
+                      .toList();
+                  final eveningMeds = meds
+                      .where((m) => m.medication.time.hour >= 18)
+                      .toList();
+
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    children: [
+                      if (morningMeds.isNotEmpty)
+                        _buildScheduleSection(
+                          'Morning Schedule',
+                          Icons.light_mode,
+                          Colors.orange,
+                          morningMeds,
+                          surfaceColor,
+                        ),
+                      if (afternoonMeds.isNotEmpty)
+                        _buildScheduleSection(
+                          'Afternoon Schedule',
+                          Icons.sunny,
+                          primaryColor,
+                          afternoonMeds,
+                          surfaceColor,
+                        ),
+                      if (eveningMeds.isNotEmpty)
+                        _buildScheduleSection(
+                          'Evening Schedule',
+                          Icons.dark_mode,
+                          Colors.indigo,
+                          eveningMeds,
+                          surfaceColor,
+                        ),
+                    ],
+                  );
                 },
               ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildDaySelector(),
-          const SizedBox(height: 24),
-          Expanded(
-            child: StreamBuilder<List<MedicationViewData>>(
-              stream: _medsController.stream,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Text(
-                        'Query Error: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      ),
-                    ),
-                  );
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No medications scheduled for this day.'));
-                }
-                final meds = snapshot.data!;
-                final morningMeds = meds.where((m) => m.medication.time.hour < 12).toList();
-                final afternoonMeds = meds.where((m) => m.medication.time.hour >= 12 && m.medication.time.hour < 18).toList();
-                final eveningMeds = meds.where((m) => m.medication.time.hour >= 18).toList();
-
-                return ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  children: [
-                    if (morningMeds.isNotEmpty) _buildScheduleSection('Morning Schedule', Icons.light_mode, Colors.orange, morningMeds, surfaceColor),
-                    if (afternoonMeds.isNotEmpty) _buildScheduleSection('Afternoon Schedule', Icons.sunny, primaryColor, afternoonMeds, surfaceColor),
-                    if (eveningMeds.isNotEmpty) _buildScheduleSection('Evening Schedule', Icons.dark_mode, Colors.indigo, eveningMeds, surfaceColor),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -300,22 +382,63 @@ class _MedsScreenState extends State<MedsScreen> {
               width: 55,
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFff5252) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2d1f1f) : Colors.white),
+                color: isSelected
+                    ? const Color(0xFFff5252)
+                    : (Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2d1f1f)
+                          : Colors.white),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: isSelected 
-                    ? [BoxShadow(color: const Color(0xFFff5252).withAlpha(100), blurRadius: 12, offset: const Offset(0, 6))] 
-                    : [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFff5252).withAlpha(100),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(10),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(DateFormat.E().format(day), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isSelected ? Colors.white.withAlpha(230) : Colors.grey)),
+                  Text(
+                    DateFormat.E().format(day),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white.withAlpha(230)
+                          : Colors.grey,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(day.day.toString(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color)),
-                  if(isSelected) ...[
+                  Text(
+                    day.day.toString(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  if (isSelected) ...[
                     const SizedBox(height: 4),
-                    Container(width: 5, height: 5, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-                  ]
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -325,7 +448,13 @@ class _MedsScreenState extends State<MedsScreen> {
     );
   }
 
-  Widget _buildScheduleSection(String title, IconData icon, Color iconColor, List<MedicationViewData> meds, Color surfaceColor) {
+  Widget _buildScheduleSection(
+    String title,
+    IconData icon,
+    Color iconColor,
+    List<MedicationViewData> meds,
+    Color surfaceColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -335,7 +464,15 @@ class _MedsScreenState extends State<MedsScreen> {
             children: [
               Icon(icon, color: iconColor, size: 20),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.grey)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Colors.grey,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -347,54 +484,73 @@ class _MedsScreenState extends State<MedsScreen> {
     );
   }
 
-  Widget _buildMedicationItem(MedicationViewData medViewData, Color surfaceColor, int index) {
+  Widget _buildMedicationItem(
+    MedicationViewData medViewData,
+    Color surfaceColor,
+    int index,
+  ) {
     final med = medViewData.medication;
     // SỬA LỖI: Sử dụng log.id làm Key thay vì med.id để tránh trùng lặp
     return Dismissible(
-      key: Key(medViewData.log.id),
-      background: Container(
-        color: Colors.blue,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: const Icon(Icons.edit, color: Colors.white),
-      ),
-      secondaryBackground: Container(
-        color: Colors.red,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      onDismissed: (direction) {
-        if (direction == DismissDirection.endToStart) {
-          _deleteMedication(med);
-        }
-      },
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          _editMedication(med);
-          return false;
-        } else if (direction == DismissDirection.endToStart) {
-          return await showDialog<bool>(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Confirm Deletion'),
-                content: const Text('Are you sure you want to delete this medication and all its reminders?'),
-                actions: <Widget>[
-                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-                  TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
-                ],
-              );
-            },
-          ) ?? false;
-        }
-        return false;
-      },
-      child: _buildMedicationListItem(medViewData, surfaceColor),
-    ).animate().fade(duration: 400.ms, delay: (50 * index).ms).slideX(begin: 0.1, curve: Curves.easeOut);
+          key: Key(medViewData.log.id),
+          background: Container(
+            color: Colors.blue,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            child: const Icon(Icons.edit, color: Colors.white),
+          ),
+          secondaryBackground: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          onDismissed: (direction) {
+            if (direction == DismissDirection.endToStart) {
+              _deleteMedication(med);
+            }
+          },
+          confirmDismiss: (direction) async {
+            if (direction == DismissDirection.startToEnd) {
+              _editMedication(med);
+              return false;
+            } else if (direction == DismissDirection.endToStart) {
+              return await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Deletion'),
+                        content: const Text(
+                          'Are you sure you want to delete this medication and all its reminders?',
+                        ),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      );
+                    },
+                  ) ??
+                  false;
+            }
+            return false;
+          },
+          child: _buildMedicationListItem(medViewData, surfaceColor),
+        )
+        .animate()
+        .fade(duration: 400.ms, delay: (50 * index).ms)
+        .slideX(begin: 0.1, curve: Curves.easeOut);
   }
 
-  Widget _buildMedicationListItem(MedicationViewData medViewData, Color surfaceColor) {
+  Widget _buildMedicationListItem(
+    MedicationViewData medViewData,
+    Color surfaceColor,
+  ) {
     final med = medViewData.medication;
     final status = medViewData.log.status;
     IconData medIcon;
@@ -429,7 +585,7 @@ class _MedsScreenState extends State<MedsScreen> {
         statusColor = Colors.blue;
         break;
     }
-    
+
     iconBgColor = statusColor.withAlpha(26);
     iconColor = statusColor;
 
@@ -441,14 +597,18 @@ class _MedsScreenState extends State<MedsScreen> {
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(24),
-          border: status == MedicationStatus.missed ? const Border(left: BorderSide(color: Colors.red, width: 4)) : null,
+          border: status == MedicationStatus.missed
+              ? const Border(left: BorderSide(color: Colors.red, width: 4))
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withAlpha(100) : Colors.black.withAlpha(20), 
-              blurRadius: 16, 
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withAlpha(100)
+                  : Colors.black.withAlpha(20),
+              blurRadius: 16,
               offset: const Offset(0, 6),
-            )
-          ]
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -462,9 +622,18 @@ class _MedsScreenState extends State<MedsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(med.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    med.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('${med.dosage} • ${med.timing}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    '${med.dosage} • ${med.timing}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -472,28 +641,44 @@ class _MedsScreenState extends State<MedsScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withAlpha(38),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(med.time.format(context), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                Text(
+                  med.time.format(context),
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showMedicationDetailsDialog(BuildContext context, MedicationViewData medViewData) {
+  void _showMedicationDetailsDialog(
+    BuildContext context,
+    MedicationViewData medViewData,
+  ) {
     final med = medViewData.medication;
     final status = medViewData.log.status;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Status text formatter
     String statusText;
     Color statusColor;
@@ -517,15 +702,23 @@ class _MedsScreenState extends State<MedsScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: isDarkMode ? const Color(0xFF2d1f1f) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
-              Icon(Icons.medical_information, color: Theme.of(context).primaryColor),
+              Icon(
+                Icons.medical_information,
+                color: Theme.of(context).primaryColor,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   med.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -538,32 +731,54 @@ class _MedsScreenState extends State<MedsScreen> {
               children: [
                 const Divider(),
                 const SizedBox(height: 8),
-                _buildDetailRow(Icons.science, 'Dose/Form', '${med.dosage} (${med.form.name})'),
+                _buildDetailRow(
+                  Icons.science,
+                  'Dose/Form',
+                  '${med.dosage} (${med.form.name})',
+                ),
                 const SizedBox(height: 12),
-                _buildDetailRow(Icons.access_time, 'Schedule', med.time.format(context)),
+                _buildDetailRow(
+                  Icons.access_time,
+                  'Schedule',
+                  med.time.format(context),
+                ),
                 const SizedBox(height: 12),
                 _buildDetailRow(Icons.calendar_today, 'Timing', med.timing),
                 const SizedBox(height: 12),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Status', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          const Text(
+                            'Status',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                           const SizedBox(height: 2),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: statusColor.withAlpha(38),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               statusText,
-                              style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -595,9 +810,18 @@ class _MedsScreenState extends State<MedsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                label,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
         ),

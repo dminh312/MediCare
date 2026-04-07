@@ -33,8 +33,19 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
 
   final MedicationLibraryService _libraryService = MedicationLibraryService();
 
-  final List<String> _formOptions = ['Pill', 'Injection', 'Syrup', 'Tablet', 'Capsule'];
-  final List<String> _frequencyOptions = ['Daily', 'Twice a day', 'Weekly', 'As needed'];
+  final List<String> _formOptions = [
+    'Pill',
+    'Injection',
+    'Syrup',
+    'Tablet',
+    'Capsule',
+  ];
+  final List<String> _frequencyOptions = [
+    'Daily',
+    'Twice a day',
+    'Weekly',
+    'As needed',
+  ];
   final List<String> _timingOptions = [
     'Before Breakfast',
     'After Breakfast',
@@ -102,21 +113,33 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       if (user == null) return;
 
       // Chỉ cần lấy ViewModel
-      final medicationLogViewModel = Provider.of<MedicationLogViewModel>(context, listen: false);
+      final medicationLogViewModel = Provider.of<MedicationLogViewModel>(
+        context,
+        listen: false,
+      );
       final localService = LocalMedicationService();
 
       bool isLocal = false;
       if (_isEditMode) {
         isLocal = widget.medication!.id.startsWith('local_');
       } else {
-        final libraryResults = await _libraryService.searchMedications(_medNameController.text);
-        final isLibraryMed = libraryResults.any((name) => name.toLowerCase() == _medNameController.text.toLowerCase());
+        final libraryResults = await _libraryService.searchMedications(
+          _medNameController.text,
+        );
+        final isLibraryMed = libraryResults.any(
+          (name) => name.toLowerCase() == _medNameController.text.toLowerCase(),
+        );
         isLocal = !isLibraryMed;
       }
 
       final String medId = _isEditMode
           ? widget.medication!.id
-          : (isLocal ? 'local_${DateTime.now().millisecondsSinceEpoch}' : FirebaseFirestore.instance.collection('medications').doc().id);
+          : (isLocal
+                ? 'local_${DateTime.now().millisecondsSinceEpoch}'
+                : FirebaseFirestore.instance
+                      .collection('medications')
+                      .doc()
+                      .id);
 
       final medicationData = MedicationModel(
         id: medId,
@@ -137,25 +160,37 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         if (isLocal) {
           if (_isEditMode) {
             await localService.saveMedicationLocally(medicationData);
-            await medicationLogViewModel.updateLocalLogsAndNotifications(medicationData);
+            await medicationLogViewModel.updateLocalLogsAndNotifications(
+              medicationData,
+            );
           } else {
             await localService.saveMedicationLocally(medicationData);
-            await medicationLogViewModel.createLocalLogsAndNotifications(medicationData);
+            await medicationLogViewModel.createLocalLogsAndNotifications(
+              medicationData,
+            );
           }
         } else {
           if (_isEditMode) {
-            await FirebaseFirestore.instance.collection('medications').doc(widget.medication!.id).update(medicationData.toFirestore());
+            await FirebaseFirestore.instance
+                .collection('medications')
+                .doc(widget.medication!.id)
+                .update(medicationData.toFirestore());
             // ViewModel sẽ tự động xử lý việc cập nhật thông báo
-            await medicationLogViewModel.updateLogsAndNotificationsForMedication(medicationData);
+            await medicationLogViewModel
+                .updateLogsAndNotificationsForMedication(medicationData);
           } else {
-            await FirebaseFirestore.instance.collection('medications').doc(medicationData.id).set(medicationData.toFirestore());
+            await FirebaseFirestore.instance
+                .collection('medications')
+                .doc(medicationData.id)
+                .set(medicationData.toFirestore());
             // ViewModel sẽ tự động xử lý việc tạo thông báo
-            await medicationLogViewModel.createLogsForNewMedication(medicationData);
+            await medicationLogViewModel.createLogsForNewMedication(
+              medicationData,
+            );
           }
         }
-        
-        // === XOÁ HOÀN TOÀN KHỐI CODE ĐẶT LỊCH THỪA TẠI ĐÂY ===
 
+        // === XOÁ HOÀN TOÀN KHỐI CODE ĐẶT LỊCH THỪA TẠI ĐÂY ===
 
         if (mounted) {
           Navigator.of(context).pop();
@@ -177,12 +212,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
 
     const primaryColor = Color(0xffff5252);
     const primaryLightColor = Color(0xffffebee);
-    final backgroundColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffffbfb);
+    final backgroundColor = isDarkMode
+        ? const Color(0xff1a1111)
+        : const Color(0xfffffbfb);
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
     final textColor = isDarkMode ? Colors.grey[100] : const Color(0xff111714);
     final mutedTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[500];
-    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
-
+    final ringColor = isDarkMode
+        ? Colors.red[900]!.withAlpha(51)
+        : Colors.red[100]!;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -191,21 +229,39 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         elevation: 0,
         leading: TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500),
+          ),
         ),
         leadingWidth: 80,
-        title: Text(_isEditMode ? 'Edit Medication' : 'Add Medication', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          _isEditMode ? 'Edit Medication' : 'Add Medication',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
         actions: [
           TextButton(
             onPressed: _saveMedication,
-            child: const Text('Save', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(
-            color: isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100],
+            color: isDarkMode
+                ? Colors.red[900]!.withAlpha(51)
+                : Colors.red[100],
             height: 1.0,
           ),
         ),
@@ -224,13 +280,22 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: isDarkMode ? primaryColor.withAlpha(51) : primaryLightColor,
+                      color: isDarkMode
+                          ? primaryColor.withAlpha(51)
+                          : primaryLightColor,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Icon(Icons.medication, color: primaryColor, size: 40),
+                    child: const Icon(
+                      Icons.medication,
+                      color: primaryColor,
+                      size: 40,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text('Medication Details', style: TextStyle(color: mutedTextColor, fontSize: 14)),
+                  Text(
+                    'Medication Details',
+                    style: TextStyle(color: mutedTextColor, fontSize: 14),
+                  ),
                   const SizedBox(height: 32),
                   _buildSection(
                     label: 'Medication Name',
@@ -244,7 +309,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                       hintText: 'e.g. 500mg',
                       onSaved: (value) => _dosage = value,
                       suffixIcon: Icon(dosageIcon, color: mutedTextColor),
-                       validator: (value) {
+                      validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a dosage.';
                         }
@@ -280,7 +345,8 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                           child: _buildDropdownFormField(
                             value: _frequency,
                             items: _frequencyOptions,
-                            onChanged: (value) => setState(() => _frequency = value!),
+                            onChanged: (value) =>
+                                setState(() => _frequency = value!),
                           ),
                         ),
                       ),
@@ -303,7 +369,12 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildReminderSwitch(surfaceColor, ringColor, mutedTextColor, primaryColor),
+                  _buildReminderSwitch(
+                    surfaceColor,
+                    ringColor,
+                    mutedTextColor,
+                    primaryColor,
+                  ),
                   const SizedBox(height: 20),
                   _buildSection(
                     label: 'Instructions (Optional)',
@@ -362,10 +433,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
     const primaryColor = Color(0xffff5252);
-    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
+    final ringColor = isDarkMode
+        ? Colors.red[900]!.withAlpha(51)
+        : Colors.red[100]!;
     final placeholderColor = isDarkMode ? Colors.grey[600] : Colors.grey[300];
 
     return TypeAheadField<String>(
+      key: const ValueKey(
+        'med_typeahead_v2',
+      ), // Forces TypeAhead to rebuild and use the new callback after hot reload
       controller: _medNameController,
       builder: (context, controller, focusNode) {
         return TextFormField(
@@ -377,7 +453,10 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
             fillColor: surfaceColor,
             hintText: 'e.g. Vitamin C',
             hintStyle: TextStyle(color: placeholderColor),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 20,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: ringColor, width: 1.0),
@@ -402,24 +481,64 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       suggestionsCallback: (pattern) async {
         // Don't show anything when field is empty
         if (pattern.trim().isEmpty) return [];
-        final results = await _libraryService.searchMedications(pattern);
-        // Append an "Add as personal" sentinel when no exact match exists in the library
-        final exactMatch = results.any((r) => r.toLowerCase() == pattern.trim().toLowerCase());
-        if (!exactMatch) {
-          results.add('__add_personal__:${pattern.trim()}');
+
+        List<String> results = [];
+
+        try {
+          // Search Firestore library
+          final firestoreResults = await _libraryService.searchMedications(
+            pattern,
+          );
+
+          // Search local medications explicitly using SQL query
+          final user = FirebaseAuth.instance.currentUser;
+          List<String> localMedsNames = [];
+          if (user != null) {
+            final localMeds = await LocalMedicationService()
+                .searchLocalMedications(user.uid, pattern.trim());
+            localMedsNames = localMeds.map((m) => m.name).toSet().toList();
+          }
+
+          // Combine and deduplicate results
+          final Set<String> combinedResults = {
+            ...localMedsNames,
+            ...firestoreResults,
+          };
+          results = combinedResults.toList();
+
+          // Append an "Add as personal" sentinel when no exact match exists in the combined results
+          final exactMatch = results.any(
+            (r) => r.toLowerCase() == pattern.trim().toLowerCase(),
+          );
+          if (!exactMatch) {
+            results.add('__add_personal__:${pattern.trim()}');
+          }
+        } catch (e) {
+          // Fallback debug option
+          results.add('__add_personal__:Error: $e');
         }
+
         return results;
       },
       itemBuilder: (context, suggestion) {
         if (suggestion.startsWith('__add_personal__:')) {
           final name = suggestion.split(':').sublist(1).join(':');
           return ListTile(
-            leading: const Icon(Icons.add_circle_outline, color: Color(0xffff5252)),
+            leading: const Icon(
+              Icons.add_circle_outline,
+              color: Color(0xffff5252),
+            ),
             title: Text(
               'Add "$name" as personal medication',
-              style: const TextStyle(color: Color(0xffff5252), fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Color(0xffff5252),
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            subtitle: const Text('Saved locally on this device only', style: TextStyle(fontSize: 11)),
+            subtitle: const Text(
+              'Saved locally on this device only',
+              style: TextStyle(fontSize: 11),
+            ),
           );
         }
         return ListTile(
@@ -451,7 +570,9 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
     const primaryColor = Color(0xffff5252);
-    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
+    final ringColor = isDarkMode
+        ? Colors.red[900]!.withAlpha(51)
+        : Colors.red[100]!;
     final placeholderColor = isDarkMode ? Colors.grey[600] : Colors.grey[300];
 
     return TextFormField(
@@ -465,7 +586,10 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         fillColor: surfaceColor,
         hintText: hintText,
         hintStyle: TextStyle(color: placeholderColor),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 20,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: ringColor, width: 1.0),
@@ -492,11 +616,13 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
     const primaryColor = Color(0xffff5252);
-    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
+    final ringColor = isDarkMode
+        ? Colors.red[900]!.withAlpha(51)
+        : Colors.red[100]!;
     final mutedTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[500];
 
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       items: items.map((String item) {
         return DropdownMenuItem<String>(
           value: item,
@@ -507,8 +633,11 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       decoration: InputDecoration(
         filled: true,
         fillColor: surfaceColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-         border: OutlineInputBorder(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: ringColor, width: 1.0),
         ),
@@ -525,13 +654,15 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
       dropdownColor: surfaceColor,
     );
   }
-  
+
   Widget _buildTimePickerField(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
-    final ringColor = isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]!;
-    
+    final ringColor = isDarkMode
+        ? Colors.red[900]!.withAlpha(51)
+        : Colors.red[100]!;
+
     return GestureDetector(
       onTap: () async {
         final TimeOfDay? picked = await showTimePicker(
@@ -555,18 +686,20 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _time.format(context),
-              style: const TextStyle(fontSize: 16),
-            ),
-             Icon(Icons.access_time, color: Colors.grey[400])
+            Text(_time.format(context), style: const TextStyle(fontSize: 16)),
+            Icon(Icons.access_time, color: Colors.grey[400]),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReminderSwitch(Color surfaceColor, Color ringColor, Color? mutedTextColor, Color primaryColor) {
+  Widget _buildReminderSwitch(
+    Color surfaceColor,
+    Color ringColor,
+    Color? mutedTextColor,
+    Color primaryColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -586,13 +719,19 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                   color: Colors.orange[50],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.notifications_active, color: Colors.orange[500]),
+                child: Icon(
+                  Icons.notifications_active,
+                  color: Colors.orange[500],
+                ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Set Reminder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text(
+                    'Set Reminder',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   Text(
                     'Get notified when it\'s time',
                     style: TextStyle(fontSize: 10, color: mutedTextColor),

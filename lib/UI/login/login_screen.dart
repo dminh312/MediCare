@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/login_viewmodel.dart';
@@ -72,17 +71,22 @@ class _LoginViewState extends State<LoginView> {
     final loginViewModel = Provider.of<LoginViewModel>(context, listen: false);
     String? errorMessage;
     try {
-      errorMessage = await loginViewModel.signIn(_emailController.text, _passwordController.text);
+      errorMessage = await loginViewModel.signIn(
+        _emailController.text,
+        _passwordController.text,
+      );
     } catch (e) {
       errorMessage = e.toString();
     }
 
-    if(mounted) {
+    if (mounted) {
       setState(() => _isLoading = false);
     }
 
     if (mounted && errorMessage == null) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeView()),
+      );
     } else if (mounted && errorMessage != null) {
       setState(() {
         _hasLoginError = true;
@@ -101,7 +105,9 @@ class _LoginViewState extends State<LoginView> {
     }
 
     if (mounted && errorMessage == null) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const HomeView()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeView()),
+      );
     } else if (mounted && errorMessage != null) {
       setState(() {
         _hasLoginError = true;
@@ -120,11 +126,15 @@ class _LoginViewState extends State<LoginView> {
     const slate200 = Color(0xFFE2E8F0); // Roughly slate-200
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF020617) : backgroundLightColor;
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF020617)
+        : backgroundLightColor;
     final textColor = isDarkMode ? Colors.white : slate900;
     final secondaryTextColor = isDarkMode ? Colors.grey[400] : slate500;
     final ringColor = isDarkMode ? Colors.grey[700] : slate200;
-    final formBgColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white; // slate-800
+    final formBgColor = isDarkMode
+        ? const Color(0xFF1E293B)
+        : Colors.white; // slate-800
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -133,40 +143,64 @@ class _LoginViewState extends State<LoginView> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDarkMode 
-                ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+            colors: isDarkMode
+                ? [const Color(0xFF020617), const Color(0xFF0F172A)]
                 : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
           ),
         ),
         child: SafeArea(
           child: Column(
-          children: [
-            const SizedBox(height: 48),
-            _buildHeader(primaryColor, textColor)
-                .animate().fade(duration: 400.ms).scaleXY(begin: 0.9, curve: Curves.easeOutBack),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                children: [
-                  const SizedBox(height: 24),
-                  _buildWelcomeText(textColor, secondaryTextColor)
-                      .animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1),
-                  const SizedBox(height: 32),
-                  _buildLoginForm(context, textColor, formBgColor, primaryColor, ringColor, secondaryTextColor)
-                      .animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1),
-                  const SizedBox(height: 24),
-                  _buildSocialButtons(context, textColor, formBgColor, ringColor)
-                      .animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1),
-                  const SizedBox(height: 24),
-                ],
+            children: [
+              const SizedBox(height: 48),
+              _buildHeader(primaryColor, textColor)
+                  .animate()
+                  .fade(duration: 400.ms)
+                  .scaleXY(begin: 0.9, curve: Curves.easeOutBack),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildWelcomeText(textColor, secondaryTextColor)
+                        .animate()
+                        .fade(duration: 400.ms, delay: 100.ms)
+                        .slideY(begin: 0.1),
+                    const SizedBox(height: 32),
+                    _buildLoginForm(
+                          context,
+                          textColor,
+                          formBgColor,
+                          primaryColor,
+                          ringColor,
+                          secondaryTextColor,
+                        )
+                        .animate()
+                        .fade(duration: 400.ms, delay: 200.ms)
+                        .slideY(begin: 0.1),
+                    const SizedBox(height: 24),
+                    _buildSocialButtons(
+                          context,
+                          textColor,
+                          formBgColor,
+                          ringColor,
+                        )
+                        .animate()
+                        .fade(duration: 400.ms, delay: 300.ms)
+                        .slideY(begin: 0.1),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-            ),
-            _buildSignUpFooter(context, secondaryTextColor, primaryColor)
-                .animate().fade(duration: 400.ms, delay: 400.ms),
-          ],
+              _buildSignUpFooter(
+                context,
+                secondaryTextColor,
+                primaryColor,
+              ).animate().fade(duration: 400.ms, delay: 400.ms),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildHeader(Color primaryColor, Color textColor) {
@@ -179,17 +213,41 @@ class _LoginViewState extends State<LoginView> {
             color: primaryColor,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: primaryColor.withOpacity(0.4), spreadRadius: 4, blurRadius: 20, offset: const Offset(0, 8)),
+              BoxShadow(
+                color: primaryColor.withOpacity(0.4),
+                spreadRadius: 4,
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
-          child: const Icon(Icons.medical_services, color: Colors.white, size: 36),
+          child: const Icon(
+            Icons.medical_services,
+            color: Colors.white,
+            size: 36,
+          ),
         ),
         const SizedBox(height: 12),
         RichText(
           text: TextSpan(
             text: 'MediCare',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: textColor, fontFamily: 'Plus Jakarta Sans'),
-            children: <TextSpan>[TextSpan(text: '+', style: TextStyle(color: primaryColor, fontSize: 28, fontWeight: FontWeight.w800, fontFamily: 'Plus Jakarta Sans'))],
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+              fontFamily: 'Plus Jakarta Sans',
+            ),
+            children: <TextSpan>[
+              TextSpan(
+                text: '+',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Plus Jakarta Sans',
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -199,51 +257,111 @@ class _LoginViewState extends State<LoginView> {
   Widget _buildWelcomeText(Color textColor, Color? secondaryTextColor) {
     return Column(
       children: [
-        Text('Welcome Back', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Plus Jakarta Sans')),
+        Text(
+          'Welcome Back',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            fontFamily: 'Plus Jakarta Sans',
+          ),
+        ),
         const SizedBox(height: 8.0),
-        Text('Sign in to continue your health journey.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans')),
+        Text(
+          'Sign in to continue your health journey.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: secondaryTextColor,
+            fontFamily: 'Plus Jakarta Sans',
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildLoginForm(BuildContext context, Color textColor, Color formBgColor, Color primaryColor, Color? ringColor, Color? secondaryTextColor) {
+  Widget _buildLoginForm(
+    BuildContext context,
+    Color textColor,
+    Color formBgColor,
+    Color primaryColor,
+    Color? ringColor,
+    Color? secondaryTextColor,
+  ) {
     const slate400 = Color(0xFF94A3B8);
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Email or Username', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Plus Jakarta Sans')),
+          Text(
+            'Email or Username',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              fontFamily: 'Plus Jakarta Sans',
+            ),
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(color: textColor, fontFamily: 'Plus Jakarta Sans'),
-            decoration: _customInputDecoration(hintText: 'example@medicare.com', prefixIcon: Icons.mail, primaryColor: primaryColor, ringColor: ringColor, formBgColor: formBgColor, secondaryTextColor: secondaryTextColor, hasError: _hasLoginError),
-            validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+            decoration: _customInputDecoration(
+              hintText: 'example@medicare.com',
+              prefixIcon: Icons.mail,
+              primaryColor: primaryColor,
+              ringColor: ringColor,
+              formBgColor: formBgColor,
+              secondaryTextColor: secondaryTextColor,
+              hasError: _hasLoginError,
+            ),
+            validator: (value) => (value == null || !value.contains('@'))
+                ? 'Enter a valid email'
+                : null,
           ),
           const SizedBox(height: 16.0),
-          Text('Password', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Plus Jakarta Sans')),
+          Text(
+            'Password',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              fontFamily: 'Plus Jakarta Sans',
+            ),
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
             style: TextStyle(color: textColor, fontFamily: 'Plus Jakarta Sans'),
-            decoration: _customInputDecoration(
-              hintText: '••••••••',
-              prefixIcon: Icons.lock,
-              primaryColor: primaryColor,
-              ringColor: ringColor,
-              formBgColor: formBgColor,
-              secondaryTextColor: secondaryTextColor,
-              hasError: _hasLoginError
-            ).copyWith(
-              suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: secondaryTextColor, size: 20),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ),
-            ),
-            validator: (value) => (value == null || value.isEmpty) ? 'Please enter your password' : null,
+            decoration:
+                _customInputDecoration(
+                  hintText: '••••••••',
+                  prefixIcon: Icons.lock,
+                  primaryColor: primaryColor,
+                  ringColor: ringColor,
+                  formBgColor: formBgColor,
+                  secondaryTextColor: secondaryTextColor,
+                  hasError: _hasLoginError,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: secondaryTextColor,
+                      size: 20,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+            validator: (value) => (value == null || value.isEmpty)
+                ? 'Please enter your password'
+                : null,
           ),
           const SizedBox(height: 8),
           Row(
@@ -253,7 +371,12 @@ class _LoginViewState extends State<LoginView> {
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'Plus Jakarta Sans'),
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Plus Jakarta Sans',
+                    ),
                   ),
                 )
               else
@@ -263,13 +386,23 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   Checkbox(
                     value: _rememberMe,
-                    onChanged: (bool? value) => setState(() => _rememberMe = value ?? false),
+                    onChanged: (bool? value) =>
+                        setState(() => _rememberMe = value ?? false),
                     activeColor: primaryColor,
                     checkColor: Colors.white,
                     side: BorderSide(color: ringColor!, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                  Text('Remember me', style: TextStyle(fontWeight: FontWeight.w600, color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans')),
+                  Text(
+                    'Remember me',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: secondaryTextColor,
+                      fontFamily: 'Plus Jakarta Sans',
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -280,27 +413,54 @@ class _LoginViewState extends State<LoginView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryColor,
               minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.0)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28.0),
+              ),
               elevation: 8,
               shadowColor: primaryColor.withOpacity(0.4),
             ),
             child: _isLoading
-                ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                : const Text('Log In', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Plus Jakarta Sans')),
+                ? const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  )
+                : const Text(
+                    'Log In',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Plus Jakarta Sans',
+                    ),
+                  ),
           ),
           const SizedBox(height: 16),
           Center(
             child: IconButton(
               onPressed: () {},
-              icon: const Icon(Icons.face_unlock_outlined, size: 36, color: slate400),
+              icon: const Icon(
+                Icons.face_unlock_outlined,
+                size: 36,
+                color: slate400,
+              ),
               tooltip: 'Use Face ID',
             ),
           ),
           const SizedBox(height: 8),
           Center(
             child: TextButton(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ForgotPasswordView())),
-              child: Text('Forgot Password?', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontFamily: 'Plus Jakarta Sans')),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ForgotPasswordView(),
+                ),
+              ),
+              child: Text(
+                'Forgot Password?',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Plus Jakarta Sans',
+                ),
+              ),
             ),
           ),
         ],
@@ -309,69 +469,176 @@ class _LoginViewState extends State<LoginView> {
   }
 
   InputDecoration _customInputDecoration({
-    required String hintText, 
-    required IconData prefixIcon, 
-    required Color primaryColor, 
-    Color? ringColor, 
-    Color? formBgColor, 
+    required String hintText,
+    required IconData prefixIcon,
+    required Color primaryColor,
+    Color? ringColor,
+    Color? formBgColor,
     Color? secondaryTextColor,
     bool hasError = false,
   }) {
-    final effectiveRingColor = hasError ? Colors.red : (ringColor ?? Colors.transparent);
+    final effectiveRingColor = hasError
+        ? Colors.red
+        : (ringColor ?? Colors.transparent);
     final effectiveBorderWidth = hasError ? 2.0 : 1.0;
-    
+
     return InputDecoration(
       hintText: hintText,
-      hintStyle: TextStyle(color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans'),
-      prefixIcon: Icon(prefixIcon, color: hasError ? Colors.red : secondaryTextColor, size: 20),
+      hintStyle: TextStyle(
+        color: secondaryTextColor,
+        fontFamily: 'Plus Jakarta Sans',
+      ),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: hasError ? Colors.red : secondaryTextColor,
+        size: 20,
+      ),
       filled: true,
       fillColor: formBgColor,
       contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: effectiveRingColor, width: effectiveBorderWidth)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: BorderSide(color: hasError ? Colors.red : primaryColor, width: 2)),
-    );
-  }
-
-  Widget _buildSocialButtons(BuildContext context, Color textColor, Color formBgColor, Color? ringColor) {
-    const slate500 = Color(0xFF64748B);
-    return Column(
-      children: [
-        const Row(children: <Widget>[Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 16.0), child: Text('Or continue with', style: TextStyle(color: slate500, fontFamily: 'Plus Jakarta Sans'))), Expanded(child: Divider())]),
-        const SizedBox(height: 24.0),
-        Row(children: <Widget>[
-          Expanded(child: _socialButton(context, 'assets/google_logo.png', 'Google', textColor, formBgColor, ringColor, onPressed: _signInWithGoogle)),
-          const SizedBox(width: 16),
-          Expanded(child: _socialButton(context, null, 'Apple', textColor, formBgColor, ringColor, iconData: Icons.apple, onPressed: () {})),
-        ]),
-      ],
-    );
-  }
-
-  Widget _socialButton(BuildContext context, String? assetPath, String label, Color textColor, Color formBgColor, Color? ringColor, {IconData? iconData, required VoidCallback onPressed}){
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: assetPath != null ? Image.asset(assetPath, height: 20) : Icon(iconData, color: textColor, size: 24),
-      label: Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Plus Jakarta Sans')),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 54),
-        backgroundColor: formBgColor,
-        side: BorderSide(color: ringColor ?? Colors.transparent),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide(
+          color: effectiveRingColor,
+          width: effectiveBorderWidth,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide(
+          color: hasError ? Colors.red : primaryColor,
+          width: 2,
+        ),
       ),
     );
   }
 
-  Widget _buildSignUpFooter(BuildContext context, Color? secondaryTextColor, Color primaryColor) {
+  Widget _buildSocialButtons(
+    BuildContext context,
+    Color textColor,
+    Color formBgColor,
+    Color? ringColor,
+  ) {
+    const slate500 = Color(0xFF64748B);
+    return Column(
+      children: [
+        const Row(
+          children: <Widget>[
+            Expanded(child: Divider()),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Or continue with',
+                style: TextStyle(
+                  color: slate500,
+                  fontFamily: 'Plus Jakarta Sans',
+                ),
+              ),
+            ),
+            Expanded(child: Divider()),
+          ],
+        ),
+        const SizedBox(height: 24.0),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _socialButton(
+                context,
+                'assets/google_logo.png',
+                'Google',
+                textColor,
+                formBgColor,
+                ringColor,
+                onPressed: _signInWithGoogle,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _socialButton(
+                context,
+                null,
+                'Apple',
+                textColor,
+                formBgColor,
+                ringColor,
+                iconData: Icons.apple,
+                onPressed: () {},
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _socialButton(
+    BuildContext context,
+    String? assetPath,
+    String label,
+    Color textColor,
+    Color formBgColor,
+    Color? ringColor, {
+    IconData? iconData,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: assetPath != null
+          ? Image.asset(assetPath, height: 20)
+          : Icon(iconData, color: textColor, size: 24),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          fontFamily: 'Plus Jakarta Sans',
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 54),
+        backgroundColor: formBgColor,
+        side: BorderSide(color: ringColor ?? Colors.transparent),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignUpFooter(
+    BuildContext context,
+    Color? secondaryTextColor,
+    Color primaryColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text("Don't have an account? ", style: TextStyle(color: secondaryTextColor, fontFamily: 'Plus Jakarta Sans')),
+          Text(
+            "Don't have an account? ",
+            style: TextStyle(
+              color: secondaryTextColor,
+              fontFamily: 'Plus Jakarta Sans',
+            ),
+          ),
           TextButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SignUpView())),
-            child: Text('Sign Up for MediCare+', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontFamily: 'Plus Jakarta Sans')),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => const SignUpView())),
+            child: Text(
+              'Sign Up for MediCare+',
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Plus Jakarta Sans',
+              ),
+            ),
           ),
         ],
       ),

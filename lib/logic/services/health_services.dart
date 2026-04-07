@@ -1,41 +1,71 @@
+import 'dart:io';
 import 'package:health/health.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class HealthService {
   final Health _health = Health();
+  bool _isConfigured = false;
 
-  static const List<HealthDataType> _types = [
+  List<HealthDataType> _types = [
     HealthDataType.HEART_RATE,
     HealthDataType.STEPS,
-    HealthDataType.SLEEP_ASLEEP,
-    HealthDataType.BLOOD_OXYGEN,
   ];
 
-  static const List<HealthDataAccess> _permissions = [
-    HealthDataAccess.READ,
-    HealthDataAccess.READ,
+  List<HealthDataAccess> _permissions = [
     HealthDataAccess.READ,
     HealthDataAccess.READ,
   ];
+
+  Future<void> _ensureConfigured() async {
+    if (!_isConfigured) {
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        // Android 13 (SDK 33) uses standalone Health Connect app from Play Store
+        // Android 14+ (SDK 34+) has Health Connect built-in
+        if (androidInfo.version.sdkInt >= 33) {
+          if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
+            _types.addAll([HealthDataType.SLEEP_ASLEEP, HealthDataType.BLOOD_OXYGEN]);
+            _permissions.addAll([HealthDataAccess.READ, HealthDataAccess.READ]);
+          }
+        }
+      } else if (Platform.isIOS) {
+        if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
+          _types.addAll([HealthDataType.SLEEP_ASLEEP, HealthDataType.BLOOD_OXYGEN]);
+          _permissions.addAll([HealthDataAccess.READ, HealthDataAccess.READ]);
+        }
+      }
+      await _health.configure();
+      _isConfigured = true;
+    }
+  }
 
   // Check Health Connect available (Android only)
   Future<bool> isAvailable() async {
+    await _ensureConfigured();
     return await _health.isHealthConnectAvailable();
   }
 
   // Request permission
   Future<bool> requestPermission() async {
-    return await _health.requestAuthorization(_types, permissions: _permissions);
+    await _ensureConfigured();
+    return await _health.requestAuthorization(
+      _types,
+      permissions: _permissions,
+    );
   }
 
   // Check if permission already granted
   Future<bool> hasPermission() async {
-    return await _health.hasPermissions(_types, permissions: _permissions) ?? false;
+    await _ensureConfigured();
+    return await _health.hasPermissions(_types, permissions: _permissions) ??
+        false;
   }
 
   // Fetch data
   Future<List<HealthDataPoint>> fetchHealthData({int days = 1}) async {
+    await _ensureConfigured();
     final now = DateTime.now();
     final startTime = now.subtract(Duration(days: days));
 
@@ -50,6 +80,7 @@ class HealthService {
 
   // Fetch heart rate only
   Future<List<HealthDataPoint>> fetchHeartRate({int days = 1}) async {
+    await _ensureConfigured();
     final now = DateTime.now();
     final startTime = now.subtract(Duration(days: days));
 
@@ -62,6 +93,7 @@ class HealthService {
 
   // Fetch steps only
   Future<List<HealthDataPoint>> fetchSteps({int days = 1}) async {
+    await _ensureConfigured();
     final now = DateTime.now();
     final startTime = now.subtract(Duration(days: days));
 
@@ -74,6 +106,7 @@ class HealthService {
 
   // Fetch blood oxygen only
   Future<List<HealthDataPoint>> fetchBloodOxygen({int days = 1}) async {
+    await _ensureConfigured();
     final now = DateTime.now();
     final startTime = now.subtract(Duration(days: days));
 
@@ -93,6 +126,13 @@ class HealthService {
         return false;
       }
 
+      bool available = await isAvailable();
+      if (!available) {
+        print("HealthService sync: Health Connect not available, prompting install...");
+        await _health.installHealthConnect();
+        return false;
+      }
+
       // Check and request permission
       bool permitted = await hasPermission();
       if (!permitted) {
@@ -108,7 +148,7 @@ class HealthService {
 
       if (dataPoints.isEmpty) {
         print("HealthService sync: No data to sync.");
-        return true; 
+        return true;
       }
 
       // Group data by date
@@ -116,8 +156,9 @@ class HealthService {
 
       for (var point in dataPoints) {
         final date = point.dateFrom;
-        final dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-        
+        final dateString =
+            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
         if (!groupedData.containsKey(dateString)) {
           groupedData[dateString] = {
             'HEART_RATE': [],

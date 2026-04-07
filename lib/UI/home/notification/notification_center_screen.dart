@@ -9,7 +9,8 @@ class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
 
   @override
-  State<NotificationCenterScreen> createState() => _NotificationCenterScreenState();
+  State<NotificationCenterScreen> createState() =>
+      _NotificationCenterScreenState();
 }
 
 class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
@@ -24,58 +25,61 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         .where('userId', isEqualTo: user.uid)
         .snapshots()
         .asyncMap((logSnapshot) async {
-      if (logSnapshot.docs.isEmpty) return [];
+          if (logSnapshot.docs.isEmpty) return [];
 
-      final medicationIds = logSnapshot.docs.map((doc) => doc.data()['medicationId'] as String).toSet().toList();
-      if (medicationIds.isEmpty) return [];
+          final medicationIds = logSnapshot.docs
+              .map((doc) => doc.data()['medicationId'] as String)
+              .toSet()
+              .toList();
+          if (medicationIds.isEmpty) return [];
 
-      final Map<String, MedicationModel> medicationsMap = {};
+          final Map<String, MedicationModel> medicationsMap = {};
 
-      for (var i = 0; i < medicationIds.length; i += 10) {
-        final chunk = medicationIds.sublist(
-          i, 
-          i + 10 > medicationIds.length ? medicationIds.length : i + 10
-        );
-        
-        final medicationSnapshot = await FirebaseFirestore.instance
-            .collection('medications')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-            
-        for (var doc in medicationSnapshot.docs) {
-          medicationsMap[doc.id] = MedicationModel.fromFirestore(doc);
-        }
-      }
+          for (var i = 0; i < medicationIds.length; i += 10) {
+            final chunk = medicationIds.sublist(
+              i,
+              i + 10 > medicationIds.length ? medicationIds.length : i + 10,
+            );
 
-      final viewDataList = <Map<String, dynamic>>[];
-      for (final logDoc in logSnapshot.docs) {
-        final log = MedicationLog.fromFirestore(logDoc);
-        final medication = medicationsMap[log.medicationId];
-        
-        // Only show historical logs (past or present), ignore future scheduled alarms 
-        if (medication != null && log.scheduledTime.toDate().isBefore(DateTime.now())) {
-          viewDataList.add({
-            'log': log,
-            'medication': medication,
+            final medicationSnapshot = await FirebaseFirestore.instance
+                .collection('medications')
+                .where(FieldPath.documentId, whereIn: chunk)
+                .get();
+
+            for (var doc in medicationSnapshot.docs) {
+              medicationsMap[doc.id] = MedicationModel.fromFirestore(doc);
+            }
+          }
+
+          final viewDataList = <Map<String, dynamic>>[];
+          for (final logDoc in logSnapshot.docs) {
+            final log = MedicationLog.fromFirestore(logDoc);
+            final medication = medicationsMap[log.medicationId];
+
+            // Only show historical logs (past or present), ignore future scheduled alarms
+            if (medication != null &&
+                log.scheduledTime.toDate().isBefore(DateTime.now())) {
+              viewDataList.add({'log': log, 'medication': medication});
+            }
+          }
+
+          // Manually sort in Dart to avoid requiring a Firestore Composite Index
+          viewDataList.sort((a, b) {
+            final logA = a['log'] as MedicationLog;
+            final logB = b['log'] as MedicationLog;
+            return logB.scheduledTime.compareTo(logA.scheduledTime);
           });
-        }
-      }
-      
-      // Manually sort in Dart to avoid requiring a Firestore Composite Index
-      viewDataList.sort((a, b) {
-        final logA = a['log'] as MedicationLog;
-        final logB = b['log'] as MedicationLog;
-        return logB.scheduledTime.compareTo(logA.scheduledTime);
-      });
-      
-      return viewDataList.take(50).toList();
-    });
+
+          return viewDataList.take(50).toList();
+        });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF1a1111)
+        : const Color(0xFFfffbfb);
     final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : Colors.white;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF111714);
 
@@ -85,7 +89,10 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 1,
-        title: Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+        title: Text(
+          'Notifications',
+          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+        ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 22),
           onPressed: () => Navigator.of(context).pop(),
@@ -102,20 +109,30 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
-                child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             );
           }
-          
+
           final items = snapshot.data ?? [];
           if (items.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 80,
+                    color: Colors.grey.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(height: 16),
-                  const Text('No notifications yet', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  const Text(
+                    'No notifications yet',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
                 ],
               ),
             );
@@ -128,9 +145,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
               final data = items[index];
               final log = data['log'] as MedicationLog;
               final med = data['medication'] as MedicationModel;
-              
-              final timeString = DateFormat('MMM d, h:mm a').format(log.scheduledTime.toDate());
-              
+
+              final timeString = DateFormat(
+                'MMM d, h:mm a',
+              ).format(log.scheduledTime.toDate());
+
               IconData medIcon;
               Color statusColor;
               String statusText;
@@ -170,7 +189,12 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,22 +213,51 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text('Time to take ${med.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
+                                child: Text(
+                                  'Time to take ${med.name}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              Text(timeString, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text(
+                                timeString,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
-                          Text('Dosage: ${med.dosage} • ${med.timing}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                          Text(
+                            'Dosage: ${med.dosage} • ${med.timing}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: statusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ),

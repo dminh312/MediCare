@@ -207,10 +207,8 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => RecordViewerScreen(
-                  fileUrl: fileUrl,
-                  title: title,
-                ),
+                builder: (context) =>
+                    RecordViewerScreen(fileUrl: fileUrl, title: title),
               ),
             );
           } else {

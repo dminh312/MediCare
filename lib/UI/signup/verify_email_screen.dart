@@ -26,7 +26,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         if (mounted) setState(() => canResendEmail = true);
       });
 
-      _timer = Timer.periodic(const Duration(seconds: 3), (_) => checkEmailVerified());
+      _timer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) => checkEmailVerified(),
+      );
     }
   }
 
@@ -46,9 +49,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       if (mounted) setState(() => canResendEmail = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        String errorMessage = e.toString();
+        if (e is FirebaseAuthException && e.code == 'too-many-requests') {
+          errorMessage = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại nhé!';
+        } else if (e.toString().contains('too-many-requests')) {
+          errorMessage = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại nhé!';
+        }
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     }
   }
@@ -56,7 +66,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   Future checkEmailVerified() async {
     await FirebaseAuth.instance.currentUser?.reload();
     setState(() {
-      isEmailVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      isEmailVerified =
+          FirebaseAuth.instance.currentUser?.emailVerified ?? false;
     });
     if (isEmailVerified) {
       _timer?.cancel();
@@ -66,8 +77,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final gradientColors = isDarkMode 
-        ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+    final gradientColors = isDarkMode
+        ? [const Color(0xFF020617), const Color(0xFF0F172A)]
         : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)];
 
     return isEmailVerified
@@ -88,50 +99,64 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 title: const Text('Verify Email'),
                 centerTitle: true,
               ),
-            body: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.mark_email_unread_outlined, size: 100, color: Colors.redAccent),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'A verification email has been sent to your email address.',
-                    style: TextStyle(fontSize: 20),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text(
-                      'I\'ve Verified My Email',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    onPressed: checkEmailVerified,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    icon: const Icon(Icons.email),
-                    label: const Text(
-                      'Resend Email',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    onPressed: canResendEmail ? sendVerificationEmail : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => FirebaseAuthService().signOut(),
-                    child: const Text('Cancel / Logout', style: TextStyle(color: Colors.red)),
-                  ),
-                ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad),
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children:
+                      [
+                            const Icon(
+                              Icons.mark_email_unread_outlined,
+                              size: 100,
+                              color: Colors.redAccent,
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'A verification email has been sent to your email address.',
+                              style: TextStyle(fontSize: 20),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(50),
+                              ),
+                              icon: const Icon(Icons.check),
+                              label: const Text(
+                                'I\'ve Verified My Email',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              onPressed: checkEmailVerified,
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size.fromHeight(50),
+                              ),
+                              icon: const Icon(Icons.email),
+                              label: const Text(
+                                'Resend Email',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              onPressed: canResendEmail
+                                  ? sendVerificationEmail
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () => FirebaseAuthService().signOut(),
+                              child: const Text(
+                                'Cancel / Logout',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ]
+                          .animate(interval: 50.ms)
+                          .fade(duration: 400.ms)
+                          .slideY(begin: 0.1, curve: Curves.easeOutQuad),
+                ),
               ),
             ),
-          ));
+          );
   }
 }

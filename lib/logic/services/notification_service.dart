@@ -13,15 +13,19 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
   }
-  debugPrint("[BACKGROUND] Clicked notification: ${notificationResponse.payload}");
+  debugPrint(
+    "[BACKGROUND] Clicked notification: ${notificationResponse.payload}",
+  );
 }
 
 class NotificationService {
-  static final NotificationService _notificationService = NotificationService._internal();
+  static final NotificationService _notificationService =
+      NotificationService._internal();
   factory NotificationService() => _notificationService;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   final BehaviorSubject<String?> onNotificationClick = BehaviorSubject();
 
   static const String _channelId = 'medicare_urgent_v9';
@@ -33,16 +37,18 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -55,20 +61,27 @@ class NotificationService {
     );
 
     if (Platform.isAndroid) {
-      final androidPlugin = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (androidPlugin != null) {
-        await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
-          _channelId,
-          _channelName,
-          description: 'Highest priority notification channel for medication reminders.',
-          importance: Importance.max,
-          playSound: true,
-          enableVibration: true,
-        ));
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _channelId,
+            _channelName,
+            description:
+                'Highest priority notification channel for medication reminders.',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+        );
 
         // Request required permissions for Android 13+ and Android 12+
         await androidPlugin.requestNotificationsPermission();
-        final bool? canSchedule = await androidPlugin.canScheduleExactNotifications();
+        final bool? canSchedule = await androidPlugin
+            .canScheduleExactNotifications();
         if (canSchedule == false) {
           await androidPlugin.requestExactAlarmsPermission();
         }
@@ -96,7 +109,9 @@ class NotificationService {
       final bool medsEnabled = prefs.getBool('medicationReminders') ?? true;
 
       if (!masterEnabled || !medsEnabled) {
-        debugPrint("[SERVICE] Skipped medication reminder ($title) because user disabled notifications.");
+        debugPrint(
+          "[SERVICE] Skipped medication reminder ($title) because user disabled notifications.",
+        );
         return;
       }
 
@@ -116,15 +131,21 @@ class NotificationService {
             priority: Priority.max,
             showWhen: true,
             icon: '@mipmap/ic_launcher',
-            styleInformation: BigTextStyleInformation(body, contentTitle: title),
+            styleInformation: BigTextStyleInformation(
+              body,
+              contentTitle: title,
+            ),
           ),
         ),
         payload: payload,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      debugPrint("[SERVICE] Scheduled medication: $title at $scheduledDate (ID: $safeId)");
+      debugPrint(
+        "[SERVICE] Scheduled medication: $title at $scheduledDate (ID: $safeId)",
+      );
     } catch (e) {
       debugPrint("[SERVICE ERROR] Error scheduling medication: $e");
     }
@@ -133,7 +154,14 @@ class NotificationService {
   tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
     _initTimezone();
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, time.hour, time.minute);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
 
     // If the time already passed, schedule for tomorrow
     if (scheduledDate.isBefore(now)) {

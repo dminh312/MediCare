@@ -42,8 +42,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
-    final surfaceColor = isDarkMode ? const Color(0xFF2d1f1f) : const Color(0xFFffffff);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF1a1111)
+        : const Color(0xFFfffbfb);
+    final surfaceColor = isDarkMode
+        ? const Color(0xFF2d1f1f)
+        : const Color(0xFFffffff);
     final textColor = isDarkMode ? Colors.white : const Color(0xFF111714);
 
     return Scaffold(
@@ -68,18 +72,32 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFindPharmaciesCard(bool isDarkMode, Color surfaceColor, Color textColor) {
+  Widget _buildFindPharmaciesCard(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+  ) {
     const primaryColor = Color(0xFFff5252);
-    final primaryLight = isDarkMode ? primaryColor.withValues(alpha: 0.2) : const Color(0xFFffebee);
-    
+    final primaryLight = isDarkMode
+        ? primaryColor.withValues(alpha: 0.2)
+        : const Color(0xFFffebee);
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.red[900]!.withValues(alpha: 0.05),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Stack(
@@ -114,9 +132,25 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Find Pharmacies", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                      Text(
+                        "Find Pharmacies",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text("Locate the nearest medical stores", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                      Text(
+                        "Locate the nearest medical stores",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[500],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -124,7 +158,9 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const MapsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const MapsScreen(),
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -149,14 +185,32 @@ class _HomePageState extends State<HomePage> {
     const primaryColor = Color(0xFFff5252);
     const primaryLight = Color(0xFFffebee);
 
-    return Container(
+    return Consumer<HealthDataViewModel>(
+      builder: (context, viewModel, child) {
+        int todaySteps = viewModel.todaySteps;
+        int stepGoal = viewModel.stepGoal;
+        double progress = stepGoal > 0 ? (todaySteps / stepGoal).clamp(0.0, 1.0) : 0.0;
+        int remaining = stepGoal - todaySteps;
+        String subtitleText = remaining > 0 
+          ? "You're crushing it! Just $remaining more steps to reach your daily target. Keep moving!"
+          : "You've reached your daily step goal! Amazing job!";
+
+        return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.red[900]!.withValues(alpha: 0.05),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -164,7 +218,9 @@ class _HomePageState extends State<HomePage> {
         children: [
           Container(
             height: 160,
-            color: isDarkMode ? primaryColor.withValues(alpha: 0.1) : primaryLight,
+            color: isDarkMode
+                ? primaryColor.withValues(alpha: 0.1)
+                : primaryLight,
             padding: const EdgeInsets.all(24),
             child: Center(
               child: Stack(
@@ -174,18 +230,23 @@ class _HomePageState extends State<HomePage> {
                     width: 96,
                     height: 96,
                     child: CircularProgressIndicator(
-                      value: 0.85,
+                      value: progress,
                       strokeWidth: 8,
-                      backgroundColor: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.3) : Colors.red[100],
+                      backgroundColor: isDarkMode
+                          ? Colors.red[900]!.withValues(alpha: 0.3)
+                          : Colors.red[100],
                       color: primaryColor,
                       strokeCap: StrokeCap.round,
                     ),
                   ),
-                  Text("85%", style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.grey[900],
-                  )),
+                  Text(
+                    "${(progress * 100).toInt()}%",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.grey[900],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -197,12 +258,20 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(
                   "Daily Goal Progress",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.grey[900]),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "You're crushing it! Just 1,200 more steps to reach your daily target. Keep moving!",
-                  style: TextStyle(height: 1.5, fontSize: 14, color: isDarkMode ? Colors.grey[300] : Colors.grey[600]),
+                  subtitleText,
+                  style: TextStyle(
+                    height: 1.5,
+                    fontSize: 14,
+                    color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -211,31 +280,44 @@ class _HomePageState extends State<HomePage> {
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Text("View Details", style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        "View Details",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward, size: 18),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+    });
   }
 
-  Widget _buildHealthMetrics(bool isDarkMode, Color surfaceColor, Color textColor) {
+  Widget _buildHealthMetrics(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+  ) {
     return Consumer<HealthDataViewModel>(
       builder: (context, viewModel, child) {
         final isConnected = viewModel.isConnected;
-        
+
         // Define the content
         final content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,40 +325,58 @@ class _HomePageState extends State<HomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Health Metrics", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                Text(
+                  "Health Metrics",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
                 TextButton(
                   onPressed: () {},
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFff5252), padding: EdgeInsets.zero),
-                  child: const Text("See All", style: TextStyle(fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFff5252),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Text(
+                    "See All",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: isConnected 
-                    ? _buildMetricCard(
-                        title: "Steps",
-                        value: "\${viewModel.todaySteps}",
-                        icon: Icons.directions_walk,
-                        iconColor: Colors.orange[600]!,
-                        iconBgDark: Colors.orange[900]!.withValues(alpha: 0.3),
-                        iconBgLight: Colors.orange[100]!,
-                        trendValue: "Goal 10k",
-                        trendUp: true,
-                        isDarkMode: isDarkMode,
-                        surfaceColor: surfaceColor,
-                      )
-                    : _buildLockedCard(
-                        title: "Steps",
-                        icon: Icons.directions_walk,
-                        iconColor: Colors.orange[600]!,
-                        iconBgDark: Colors.orange[900]!.withValues(alpha: 0.3),
-                        iconBgLight: Colors.orange[100]!,
-                        isDarkMode: isDarkMode,
-                        surfaceColor: surfaceColor,
-                      ),
+                    child: isConnected
+                        ? _buildMetricCard(
+                            title: "Steps",
+                            value: "${viewModel.todaySteps}",
+                            icon: Icons.directions_walk,
+                          iconColor: Colors.orange[600]!,
+                          iconBgDark: Colors.orange[900]!.withValues(
+                            alpha: 0.3,
+                          ),
+                          iconBgLight: Colors.orange[100]!,
+                          trendValue: "Goal 10k",
+                          trendUp: true,
+                          isDarkMode: isDarkMode,
+                          surfaceColor: surfaceColor,
+                        )
+                      : _buildLockedCard(
+                          title: "Steps",
+                          icon: Icons.directions_walk,
+                          iconColor: Colors.orange[600]!,
+                          iconBgDark: Colors.orange[900]!.withValues(
+                            alpha: 0.3,
+                          ),
+                          iconBgLight: Colors.orange[100]!,
+                          isDarkMode: isDarkMode,
+                          surfaceColor: surfaceColor,
+                        ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -299,18 +399,32 @@ class _HomePageState extends State<HomePage> {
             GestureDetector(
               onTap: () {
                 if (isConnected) {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const HeartRateScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HeartRateScreen(),
+                    ),
+                  );
                 } else {
                   _showUnauthorizedDialog(context);
                 }
               },
               child: isConnected
-                  ? _buildHeartRateCard(isDarkMode, surfaceColor, textColor, viewModel.latestHeartRate)
-                  : _buildLockedHeartRateCard(isDarkMode, surfaceColor, textColor),
+                  ? _buildHeartRateCard(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                      viewModel.latestHeartRate,
+                    )
+                  : _buildLockedHeartRateCard(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                    ),
             ),
           ],
         );
-        
+
         return content;
       },
     );
@@ -321,7 +435,9 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("App Permission Required"),
-        content: const Text("You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect."),
+        content: const Text(
+          "You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -348,7 +464,11 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: isDarkMode
+                ? Colors.white10
+                : Colors.red[900]!.withValues(alpha: 0.05),
+          ),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -367,9 +487,19 @@ class _HomePageState extends State<HomePage> {
                   child: Icon(icon, color: iconColor, size: 20),
                 ),
                 const SizedBox(height: 12),
-                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                  ),
+                ),
                 const SizedBox(height: 4),
-                const Text("Locked", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Locked",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ),
@@ -378,13 +508,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildLockedHeartRateCard(bool isDarkMode, Color surfaceColor, Color textColor) {
+  Widget _buildLockedHeartRateCard(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.red[900]!.withValues(alpha: 0.05),
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -399,17 +537,38 @@ class _HomePageState extends State<HomePage> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.3) : Colors.red[100],
+                      color: isDarkMode
+                          ? Colors.red[900]!.withValues(alpha: 0.3)
+                          : Colors.red[100],
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.favorite, color: Colors.red[600], size: 20),
+                    child: Icon(
+                      Icons.favorite,
+                      color: Colors.red[600],
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Heart Rate", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
-                      const Text("Locked", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(
+                        "Heart Rate",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[500],
+                        ),
+                      ),
+                      const Text(
+                        "Locked",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -438,9 +597,17 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.red[900]!.withValues(alpha: 0.05),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -456,37 +623,81 @@ class _HomePageState extends State<HomePage> {
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(height: 12),
-          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+            ),
+          ),
           const SizedBox(height: 4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.grey[900])),
-              const SizedBox(width: 8),
-              Row(
-                children: [
-                  Icon(trendUp ? Icons.arrow_upward : Icons.arrow_downward, color: Colors.green[600], size: 16),
-                  const SizedBox(width: 2),
-                  Text(trendValue, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green[600])),
-                ],
-              )
-            ],
-          )
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.grey[900],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: Row(
+                  children: [
+                    Icon(
+                      trendUp ? Icons.arrow_upward : Icons.arrow_downward,
+                      color: Colors.green[600],
+                      size: 16,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      trendValue,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                  ],
+                ),
+                ), // Close Padding
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeartRateCard(bool isDarkMode, Color surfaceColor, Color textColor, int heartRate) {
+  Widget _buildHeartRateCard(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+    int heartRate,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.red[900]!.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.red[900]!.withValues(alpha: 0.05),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -498,7 +709,9 @@ class _HomePageState extends State<HomePage> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.3) : Colors.red[100],
+                  color: isDarkMode
+                      ? Colors.red[900]!.withValues(alpha: 0.3)
+                      : Colors.red[100],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.favorite, color: Colors.red[600], size: 20),
@@ -507,14 +720,38 @@ class _HomePageState extends State<HomePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Heart Rate", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                  Text(
+                    "Heart Rate",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                    ),
+                  ),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text("$heartRate", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
+                      Text(
+                        "$heartRate",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
                       const SizedBox(width: 4),
-                      Text("bpm", style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.grey[400] : Colors.grey[500])),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Text(
+                        "bpm",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[500],
+                        ),
+                      ),
+                      ), // Close Padding
                     ],
                   ),
                 ],
@@ -525,7 +762,9 @@ class _HomePageState extends State<HomePage> {
             height: 40,
             width: 80,
             decoration: BoxDecoration(
-              color: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.2) : Colors.red[50],
+              color: isDarkMode
+                  ? Colors.red[900]!.withValues(alpha: 0.2)
+                  : Colors.red[50],
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -565,12 +804,20 @@ class _HomePageState extends State<HomePage> {
       height: 80,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800]!.withValues(alpha: 0.5) : Colors.grey[100],
+        color: isDarkMode
+            ? Colors.grey[800]!.withValues(alpha: 0.5)
+            : Colors.grey[100],
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!, style: BorderStyle.solid),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+          style: BorderStyle.solid,
+        ),
       ),
       child: Center(
-        child: Text(text, style: TextStyle(fontSize: 14, color: Colors.grey[400])),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+        ),
       ),
     );
   }
@@ -581,15 +828,21 @@ class _HomePageState extends State<HomePage> {
 
     return AppBar(
       toolbarHeight: 80,
-      backgroundColor: isDarkMode ? const Color(0xFF1a1111).withValues(alpha: 0.95) : const Color(0xFFfffbfb).withValues(alpha: 0.95),
+      backgroundColor: isDarkMode
+          ? const Color(0xFF1a1111).withValues(alpha: 0.95)
+          : const Color(0xFFfffbfb).withValues(alpha: 0.95),
       elevation: 0,
       scrolledUnderElevation: 1,
-      shadowColor: isDarkMode ? Colors.transparent : Colors.grey.withValues(alpha: 0.1),
+      shadowColor: isDarkMode
+          ? Colors.transparent
+          : Colors.grey.withValues(alpha: 0.1),
       automaticallyImplyLeading: false,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1.0),
         child: Container(
-          color: isDarkMode ? Colors.red[900]!.withValues(alpha: 0.2) : Colors.red[100],
+          color: isDarkMode
+              ? Colors.red[900]!.withValues(alpha: 0.2)
+              : Colors.red[100],
           height: 1.0,
         ),
       ),
@@ -599,42 +852,60 @@ class _HomePageState extends State<HomePage> {
             radius: 20,
             backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[200],
             backgroundImage: (photoUrl != null) ? NetworkImage(photoUrl) : null,
+            onBackgroundImageError: (photoUrl != null)
+                ? (exception, stackTrace) {
+                    debugPrint('Image load failed: $exception');
+                  }
+                : null,
             child: (photoUrl == null)
                 ? const Icon(Icons.person, color: Colors.grey)
                 : null,
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Welcome back,',
-                style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                userName,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Welcome back,',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
       actions: [
         StreamBuilder<QuerySnapshot>(
-          stream: _user != null 
-            ? FirebaseFirestore.instance
-                .collection('medication_logs')
-                .where('userId', isEqualTo: _user!.uid)
-                .where('status', isEqualTo: 'upcoming')
-                .snapshots()
-            : const Stream.empty(),
+          stream: _user != null
+              ? FirebaseFirestore.instance
+                    .collection('medication_logs')
+                    .where('userId', isEqualTo: _user!.uid)
+                    .where('status', isEqualTo: 'upcoming')
+                    .snapshots()
+              : const Stream.empty(),
           builder: (context, snapshot) {
             int unreadCount = 0;
             if (snapshot.hasData) {
               final now = DateTime.now();
               for (var doc in snapshot.data!.docs) {
-                final scheduledTime = (doc.data() as Map<String, dynamic>)['scheduledTime'] as Timestamp?;
-                if (scheduledTime != null && scheduledTime.toDate().isBefore(now)) {
+                final scheduledTime =
+                    (doc.data() as Map<String, dynamic>)['scheduledTime']
+                        as Timestamp?;
+                if (scheduledTime != null &&
+                    scheduledTime.toDate().isBefore(now)) {
                   unreadCount++;
                 }
               }
@@ -650,12 +921,14 @@ class _HomePageState extends State<HomePage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const NotificationCenterScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationCenterScreen(),
+                    ),
                   );
                 },
               ),
             );
-          }
+          },
         ),
         const SizedBox(width: 8),
       ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class RecordViewerScreen extends StatefulWidget {
   final String fileUrl;
@@ -45,7 +46,9 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
       final response = await http.get(Uri.parse(widget.fileUrl));
       if (response.statusCode == 200) {
         final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/health_record_${DateTime.now().millisecondsSinceEpoch}.pdf');
+        final file = File(
+          '${dir.path}/health_record_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        );
         await file.writeAsBytes(response.bodyBytes);
         if (mounted) {
           setState(() {
@@ -56,7 +59,8 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage = 'Failed to download file (status ${response.statusCode})';
+            _errorMessage =
+                'Failed to download file (status ${response.statusCode})';
             _isLoading = false;
           });
         }
@@ -77,7 +81,9 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
     const primaryColor = Color(0xffff5252);
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xff1a1111) : const Color(0xfff5f5f5),
+      backgroundColor: isDarkMode
+          ? const Color(0xff1a1111)
+          : const Color(0xfff5f5f5),
       appBar: AppBar(
         backgroundColor: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
         elevation: 0,
@@ -97,7 +103,10 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: primaryColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(20),
@@ -144,7 +153,9 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
           const SizedBox(height: 16),
           Text(
             'Loading document…',
-            style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+            style: TextStyle(
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
           ),
         ],
       ),
@@ -177,31 +188,31 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
         panEnabled: true,
         minScale: 0.5,
         maxScale: 5.0,
-        child: Image.network(
-          widget.fileUrl,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            final percent = loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                : null;
+        child: CachedNetworkImage(
+          imageUrl: widget.fileUrl,
+          progressIndicatorBuilder: (context, url, downloadProgress) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(
-                    value: percent,
+                    value: downloadProgress.progress,
                     color: primaryColor,
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    percent != null ? '${(percent * 100).toStringAsFixed(0)}%' : 'Loading…',
-                    style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                    downloadProgress.progress != null
+                        ? '${(downloadProgress.progress! * 100).toStringAsFixed(0)}%'
+                        : 'Loading…',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
             );
           },
-          errorBuilder: (context, error, stackTrace) {
+          errorWidget: (context, url, error) {
             return _buildErrorState('Could not load image.', primaryColor);
           },
         ),
@@ -216,7 +227,9 @@ class _RecordViewerScreenState extends State<RecordViewerScreen> {
       swipeHorizontal: false,
       autoSpacing: true,
       pageFling: true,
-      backgroundColor: isDarkMode ? const Color(0xff1a1111) : const Color(0xfff5f5f5),
+      backgroundColor: isDarkMode
+          ? const Color(0xff1a1111)
+          : const Color(0xfff5f5f5),
       onRender: (pages) {
         if (mounted) setState(() => _totalPages = pages ?? 0);
       },

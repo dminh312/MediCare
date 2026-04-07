@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'sleep_setup_screen.dart';
 
 class SleepAnaScreen extends StatelessWidget {
   const SleepAnaScreen({super.key});
@@ -13,7 +13,9 @@ class SleepAnaScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
     final surface = isDark ? const Color(0xFF2d1f1f) : Colors.white;
-    final borderColor = isDark ? Colors.red.shade900.withAlpha(26) : const Color(0xFFffeaea);
+    final borderColor = isDark
+        ? Colors.red.shade900.withAlpha(26)
+        : const Color(0xFFffeaea);
     final subtleText = isDark ? Colors.grey[400]! : const Color(0xFF534343);
 
     return Scaffold(
@@ -70,38 +72,62 @@ class SleepAnaScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Duration',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: subtleText)),
+                              Text(
+                                'Duration',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: subtleText,
+                                ),
+                              ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _primary.withAlpha(26),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.star, color: _primary, size: 14, fill: 1),
+                                    Icon(
+                                      Icons.star,
+                                      color: _primary,
+                                      size: 14,
+                                      fill: 1,
+                                    ),
                                     SizedBox(width: 4),
-                                    Text('GOOD',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: _primary,
-                                            letterSpacing: 1)),
+                                    Text(
+                                      'GOOD',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: _primary,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text('7h 20m',
-                              style: TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1a1111))),
+                          Text(
+                            '7h 20m',
+                            style: TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1a1111),
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('Total sleep time was 12% higher than your average.',
-                              style: TextStyle(fontSize: 13, color: subtleText)),
+                          Text(
+                            'Total sleep time was 12% higher than your average.',
+                            style: TextStyle(fontSize: 13, color: subtleText),
+                          ),
                         ],
                       ),
                     ),
@@ -120,30 +146,69 @@ class SleepAnaScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Sleep Stages',
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : const Color(0xFF1a1111))),
+                                Text(
+                                  'Sleep Stages',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1a1111),
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
                                 // Stacked bar
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(999),
                                   child: Row(
                                     children: [
-                                      Expanded(flex: 30, child: Container(height: 32, color: _primary)),
-                                      Expanded(flex: 55, child: Container(height: 32, color: _secondary)),
-                                      Expanded(flex: 15, child: Container(height: 32, color: _secondaryContainer)),
+                                      Expanded(
+                                        flex: 30,
+                                        child: Container(
+                                          height: 32,
+                                          color: _primary,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 55,
+                                        child: Container(
+                                          height: 32,
+                                          color: _secondary,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 15,
+                                        child: Container(
+                                          height: 32,
+                                          color: _secondaryContainer,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                _buildStageLegend(Colors.red.shade400, 'Deep Sleep', '2h 15m', subtleText),
-                                const SizedBox(height: 10),
-                                _buildStageLegend(_secondary, 'Light Sleep', '4h 10m', subtleText),
+                                _buildStageLegend(
+                                  Colors.red.shade400,
+                                  'Deep Sleep',
+                                  '2h 15m',
+                                  subtleText,
+                                ),
                                 const SizedBox(height: 10),
                                 _buildStageLegend(
-                                    isDark ? Colors.pink.shade900 : Colors.pink.shade100, 'Awake', '55m', subtleText),
+                                  _secondary,
+                                  'Light Sleep',
+                                  '4h 10m',
+                                  subtleText,
+                                ),
+                                const SizedBox(height: 10),
+                                _buildStageLegend(
+                                  isDark
+                                      ? Colors.pink.shade900
+                                      : Colors.pink.shade100,
+                                  'Awake',
+                                  '55m',
+                                  subtleText,
+                                ),
                               ],
                             ),
                           ),
@@ -168,7 +233,9 @@ class SleepAnaScreen extends StatelessWidget {
                                         child: CircularProgressIndicator(
                                           value: 1,
                                           strokeWidth: 8,
-                                          color: isDark ? Colors.grey[800] : Colors.grey[200],
+                                          color: isDark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200],
                                         ),
                                       ),
                                       SizedBox(
@@ -182,19 +249,28 @@ class SleepAnaScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Text('85',
-                                              style: TextStyle(
-                                                  fontSize: 30,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: isDark ? Colors.white : const Color(0xFF1a1111))),
-                                          Text('SCORE',
-                                              style: TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: subtleText,
-                                                  letterSpacing: 1.5)),
+                                          Text(
+                                            '85',
+                                            style: TextStyle(
+                                              fontSize: 30,
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF1a1111),
+                                            ),
+                                          ),
+                                          Text(
+                                            'SCORE',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: subtleText,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -205,15 +281,24 @@ class SleepAnaScreen extends StatelessWidget {
                                   textAlign: TextAlign.center,
                                   text: TextSpan(
                                     style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark ? Colors.white : const Color(0xFF1a1111),
-                                        height: 1.5),
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1a1111),
+                                      height: 1.5,
+                                    ),
                                     children: const [
                                       TextSpan(text: 'You slept better than '),
                                       TextSpan(
-                                          text: '80%',
-                                          style: TextStyle(color: _primary, fontWeight: FontWeight.bold)),
-                                      TextSpan(text: ' of users in your demographic.'),
+                                        text: '80%',
+                                        style: TextStyle(
+                                          color: _primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: ' of users in your demographic.',
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -233,11 +318,34 @@ class SleepAnaScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Schedule',
-                              style: TextStyle(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Schedule',
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1a1111))),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1a1111),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: _primary, size: 20),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SleepSetupScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 24),
                           Stack(
                             alignment: Alignment.center,
@@ -247,13 +355,19 @@ class SleepAnaScreen extends StatelessWidget {
                                 child: Center(
                                   child: FractionallySizedBox(
                                     widthFactor: 0.6,
-                                    child: CustomPaint(painter: _DashedLinePainter(
-                                        color: isDark ? Colors.grey[700]! : const Color(0xFFd8c2c2))),
+                                    child: CustomPaint(
+                                      painter: _DashedLinePainter(
+                                        color: isDark
+                                            ? Colors.grey[700]!
+                                            : const Color(0xFFd8c2c2),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
                                 children: [
                                   _buildScheduleItem(
                                     icon: Icons.bedtime,
@@ -295,16 +409,32 @@ class SleepAnaScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Sleeping Heart Rate',
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF1a1111))),
+                              Text(
+                                'Sleeping Heart Rate',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1a1111),
+                                ),
+                              ),
                               const Row(
                                 children: [
-                                  Icon(Icons.favorite, color: _primary, size: 16, fill: 1),
+                                  Icon(
+                                    Icons.favorite,
+                                    color: _primary,
+                                    size: 16,
+                                    fill: 1,
+                                  ),
                                   SizedBox(width: 6),
-                                  Text('58 BPM', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    '58 BPM',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -315,24 +445,33 @@ class SleepAnaScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('10 PM',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: subtleText,
-                                      letterSpacing: 1)),
-                              Text('2 AM',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: subtleText,
-                                      letterSpacing: 1)),
-                              Text('6 AM',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: subtleText,
-                                      letterSpacing: 1)),
+                              Text(
+                                '10 PM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: subtleText,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              Text(
+                                '2 AM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: subtleText,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              Text(
+                                '6 AM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: subtleText,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -348,7 +487,11 @@ class SleepAnaScreen extends StatelessWidget {
                         color: _primary,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: _primary.withAlpha(51), blurRadius: 20, offset: const Offset(0, 8)),
+                          BoxShadow(
+                            color: _primary.withAlpha(51),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
                         ],
                       ),
                       child: Stack(
@@ -368,20 +511,32 @@ class SleepAnaScreen extends StatelessWidget {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.lightbulb, color: Colors.white, size: 30),
+                              const Icon(
+                                Icons.lightbulb,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Expert Insight',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                                    const Text(
+                                      'Expert Insight',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     const SizedBox(height: 6),
                                     Text(
                                       'Your consistency in bedtime over the last 3 days has significantly improved your Deep Sleep ratio. Maintain this rhythm for better cognitive focus tomorrow.',
                                       style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9), fontSize: 13, height: 1.6),
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 13,
+                                        height: 1.6,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -401,7 +556,11 @@ class SleepAnaScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required Color surface, required Color border, required Widget child}) {
+  Widget _buildCard({
+    required Color surface,
+    required Color border,
+    required Widget child,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -409,24 +568,42 @@ class SleepAnaScreen extends StatelessWidget {
         color: surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _buildStageLegend(Color dot, String label, String value, Color subtleText) {
+  Widget _buildStageLegend(
+    Color dot,
+    String label,
+    String value,
+    Color subtleText,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            Container(width: 10, height: 10, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
             const SizedBox(width: 8),
             Text(label, style: TextStyle(fontSize: 12, color: subtleText)),
           ],
         ),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
@@ -453,14 +630,24 @@ class SleepAnaScreen extends StatelessWidget {
             child: Icon(icon, color: iconColor),
           ),
           const SizedBox(height: 8),
-          Text(label,
-              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: subtleText, letterSpacing: 1)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: subtleText,
+              letterSpacing: 1,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(time,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1a1111))),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF1a1111),
+            ),
+          ),
         ],
       ),
     );
@@ -473,8 +660,22 @@ class _SleepHeartRateChart extends StatelessWidget {
   const _SleepHeartRateChart({required this.isDark});
 
   static const List<double> _heights = [
-    0.40, 0.45, 0.38, 0.50, 0.60, 0.55, 0.48,
-    0.75, 0.65, 0.58, 0.50, 0.42, 0.40, 0.35, 0.38, 0.45
+    0.40,
+    0.45,
+    0.38,
+    0.50,
+    0.60,
+    0.55,
+    0.48,
+    0.75,
+    0.65,
+    0.58,
+    0.50,
+    0.42,
+    0.40,
+    0.35,
+    0.38,
+    0.45,
   ];
 
   @override
@@ -495,7 +696,9 @@ class _SleepHeartRateChart extends StatelessWidget {
                     color: h == 0.75
                         ? SleepAnaScreen._primary.withAlpha(77)
                         : SleepAnaScreen._primary.withAlpha(26),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                 ),
               ),
@@ -519,7 +722,11 @@ class _DashedLinePainter extends CustomPainter {
       ..strokeWidth = 1;
     double x = 0;
     while (x < size.width) {
-      canvas.drawLine(Offset(x, size.height / 2), Offset(x + 6, size.height / 2), paint);
+      canvas.drawLine(
+        Offset(x, size.height / 2),
+        Offset(x + 6, size.height / 2),
+        paint,
+      );
       x += 12;
     }
   }

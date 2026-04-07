@@ -9,8 +9,12 @@ class MedicationViewModel {
   }
 
   Stream<List<MedicationModel>> getUserMedications(String userId) {
-    return _db.where('userId', isEqualTo: userId).snapshots().map(
-      (snap) => snap.docs.map((d) => MedicationModel.fromFirestore(d)).toList(),
-    );
+    return _db
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map((d) => MedicationModel.fromFirestore(d)).toList(),
+        );
   }
 }

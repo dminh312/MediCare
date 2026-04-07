@@ -80,13 +80,16 @@ class _MapsScreenState extends State<MapsScreen> {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
 
-    final Paint paintMain = Paint()..color = isSelected ? Colors.blue : const Color(0xFFff5252);
+    final Paint paintMain = Paint()
+      ..color = isSelected ? Colors.blue : const Color(0xFFff5252);
     final Paint paintWhite = Paint()..color = Colors.white;
 
     final double radius = size / 2;
     // Add a simple drop shadow
     canvas.drawShadow(
-      Path()..addOval(Rect.fromCircle(center: Offset(radius, radius), radius: radius)),
+      Path()..addOval(
+        Rect.fromCircle(center: Offset(radius, radius), radius: radius),
+      ),
       Colors.black,
       4,
       true,
@@ -117,7 +120,9 @@ class _MapsScreenState extends State<MapsScreen> {
               _selectedPharmacy = details;
               _updateMarkers();
             });
-            mapController?.animateCamera(CameraUpdate.newLatLng(details.position));
+            mapController?.animateCamera(
+              CameraUpdate.newLatLng(details.position),
+            );
           },
         ),
       );
@@ -133,11 +138,12 @@ class _MapsScreenState extends State<MapsScreen> {
     }
 
     final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
-        '?location=${location.latitude},${location.longitude}'
-        '&radius=3000'
-        '&type=pharmacy'
-        '&key=$apiKey');
+      'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+      '?location=${location.latitude},${location.longitude}'
+      '&radius=3000'
+      '&type=pharmacy'
+      '&key=$apiKey',
+    );
 
     try {
       final response = await http.get(url);
@@ -159,9 +165,11 @@ class _MapsScreenState extends State<MapsScreen> {
             final address = place['vicinity'] ?? '';
             final placeId = place['place_id'] as String;
             final rating = (place['rating'] as num?)?.toDouble() ?? 4.5;
-            
+
             final openingHours = place['opening_hours'];
-            final openNow = openingHours != null ? openingHours['open_now'] as bool? : null;
+            final openNow = openingHours != null
+                ? openingHours['open_now'] as bool?
+                : null;
 
             final distance = Geolocator.distanceBetween(
               location.latitude,
@@ -179,18 +187,22 @@ class _MapsScreenState extends State<MapsScreen> {
                 rating: rating,
                 openNow: openNow,
                 distanceInMeters: distance,
-              )
+              ),
             );
           }
         }
-        
-        _pharmaciesList.sort((a, b) => a.distanceInMeters.compareTo(b.distanceInMeters));
+
+        _pharmaciesList.sort(
+          (a, b) => a.distanceInMeters.compareTo(b.distanceInMeters),
+        );
 
         if (mounted) {
           setState(() {
             if (_pharmaciesList.isNotEmpty) {
               _selectedPharmacy = _pharmaciesList.first;
-              mapController?.animateCamera(CameraUpdate.newLatLng(_pharmaciesList.first.position));
+              mapController?.animateCamera(
+                CameraUpdate.newLatLng(_pharmaciesList.first.position),
+              );
             }
             _updateMarkers();
           });
@@ -216,7 +228,7 @@ class _MapsScreenState extends State<MapsScreen> {
     }
 
     if (_initialPosition == null) return;
-    
+
     setState(() {
       _isSearching = true;
       _selectedPharmacy = null;
@@ -230,12 +242,13 @@ class _MapsScreenState extends State<MapsScreen> {
     }
 
     final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/place/textsearch/json'
-        '?query=${Uri.encodeComponent(query)}'
-        '&location=${_initialPosition!.latitude},${_initialPosition!.longitude}'
-        '&radius=5000' // slightly larger radius for text search
-        '&type=pharmacy'
-        '&key=$apiKey');
+      'https://maps.googleapis.com/maps/api/place/textsearch/json'
+      '?query=${Uri.encodeComponent(query)}'
+      '&location=${_initialPosition!.latitude},${_initialPosition!.longitude}'
+      '&radius=5000' // slightly larger radius for text search
+      '&type=pharmacy'
+      '&key=$apiKey',
+    );
 
     try {
       final response = await http.get(url);
@@ -254,12 +267,15 @@ class _MapsScreenState extends State<MapsScreen> {
             final lat = locationData['lat'] as double;
             final lng = locationData['lng'] as double;
             final name = place['name'] ?? 'Pharmacy';
-            final address = place['formatted_address'] ?? place['vicinity'] ?? '';
+            final address =
+                place['formatted_address'] ?? place['vicinity'] ?? '';
             final placeId = place['place_id'] as String;
             final rating = (place['rating'] as num?)?.toDouble() ?? 4.5;
-            
+
             final openingHours = place['opening_hours'];
-            final openNow = openingHours != null ? openingHours['open_now'] as bool? : null;
+            final openNow = openingHours != null
+                ? openingHours['open_now'] as bool?
+                : null;
 
             final distance = Geolocator.distanceBetween(
               _initialPosition!.latitude,
@@ -277,20 +293,28 @@ class _MapsScreenState extends State<MapsScreen> {
                 rating: rating,
                 openNow: openNow,
                 distanceInMeters: distance,
-              )
+              ),
             );
           }
         }
-        
-        _pharmaciesList.sort((a, b) => a.distanceInMeters.compareTo(b.distanceInMeters));
+
+        _pharmaciesList.sort(
+          (a, b) => a.distanceInMeters.compareTo(b.distanceInMeters),
+        );
 
         if (mounted) {
           setState(() {
             if (_pharmaciesList.isNotEmpty) {
               _selectedPharmacy = _pharmaciesList.first;
-              mapController?.animateCamera(CameraUpdate.newLatLng(_pharmaciesList.first.position));
+              mapController?.animateCamera(
+                CameraUpdate.newLatLng(_pharmaciesList.first.position),
+              );
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No pharmacies found matching your search.')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No pharmacies found matching your search.'),
+                ),
+              );
             }
             _updateMarkers();
           });
@@ -350,15 +374,17 @@ class _MapsScreenState extends State<MapsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF020617) : const Color(0xFFfffbfb);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF020617)
+        : const Color(0xFFfffbfb);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: _isLoading
           ? _buildLoadingState(isDarkMode)
           : _initialPosition == null
-              ? _buildNoLocationState(isDarkMode)
-              : _buildMapInterface(isDarkMode),
+          ? _buildNoLocationState(isDarkMode)
+          : _buildMapInterface(isDarkMode),
     );
   }
 
@@ -376,7 +402,7 @@ class _MapsScreenState extends State<MapsScreen> {
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
-          )
+          ),
         ],
       ),
     );
@@ -387,7 +413,11 @@ class _MapsScreenState extends State<MapsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.location_off, size: 64, color: isDarkMode ? Colors.grey[700] : Colors.grey[400]),
+          Icon(
+            Icons.location_off,
+            size: 64,
+            color: isDarkMode ? Colors.grey[700] : Colors.grey[400],
+          ),
           const SizedBox(height: 16),
           Text(
             "Unable to determine your location.",
@@ -423,7 +453,8 @@ class _MapsScreenState extends State<MapsScreen> {
               zoom: 15.0,
             ),
             myLocationEnabled: _locationPermissionGranted,
-            myLocationButtonEnabled: false, // hide default button, we can add custom if needed
+            myLocationButtonEnabled:
+                false, // hide default button, we can add custom if needed
             zoomControlsEnabled: false, // cleaner UI
             mapToolbarEnabled: false,
             markers: _pharmacyMarkers,
@@ -456,11 +487,15 @@ class _MapsScreenState extends State<MapsScreen> {
           right: 16,
           child: FloatingActionButton(
             mini: true,
-            backgroundColor: isDarkMode ? const Color(0xFF1a1111) : Colors.white,
+            backgroundColor: isDarkMode
+                ? const Color(0xFF1a1111)
+                : Colors.white,
             foregroundColor: const Color(0xFFff5252),
             onPressed: () {
               if (_initialPosition != null) {
-                mapController?.animateCamera(CameraUpdate.newLatLngZoom(_initialPosition!, 15));
+                mapController?.animateCamera(
+                  CameraUpdate.newLatLngZoom(_initialPosition!, 15),
+                );
               }
             },
             child: const Icon(Icons.my_location),
@@ -481,20 +516,27 @@ class _MapsScreenState extends State<MapsScreen> {
 
   Widget _buildCustomTopBar(bool isDarkMode) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black.withOpacity(0.85) : const Color(0xFFfffbfb).withOpacity(0.95),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            MediaQuery.of(context).padding.top + 8,
+            16,
+            16,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Colors.black.withOpacity(0.85)
+                : const Color(0xFFfffbfb).withOpacity(0.95),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -505,51 +547,88 @@ class _MapsScreenState extends State<MapsScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            color: isDarkMode
+                                ? Colors.white10
+                                : Colors.black.withOpacity(0.05),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black, size: 20),
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                            size: 20,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text("Find Pharmacy", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
+                      Text(
+                        "Find Pharmacy",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.notifications_none, color: isDarkMode ? Colors.grey[400] : Colors.grey[500]),
+                    icon: Icon(
+                      Icons.notifications_none,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                    ),
                     onPressed: () {},
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
                 onSubmitted: _searchPharmacies,
-                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 14),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                  fontSize: 14,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Search for a specific pharmacy...',
-                  hintStyle: TextStyle(color: isDarkMode ? Colors.grey[500] : Colors.grey[400], fontSize: 14),
+                  hintStyle: TextStyle(
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[400],
+                    fontSize: 14,
+                  ),
                   filled: true,
-                  fillColor: isDarkMode ? Colors.grey[900]!.withOpacity(0.8) : Colors.white.withOpacity(0.9),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFFff5252)),
+                  fillColor: isDarkMode
+                      ? Colors.grey[900]!.withOpacity(0.8)
+                      : Colors.white.withOpacity(0.9),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFFff5252),
+                  ),
                   suffixIcon: _isSearching
                       ? const Padding(
                           padding: EdgeInsets.all(12.0),
                           child: SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFff5252)),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFFff5252),
+                            ),
                           ),
                         )
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: isDarkMode ? Colors.white10 : Colors.grey[200]!),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white10 : Colors.grey[200]!,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: isDarkMode ? Colors.white10 : Colors.grey[200]!),
+                    borderSide: BorderSide(
+                      color: isDarkMode ? Colors.white10 : Colors.grey[200]!,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
@@ -559,45 +638,69 @@ class _MapsScreenState extends State<MapsScreen> {
               ),
             ],
           ),
-    ).animate().fade(duration: 400.ms).slideY(begin: -0.2, curve: Curves.easeOut);
+        )
+        .animate()
+        .fade(duration: 400.ms)
+        .slideY(begin: -0.2, curve: Curves.easeOut);
   }
-
-
 
   Widget _buildQuickFilters(bool isDarkMode) {
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: [
-          _buildFilterChip("Open Now", true, isDarkMode),
-          const SizedBox(width: 8),
-          _buildFilterChip("Home Delivery", false, isDarkMode),
-          const SizedBox(width: 8),
-          _buildFilterChip("Insurance Accepted", false, isDarkMode),
-          const SizedBox(width: 8),
-          _buildFilterChip("24/7 Service", false, isDarkMode),
-        ],
-      ),
-    ).animate().fade(duration: 400.ms, delay: 200.ms).slideX(begin: 0.1, curve: Curves.easeOut);
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: [
+              _buildFilterChip("Open Now", true, isDarkMode),
+              const SizedBox(width: 8),
+              _buildFilterChip("Home Delivery", false, isDarkMode),
+              const SizedBox(width: 8),
+              _buildFilterChip("Insurance Accepted", false, isDarkMode),
+              const SizedBox(width: 8),
+              _buildFilterChip("24/7 Service", false, isDarkMode),
+            ],
+          ),
+        )
+        .animate()
+        .fade(duration: 400.ms, delay: 200.ms)
+        .slideX(begin: 0.1, curve: Curves.easeOut);
   }
 
   Widget _buildFilterChip(String label, bool isPrimary, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isPrimary ? const Color(0xFFff5252) : (isDarkMode ? const Color(0xFF1a1111) : Colors.white),
+        color: isPrimary
+            ? const Color(0xFFff5252)
+            : (isDarkMode ? const Color(0xFF1a1111) : Colors.white),
         borderRadius: BorderRadius.circular(20),
-        border: isPrimary ? null : Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!),
+        border: isPrimary
+            ? null
+            : Border.all(
+                color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+              ),
         boxShadow: isPrimary
-            ? [BoxShadow(color: const Color(0xFFff5252).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
-            : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFff5252).withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: isPrimary ? Colors.white : (isDarkMode ? Colors.grey[300] : Colors.grey[700]),
+          color: isPrimary
+              ? Colors.white
+              : (isDarkMode ? Colors.grey[300] : Colors.grey[700]),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
@@ -616,9 +719,11 @@ class _MapsScreenState extends State<MapsScreen> {
             color: const Color(0xFFff5252).withValues(alpha: 0.12),
             blurRadius: 32,
             offset: const Offset(0, 8),
-          )
+          ),
         ],
-        border: Border.all(color: const Color(0xFFff5252).withValues(alpha: 0.05)),
+        border: Border.all(
+          color: const Color(0xFFff5252).withValues(alpha: 0.05),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,10 +736,16 @@ class _MapsScreenState extends State<MapsScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFFff5252).withValues(alpha: 0.15) : const Color(0xFFffebee),
+                  color: isDarkMode
+                      ? const Color(0xFFff5252).withValues(alpha: 0.15)
+                      : const Color(0xFFffebee),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.local_pharmacy, color: Color(0xFFff5252), size: 28),
+                child: const Icon(
+                  Icons.local_pharmacy,
+                  color: Color(0xFFff5252),
+                  size: 28,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -643,36 +754,60 @@ class _MapsScreenState extends State<MapsScreen> {
                   children: [
                     Text(
                       pharmacy.name,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, leadingDistribution: TextLeadingDistribution.even, height: 1.2, color: isDarkMode ? Colors.white : Colors.black),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        leadingDistribution: TextLeadingDistribution.even,
+                        height: 1.2,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(pharmacy.address, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      pharmacy.address,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
-                        Text("${pharmacy.rating}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDarkMode ? Colors.white : Colors.black)),
+                        Text(
+                          "${pharmacy.rating}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          pharmacy.distanceInMeters < 1000 
-                            ? "• ${(pharmacy.distanceInMeters).toStringAsFixed(0)}m away" 
-                            : "• ${(pharmacy.distanceInMeters / 1000).toStringAsFixed(1)}km away", 
-                          style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                          pharmacy.distanceInMeters < 1000
+                              ? "• ${(pharmacy.distanceInMeters).toStringAsFixed(0)}m away"
+                              : "• ${(pharmacy.distanceInMeters / 1000).toStringAsFixed(1)}km away",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         if (pharmacy.openNow != null) ...[
                           const SizedBox(width: 8),
                           Text(
                             pharmacy.openNow! ? "• Open Now" : "• Closed",
                             style: TextStyle(
-                              color: pharmacy.openNow! ? Colors.green : Colors.red,
+                              color: pharmacy.openNow!
+                                  ? Colors.green
+                                  : Colors.red,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ]
+                        ],
                       ],
                     ),
                   ],
@@ -691,7 +826,11 @@ class _MapsScreenState extends State<MapsScreen> {
                     color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.close, color: isDarkMode ? Colors.grey[400] : Colors.grey[600], size: 16),
+                  child: Icon(
+                    Icons.close,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    size: 16,
+                  ),
                 ),
               ),
             ],
@@ -701,13 +840,27 @@ class _MapsScreenState extends State<MapsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: Icon(Icons.call, size: 18, color: isDarkMode ? Colors.white : Colors.grey[800]),
-                  label: Text("Call", style: TextStyle(color: isDarkMode ? Colors.white : Colors.grey[800], fontWeight: FontWeight.bold)),
+                  icon: Icon(
+                    Icons.call,
+                    size: 18,
+                    color: isDarkMode ? Colors.white : Colors.grey[800],
+                  ),
+                  label: Text(
+                    "Call",
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onPressed: () {},
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    side: BorderSide(
+                      color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -715,13 +868,21 @@ class _MapsScreenState extends State<MapsScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.near_me, size: 18),
-                  label: const Text("Directions", style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    "Directions",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   onPressed: () async {
                     final lat = pharmacy.position.latitude;
                     final lng = pharmacy.position.longitude;
-                    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                    final url = Uri.parse(
+                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+                    );
                     try {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     } catch (e) {
                       debugPrint('Could not launch maps: $e');
                     }
@@ -730,7 +891,9 @@ class _MapsScreenState extends State<MapsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     backgroundColor: const Color(0xFFff5252),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     elevation: 4,
                     shadowColor: const Color(0xFFff5252).withValues(alpha: 0.4),
                   ),

@@ -6,16 +6,29 @@ import 'package:medicare/UI/profile/profile_screen.dart';
 import 'package:medicare/UI/share/bottom_navigation.dart';
 import 'package:medicare/UI/track/track_screen.dart';
 
-// Main view that holds the scaffold and bottom navigation
-class HomeView extends StatefulWidget {
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
+
+class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   @override
-  State<HomeView> createState() => _HomeViewState();
+  Widget build(BuildContext context) {
+    return ShowCaseWidget(builder: (context) => const _HomeContent());
+  }
 }
 
-class _HomeViewState extends State<HomeView> {
+// Main view that holds the scaffold and bottom navigation
+class _HomeContent extends StatefulWidget {
+  const _HomeContent();
+
+  @override
+  State<_HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<_HomeContent> {
   int _selectedIndex = 0;
+  final GlobalKey _fabKey = GlobalKey();
 
   // List of pages to be displayed
   static final List<Widget> _widgetOptions = <Widget>[
@@ -24,6 +37,23 @@ class _HomeViewState extends State<HomeView> {
     const MedsScreen(),
     const ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final seen = prefs.getBool('has_seen_walkthrough') ?? false;
+      if (!seen && mounted) {
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) {
+            ShowCaseWidget.of(context).startShowCase([_fabKey]);
+            prefs.setBool('has_seen_walkthrough', true);
+          }
+        });
+      }
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -38,14 +68,26 @@ class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       body: _widgetOptions.elementAt(_selectedIndex),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotScreen()));
-        },
-        backgroundColor: primaryColor,
-        shape: const CircleBorder(),
-        elevation: 4.0,
-        child: Icon(Icons.medical_services, color: isDarkMode ? Colors.black : Colors.white, size: 28),
+      floatingActionButton: Showcase(
+        key: _fabKey,
+        description:
+            'New! Chat with our intelligent health assistant for instant answers.',
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+            );
+          },
+          backgroundColor: primaryColor,
+          shape: const CircleBorder(),
+          elevation: 4.0,
+          child: Icon(
+            Icons.medical_services,
+            color: isDarkMode ? Colors.black : Colors.white,
+            size: 28,
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavBar(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:medicare/logic/services/health_services.dart';
 import 'package:provider/provider.dart';
@@ -19,9 +21,10 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
   bool _medicationHistorySharing = false;
   bool _anonymizedResearchSharing = true;
   bool _chatbotHistorySharing = true;
-  
+
   bool _isHealthConnectConnected = false;
   bool _isSyncingHealthConnect = false;
+  int _autoSyncInterval = 60;
 
   @override
   void initState() {
@@ -31,12 +34,53 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Default values
+    bool healthConnectConnected = prefs.getBool('health_connect_connected') ?? false;
+    int autoSync = 60;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data()!['preferences'] != null) {
+          final prefsData = doc.data()!['preferences'];
+          if (prefsData['healthConnectEnabled'] != null) {
+            healthConnectConnected = prefsData['healthConnectEnabled'];
+            await prefs.setBool('health_connect_connected', healthConnectConnected);
+          }
+          if (prefsData['autoSyncInterval'] != null) {
+            autoSync = prefsData['autoSyncInterval'];
+          }
+        }
+      } catch (e) {
+        // ignore error
+      }
+    }
+
     setState(() {
+      _healthStatsSharing = prefs.getBool('health_stats_sharing') ?? true;
+      _activityDataSharing = prefs.getBool('activity_data_sharing') ?? true;
+      _medicationHistorySharing = prefs.getBool('medication_history_sharing') ?? false;
+      _anonymizedResearchSharing = prefs.getBool('anonymized_research_sharing') ?? true;
       _chatbotHistorySharing =
           prefs.getBool('chatbot_save_history_preference') ?? true;
-      _isHealthConnectConnected = 
-          prefs.getBool('health_connect_connected') ?? false;
+      _isHealthConnectConnected = healthConnectConnected;
+      _autoSyncInterval = autoSync;
     });
+  }
+
+  Future<void> _updateFirestorePreference(String key, dynamic value) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'preferences.$key': value,
+        });
+      } catch (e) {
+        // Handle error if document doesn't exist
+      }
+    }
   }
 
   @override
@@ -45,9 +89,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
     final surfaceColor = isDarkMode ? const Color(0xff1E293B) : Colors.white;
-    final Color borderColor = isDarkMode
-        ? Colors.white10
-        : Colors.red.shade50;
+    final Color borderColor = isDarkMode ? Colors.white10 : Colors.red.shade50;
     final Color iconBackgroundColor = isDarkMode
         ? Colors.red.shade900.withAlpha(51)
         : Colors.red.shade50;
@@ -59,205 +101,290 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDarkMode 
-              ? [const Color(0xFF020617), const Color(0xFF0F172A)] 
+          colors: isDarkMode
+              ? [const Color(0xFF020617), const Color(0xFF0F172A)]
               : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        // AppBar styling similar to other screens
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.chevron_left,
-            size: 28,
-            color: isDarkMode ? Colors.white : Colors.black,
+        appBar: AppBar(
+          // AppBar styling similar to other screens
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.chevron_left,
+              size: 28,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Data Sharing',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Plus Jakarta Sans',
+          title: Text(
+            'Data Sharing',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Plus Jakarta Sans',
+            ),
           ),
+          centerTitle: true,
+          actions: const [SizedBox(width: 48)],
         ),
-        centerTitle: true,
-        actions: const [SizedBox(width: 48)],
-      ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            children: [
-              // Description Text
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4.0,
-                  vertical: 8.0,
-                ),
-                child: Text(
-                  'Control how your health data is shared with our trusted third-party partners and medical research institutions to improve your healthcare experience and support medical breakthroughs.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: subtleTextColor,
-                    fontFamily: 'Plus Jakarta Sans',
-                    height: 1.6,
-                  ),
-                ),
-              ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOut),
-              const SizedBox(height: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              children: [
+                // Description Text
+                Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0,
+                        vertical: 8.0,
+                      ),
+                      child: Text(
+                        'Control how your health data is shared with our trusted third-party partners and medical research institutions to improve your healthcare experience and support medical breakthroughs.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: subtleTextColor,
+                          fontFamily: 'Plus Jakarta Sans',
+                          height: 1.6,
+                        ),
+                      ),
+                    )
+                    .animate()
+                    .fade(duration: 400.ms, delay: 100.ms)
+                    .slideY(begin: 0.1, curve: Curves.easeOut),
+                const SizedBox(height: 24),
 
-              // Sharing Options Card
-              _buildCard(
-                surfaceColor: surfaceColor,
-                borderColor: borderColor,
-                isDarkMode: isDarkMode,
-                child: Column(
-                  children: [
-                    _buildSharingOption(
-                      icon: Icons.analytics,
-                      title: 'Health Statistics sharing',
-                      value: _healthStatsSharing,
-                      onChanged: (val) =>
-                          setState(() => _healthStatsSharing = val),
-                      iconBackgroundColor: iconBackgroundColor,
-                      primaryColor: primaryColor,
+                // Sharing Options Card
+                _buildCard(
+                      surfaceColor: surfaceColor,
+                      borderColor: borderColor,
                       isDarkMode: isDarkMode,
-                    ),
-                    _buildDivider(borderColor),
-                    _buildSharingOption(
-                      icon: Icons.fitness_center,
-                      title: 'Activity data sharing',
-                      value: _activityDataSharing,
-                      onChanged: (val) =>
-                          setState(() => _activityDataSharing = val),
-                      iconBackgroundColor: iconBackgroundColor,
-                      primaryColor: primaryColor,
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildDivider(borderColor),
-                    _buildSharingOption(
-                      icon: Icons.medication,
-                      title: 'Medication history sharing',
-                      value: _medicationHistorySharing,
-                      onChanged: (val) =>
-                          setState(() => _medicationHistorySharing = val),
-                      iconBackgroundColor: iconBackgroundColor,
-                      primaryColor: primaryColor,
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildDivider(borderColor),
-                    _buildSharingOption(
-                      icon: Icons.chat,
-                      title: 'Medicare+ AI Chatbot History',
-                      value: _chatbotHistorySharing,
-                      onChanged: (val) async {
-                        final prefs = await SharedPreferences.getInstance();
-                        setState(() => _chatbotHistorySharing = val);
-                        await prefs.setBool(
-                          'chatbot_save_history_preference',
-                          val,
-                        );
-                      },
-                      iconBackgroundColor: iconBackgroundColor,
-                      primaryColor: primaryColor,
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildDivider(borderColor),
-                    _buildSharingOption(
-                      icon: Icons.science,
-                      title: 'Anonymized research data',
-                      value: _anonymizedResearchSharing,
-                      onChanged: (val) =>
-                          setState(() => _anonymizedResearchSharing = val),
-                      iconBackgroundColor: iconBackgroundColor,
-                      primaryColor: primaryColor,
-                      isDarkMode: isDarkMode,
-                      isLast: true,
-                    ),
-                  ],
-                ),
-              ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOut),
-              const SizedBox(height: 40),
+                      child: Column(
+                        children: [
+                          _buildSharingOption(
+                            icon: Icons.analytics,
+                            title: 'Health Statistics sharing',
+                            value: _healthStatsSharing,
+                            onChanged: (val) async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('health_stats_sharing', val);
+                              await _updateFirestorePreference('healthStatsSharing', val);
+                              setState(() => _healthStatsSharing = val);
+                            },
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                          ),
+                          _buildDivider(borderColor),
+                          _buildSharingOption(
+                            icon: Icons.fitness_center,
+                            title: 'Activity data sharing',
+                            value: _activityDataSharing,
+                            onChanged: (val) async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('activity_data_sharing', val);
+                              await _updateFirestorePreference('activityDataSharing', val);
+                              setState(() => _activityDataSharing = val);
+                            },
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                          ),
+                          _buildDivider(borderColor),
+                          _buildSharingOption(
+                            icon: Icons.medication,
+                            title: 'Medication history sharing',
+                            value: _medicationHistorySharing,
+                            onChanged: (val) async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('medication_history_sharing', val);
+                              await _updateFirestorePreference('medicationHistorySharing', val);
+                              setState(() => _medicationHistorySharing = val);
+                            },
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                          ),
+                          _buildDivider(borderColor),
+                          _buildSharingOption(
+                            icon: Icons.chat,
+                            title: 'Medicare+ AI Chatbot History',
+                            value: _chatbotHistorySharing,
+                            onChanged: (val) async {
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              setState(() => _chatbotHistorySharing = val);
+                              await prefs.setBool(
+                                'chatbot_save_history_preference',
+                                val,
+                              );
+                            },
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                          ),
+                          _buildDivider(borderColor),
+                          _buildSharingOption(
+                            icon: Icons.science,
+                            title: 'Anonymized research data',
+                            value: _anonymizedResearchSharing,
+                            onChanged: (val) async {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('anonymized_research_sharing', val);
+                              await _updateFirestorePreference('anonymizedResearchSharing', val);
+                              setState(() => _anonymizedResearchSharing = val);
+                            },
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    )
+                    .animate()
+                    .fade(duration: 400.ms, delay: 200.ms)
+                    .slideY(begin: 0.1, curve: Curves.easeOut),
+                const SizedBox(height: 40),
 
-              // Connected Apps Section
-              Padding(
-                padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
-                child: Text(
-                  'CONNECTED APPS',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                    fontFamily: 'Plus Jakarta Sans',
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ).animate().fade(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, curve: Curves.easeOut),
-              _buildCard(
-                surfaceColor: surfaceColor,
-                borderColor: borderColor,
-                isDarkMode: isDarkMode,
-                child: Column(
-                  children: [
-                    _buildConnectedApp(
-                      icon: Icons.monitor_heart, 
-                      appName: 'Health Connect',
-                      status: _isHealthConnectConnected ? 'Connected' : 'Not connected',
-                      iconColor: Colors.teal.shade500,
-                      iconBg: Colors.teal.shade50,
+                // Connected Apps Section
+                Padding(
+                      padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
+                      child: Text(
+                        'CONNECTED APPS',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                          fontFamily: 'Plus Jakarta Sans',
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    )
+                    .animate()
+                    .fade(duration: 400.ms, delay: 300.ms)
+                    .slideY(begin: 0.1, curve: Curves.easeOut),
+                  _buildCard(
+                      surfaceColor: surfaceColor,
+                      borderColor: borderColor,
                       isDarkMode: isDarkMode,
-                      primaryColor: primaryColor,
-                      isSyncing: _isSyncingHealthConnect,
-                      onManage: () async {
-                        setState(() => _isSyncingHealthConnect = true);
-                        bool success = await HealthService().syncHealthDataToFirebase();
-                        if (mounted) {
-                          setState(() {
-                            _isSyncingHealthConnect = false;
-                            if (success) _isHealthConnectConnected = true;
-                          });
-                          if (success) {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool('health_connect_connected', true);
-                            Provider.of<HealthDataViewModel>(context, listen: false).loadData();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Successfully synced with Health Connect')),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Failed to connect or sync with Health Connect')),
-                            );
-                          }
-                        }
-                      },
-                      isLast: true,
-                    ),
-                  ],
-                ),
-              ).animate().fade(duration: 400.ms, delay: 400.ms).slideY(begin: 0.1, curve: Curves.easeOut),
-              const SizedBox(height: 40),
+                      child: Column(
+                        children: [
+                          _buildConnectedApp(
+                            icon: Icons.monitor_heart,
+                            appName: 'Health Connect',
+                            status: _isHealthConnectConnected
+                                ? 'Connected'
+                                : 'Not connected',
+                            iconColor: Colors.teal.shade500,
+                            iconBg: Colors.teal.shade50,
+                            isDarkMode: isDarkMode,
+                            primaryColor: primaryColor,
+                            isSyncing: _isSyncingHealthConnect,
+                            buttonText: _isHealthConnectConnected ? 'Disconnect' : 'Connect',
+                            onManage: () async {
+                              if (_isHealthConnectConnected) {
+                                final prefs = await SharedPreferences.getInstance();
+                                await prefs.setBool('health_connect_connected', false);
+                                await _updateFirestorePreference('healthConnectEnabled', false);
+                                setState(() {
+                                  _isHealthConnectConnected = false;
+                                });
+                                return;
+                              }
 
-              // Footer Text
-              Text(
-                'Third-party apps are subject to their own privacy policies.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: subtleTextColor, fontSize: 12, fontFamily: 'Plus Jakarta Sans'),
-              ).animate().fade(duration: 400.ms, delay: 500.ms).slideY(begin: 0.1, curve: Curves.easeOut),
-              const SizedBox(height: 20),
-            ],
+                              setState(() => _isSyncingHealthConnect = true);
+                              bool success = await HealthService()
+                                  .syncHealthDataToFirebase();
+                              if (mounted) {
+                                setState(() {
+                                  _isSyncingHealthConnect = false;
+                                  if (success) _isHealthConnectConnected = true;
+                                });
+                                if (success) {
+                                  final prefs =
+                                      await SharedPreferences.getInstance();
+                                  await prefs.setBool(
+                                    'health_connect_connected',
+                                    true,
+                                  );
+                                  await _updateFirestorePreference('healthConnectEnabled', true);
+                                  Provider.of<HealthDataViewModel>(
+                                    context,
+                                    listen: false,
+                                  ).loadData();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Successfully synced with Health Connect',
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Failed to connect or sync with Health Connect',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                          _buildDivider(borderColor),
+                          _buildDropdownOption(
+                            icon: Icons.sync,
+                            title: 'Auto-sync interval',
+                            value: _autoSyncInterval,
+                            options: [15, 30, 60, 120],
+                            onChanged: _isHealthConnectConnected ? (val) async {
+                              if (val != null) {
+                                await _updateFirestorePreference('autoSyncInterval', val);
+                                setState(() {
+                                  _autoSyncInterval = val;
+                                });
+                              }
+                            } : null,
+                            iconBackgroundColor: iconBackgroundColor,
+                            primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    )
+                    .animate()
+                    .fade(duration: 400.ms, delay: 400.ms)
+                    .slideY(begin: 0.1, curve: Curves.easeOut),
+                const SizedBox(height: 40),
+
+                // Footer Text
+                Text(
+                      'Third-party apps are subject to their own privacy policies.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: subtleTextColor,
+                        fontSize: 12,
+                        fontFamily: 'Plus Jakarta Sans',
+                      ),
+                    )
+                    .animate()
+                    .fade(duration: 400.ms, delay: 500.ms)
+                    .slideY(begin: 0.1, curve: Curves.easeOut),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   // Helper to build the main container card
@@ -275,9 +402,17 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
         border: Border.all(color: borderColor, width: 1.0),
         boxShadow: [
           if (!isDarkMode)
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8))
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            )
           else
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 24, offset: const Offset(0, 8)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
         ],
       ),
       child: child,
@@ -312,15 +447,20 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87, fontFamily: 'Plus Jakarta Sans'),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : Colors.black87,
+                fontFamily: 'Plus Jakarta Sans',
+              ),
             ),
           ),
           Switch(
             value: value,
             onChanged: onChanged,
             activeTrackColor: primaryColor.withOpacity(0.5),
-            thumbColor: MaterialStateProperty.resolveWith<Color?>((states) {
-              if (states.contains(MaterialState.selected)) return primaryColor;
+            thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
+              if (states.contains(WidgetState.selected)) return primaryColor;
               return null;
             }),
           ),
@@ -340,6 +480,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     required Color primaryColor,
     bool isLast = false,
     bool isSyncing = false,
+    String buttonText = 'Connect',
     VoidCallback? onManage,
   }) {
     final manageButtonBg = isDarkMode
@@ -372,7 +513,11 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 const SizedBox(height: 2),
                 Text(
                   status,
-                  style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[500] : Colors.grey[600], fontFamily: 'Plus Jakarta Sans'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                    fontFamily: 'Plus Jakarta Sans',
+                  ),
                 ),
               ],
             ),
@@ -386,20 +531,86 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: isSyncing 
-              ? SizedBox(
-                  width: 12, 
-                  height: 12, 
-                  child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor)
-                )
-              : Text(
-                  'Connect',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+            child: isSyncing
+                ? SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: primaryColor,
+                    ),
+                  )
+                : Text(
+                    buttonText,
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Builder for dropdown option
+  Widget _buildDropdownOption({
+    required IconData icon,
+    required String title,
+    required int value,
+    required List<int> options,
+    required void Function(int?)? onChanged,
+    required Color iconBackgroundColor,
+    required Color primaryColor,
+    required bool isDarkMode,
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBackgroundColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: primaryColor),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : Colors.black87,
+                fontFamily: 'Plus Jakarta Sans',
+              ),
+            ),
+          ),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: value,
+              dropdownColor: isDarkMode ? const Color(0xff1E293B) : Colors.white,
+              icon: Icon(Icons.arrow_drop_down, color: isDarkMode ? Colors.white : Colors.black87),
+              onChanged: onChanged,
+              items: options.map<DropdownMenuItem<int>>((int val) {
+                return DropdownMenuItem<int>(
+                  value: val,
+                  child: Text(
+                    '$val mins',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),

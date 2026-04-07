@@ -425,7 +425,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                         }
 
                         final docs = snapshot.data!.docs
-                            .map((doc) => doc as QueryDocumentSnapshot)
+                            .map((doc) => doc)
                             .where((doc) {
                               final data = doc.data() as Map<String, dynamic>;
                               return data['isArchived'] != true;
@@ -764,6 +764,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     backgroundImage: const NetworkImage(
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuBWE7Jm66Y2Z2IF6SQOIcDF7F0_vufqELj6rO5h1awRV9CAyoqmpC3iD3syquhXShizfY_MFvjUD8QO7oj3epciP5UZSVObnkI9ocU7BDlNni8Wkk4bajr-11zPG6vfUEncEfM_WzPLQFcIIN5HjyhASKVDa8lQyFdXv1k7uRPa5wviW6OH1lrDU0RsQyHVeSOS0UBvYcLhAIRv2fq0hpbGbkc0IUXOZwfKO-n3eS2bG2Cvn3HfZArAIrHUa9YCi2WHUH16B7SlK_E',
                     ),
+                    onBackgroundImageError: (exception, stackTrace) {
+                      debugPrint('Image load failed: $exception');
+                    },
                     backgroundColor: isDarkMode
                         ? primaryColor.withAlpha(51)
                         : const Color(0xFFffebee),
@@ -876,125 +879,139 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   Widget _buildBotMessage(bool isDarkMode, String text, String time) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: isDarkMode
-              ? const Color(0xffff5252).withAlpha(51)
-              : const Color(0xFFffebee),
-          child: const Icon(
-            Icons.medical_services,
-            color: Color(0xffff5252),
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: isDarkMode
+                  ? const Color(0xffff5252).withAlpha(51)
+                  : const Color(0xFFffebee),
+              child: const Icon(
+                Icons.medical_services,
+                color: Color(0xffff5252),
+                size: 18,
               ),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.red.shade900.withAlpha(26)
-                    : Colors.red.shade50,
-                width: 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                MarkdownBody(
-                  data: text,
-                  styleSheet: MarkdownStyleSheet(
-                    p: TextStyle(
-                      fontSize: 15,
-                      height: 1.5,
-                      color: isDarkMode ? Colors.grey[200] : Colors.grey[800],
-                    ),
-                    listBullet: TextStyle(color: isDarkMode ? Colors.grey[200] : Colors.grey[800]),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
                   ),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Colors.red.shade900.withAlpha(26)
+                        : Colors.red.shade50,
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  time,
-                  style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MarkdownBody(
+                      data: text,
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(
+                          fontSize: 15,
+                          height: 1.5,
+                          color: isDarkMode
+                              ? Colors.grey[200]
+                              : Colors.grey[800],
+                        ),
+                        listBullet: TextStyle(
+                          color: isDarkMode
+                              ? Colors.grey[200]
+                              : Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      time,
+                      style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
-    ).animate().fade(duration: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad);
+          ],
+        )
+        .animate()
+        .fade(duration: 300.ms)
+        .slideY(begin: 0.1, curve: Curves.easeOutQuad);
   }
 
   Widget _buildUserMessage(bool isDarkMode, String text, String time) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.8,
-            ),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFff7777), Color(0xffff5252)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xffff5252).withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: Colors.white,
-                  ),
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.8,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white.withAlpha(178),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFff7777), Color(0xffff5252)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xffff5252).withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      time,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withAlpha(178),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
-    ).animate().fade(duration: 300.ms).slideY(begin: 0.1, curve: Curves.easeOutQuad);
+          ],
+        )
+        .animate()
+        .fade(duration: 300.ms)
+        .slideY(begin: 0.1, curve: Curves.easeOutQuad);
   }
 
   Widget _buildTypingIndicator(bool isDarkMode) {
@@ -1050,7 +1067,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             MediaQuery.of(context).padding.bottom + 16,
           ),
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xff2d1f1f).withOpacity(0.8) : Colors.white.withOpacity(0.8),
+            color: isDarkMode
+                ? const Color(0xff2d1f1f).withOpacity(0.8)
+                : Colors.white.withOpacity(0.8),
             border: Border(
               top: BorderSide(
                 color: isDarkMode
@@ -1060,74 +1079,79 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
             ),
           ),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildSuggestionChip(
-                  isDarkMode,
-                  primaryColor,
-                  'Check medication interactions',
-                ),
-                _buildSuggestionChip(isDarkMode, primaryColor, 'Log a symptom'),
-                _buildSuggestionChip(
-                  isDarkMode,
-                  primaryColor,
-                  'Ask about dosage',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _textController,
-                  onSubmitted: _sendMessage,
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Type a message...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    filled: true,
-                    fillColor: isDarkMode
-                        ? Colors.grey[900]?.withAlpha(102)
-                        : Colors.grey[100],
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _buildSuggestionChip(
+                      isDarkMode,
+                      primaryColor,
+                      'Check medication interactions',
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
+                    _buildSuggestionChip(
+                      isDarkMode,
+                      primaryColor,
+                      'Log a symptom',
                     ),
-                  ),
+                    _buildSuggestionChip(
+                      isDarkMode,
+                      primaryColor,
+                      'Ask about dosage',
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              FloatingActionButton(
-                onPressed: () {
-                  _sendMessage(_textController.text);
-                },
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 2,
-                mini: true,
-                heroTag: null,
-                child: const Icon(Icons.send, size: 20),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      onSubmitted: _sendMessage,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                        fontSize: 15,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Type a message...',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        filled: true,
+                        fillColor: isDarkMode
+                            ? Colors.grey[900]?.withAlpha(102)
+                            : Colors.grey[100],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FloatingActionButton(
+                    onPressed: () {
+                      _sendMessage(_textController.text);
+                    },
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    mini: true,
+                    heroTag: null,
+                    child: const Icon(Icons.send, size: 20),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
-      ),
-    ));
+    );
   }
 
   Widget _buildSuggestionChip(

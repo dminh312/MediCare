@@ -51,17 +51,17 @@ class MedicationModel {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'userId': userId,
-        'name': name,
-        'dosage': dosage,
-        'dosageEntireTreatment': dosageEntireTreatment,
-        'form': form.name,
-        'frequency': frequency,
-        'hour': time.hour,
-        'minute': time.minute,
-        'timing': timing,
-        'reminderEnabled': reminderEnabled,
-        'notes': notes,
-        'createdAt': createdAt,
-      };
+    'userId': userId,
+    'name': name,
+    'dosage': dosage,
+    'dosageEntireTreatment': dosageEntireTreatment,
+    'form': form.name,
+    'frequency': frequency,
+    'hour': time.hour,
+    'minute': time.minute,
+    'timing': timing,
+    'reminderEnabled': reminderEnabled,
+    'notes': notes,
+    'createdAt': createdAt,
+  };
 }

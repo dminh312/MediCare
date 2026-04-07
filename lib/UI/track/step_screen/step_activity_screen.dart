@@ -1,7 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 class StepActivityScreen extends StatefulWidget {
   const StepActivityScreen({super.key});
 
@@ -10,10 +11,10 @@ class StepActivityScreen extends StatefulWidget {
 }
 
 class _StepActivityScreenState extends State<StepActivityScreen> {
-  int _stepGoal = 10000;
 
   void _showEditGoalDialog() {
-    final controller = TextEditingController(text: _stepGoal.toString());
+    final viewModel = Provider.of<HealthDataViewModel>(context, listen: false);
+    final controller = TextEditingController(text: viewModel.stepGoal.toString());
     showDialog(
       context: context,
       builder: (context) {
@@ -24,7 +25,9 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             autofocus: true,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(hintText: 'Enter your new step goal'),
+            decoration: const InputDecoration(
+              hintText: 'Enter your new step goal',
+            ),
           ),
           actions: [
             TextButton(
@@ -35,9 +38,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
               onPressed: () {
                 final newGoal = int.tryParse(controller.text);
                 if (newGoal != null && newGoal > 0) {
-                  setState(() {
-                    _stepGoal = newGoal;
-                  });
+                  viewModel.updateStepGoal(newGoal);
                 }
                 Navigator.of(context).pop();
               },
@@ -53,45 +54,84 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
-    final backgroundColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffdf8f8);
+    final backgroundColor = isDarkMode
+        ? const Color(0xff1a1111)
+        : const Color(0xfffdf8f8);
     final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
-    final borderColor = isDarkMode ? Colors.red.shade900.withAlpha(26) : Colors.red.shade50;
+    final borderColor = isDarkMode
+        ? Colors.red.shade900.withAlpha(26)
+        : Colors.red.shade50;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: _buildAppBar(context, isDarkMode, surfaceColor, borderColor),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildTodayProgressCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+      body: Consumer<HealthDataViewModel>(
+        builder: (context, viewModel, child) {
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              _buildTodayProgressCard(
+                surfaceColor,
+                borderColor,
+                primaryColor,
+                isDarkMode,
+                viewModel.todaySteps,
+                viewModel.stepGoal,
+              ),
+              const SizedBox(height: 24),
+          _buildWeeklyActivityCard(
+            surfaceColor,
+            borderColor,
+            primaryColor,
+            isDarkMode,
+          ),
           const SizedBox(height: 24),
-          _buildWeeklyActivityCard(surfaceColor, borderColor, primaryColor, isDarkMode),
-          const SizedBox(height: 24),
-          _buildInsightsSection(surfaceColor, borderColor, primaryColor, isDarkMode),
+          _buildInsightsSection(
+            surfaceColor,
+            borderColor,
+            primaryColor,
+            isDarkMode,
+            viewModel.stepGoal,
+            viewModel.todaySteps,
+          ),
         ],
-      ),
+      );
+    }),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, bool isDarkMode, Color surfaceColor, Color borderColor) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    bool isDarkMode,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(100.0),
       child: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: AppBar(
-            backgroundColor: (isDarkMode ? surfaceColor : Colors.white).withAlpha(204),
+            backgroundColor: (isDarkMode ? surfaceColor : Colors.white)
+                .withAlpha(204),
             elevation: 0,
             scrolledUnderElevation: 0,
-            title: const Text('Steps Activity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            title: const Text(
+              'Steps Activity',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             leading: Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
-                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(isDarkMode ? Colors.grey[800] : Colors.grey[100]),
-                  foregroundColor: MaterialStateProperty.all(isDarkMode ? Colors.grey[200] : Colors.grey[700]),
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(
+                    isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                  ),
+                  foregroundColor: WidgetStateProperty.all(
+                    isDarkMode ? Colors.grey[200] : Colors.grey[700],
+                  ),
                 ),
               ),
             ),
@@ -102,7 +142,14 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
     );
   }
 
-  Widget _buildTodayProgressCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+  Widget _buildTodayProgressCard(
+    Color surfaceColor,
+    Color borderColor,
+    Color primaryColor,
+    bool isDarkMode,
+    int todaySteps,
+    int stepGoal,
+  ) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
@@ -112,26 +159,52 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Today\'s Progress', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+              Text(
+                'Today\'s Progress',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[500],
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('8,432', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
+              Text(
+                todaySteps.toString(),
+                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               InkWell(
                 onTap: _showEditGoalDialog,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? primaryColor.withAlpha(26) : const Color(0xFFffebee),
+                    color: isDarkMode
+                        ? primaryColor.withAlpha(26)
+                        : const Color(0xFFffebee),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.flag, color: primaryColor, size: 16, fill: 1),
                       const SizedBox(width: 6),
-                      Text('Goal: $_stepGoal', style: TextStyle(fontSize: 14, color: primaryColor, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Goal: $stepGoal',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(width: 4),
-                      Icon(Icons.edit, color: primaryColor.withAlpha(178), size: 16),
+                      Icon(
+                        Icons.edit,
+                        color: primaryColor.withAlpha(178),
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
@@ -141,41 +214,58 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
           SizedBox(
             width: 112,
             height: 112,
-            child: _buildProgressRing(8432 / _stepGoal, primaryColor, isDarkMode),
+            child: _buildProgressRing(
+              stepGoal > 0 ? todaySteps / stepGoal : 0.0,
+              primaryColor,
+              isDarkMode,
+            ),
           ),
         ],
       ),
     );
   }
 
- Widget _buildProgressRing(double progress, Color primaryColor, bool isDarkMode) {
-  return Stack(
-    alignment: Alignment.center,
-    children: [
-      SizedBox(
-        width: 112, height: 112,
-        child: CircularProgressIndicator(
-          value: 1,
-          strokeWidth: 8,
-          color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+  Widget _buildProgressRing(
+    double progress,
+    Color primaryColor,
+    bool isDarkMode,
+  ) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 112,
+          height: 112,
+          child: CircularProgressIndicator(
+            value: 1,
+            strokeWidth: 8,
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+          ),
         ),
-      ),
-      SizedBox(
-        width: 112, height: 112,
-        child: CircularProgressIndicator(
-          value: progress,
-          strokeWidth: 8,
-          strokeCap: StrokeCap.round,
-          color: primaryColor,
+        SizedBox(
+          width: 112,
+          height: 112,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 8,
+            strokeCap: StrokeCap.round,
+            color: primaryColor,
+          ),
         ),
-      ),
-      Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-    ],
-  );
-}
+        Text(
+          '${(progress * 100).toInt()}%',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
 
-
-  Widget _buildWeeklyActivityCard(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
+  Widget _buildWeeklyActivityCard(
+    Color surfaceColor,
+    Color borderColor,
+    Color primaryColor,
+    bool isDarkMode,
+  ) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
@@ -184,11 +274,16 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Weekly Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Weekly Activity',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               Chip(
                 label: const Text('Last 7 Days'),
                 labelStyle: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[50],
+                backgroundColor: isDarkMode
+                    ? Colors.grey[800]
+                    : Colors.grey[50],
               ),
             ],
           ),
@@ -198,12 +293,24 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
       ),
     );
   }
-  
+
   Widget _buildWeeklyBarChart(Color primaryColor, bool isDarkMode) {
     final List<Map<String, dynamic>> weeklyData = [
-      {'day': 'Mon', 'height': 0.60, 'color': isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]},
-      {'day': 'Tue', 'height': 0.45, 'color': isDarkMode ? Colors.red[800]!.withAlpha(102) : Colors.red[200]},
-      {'day': 'Wed', 'height': 0.85, 'color': isDarkMode ? Colors.red[700]!.withAlpha(128) : Colors.red[300]},
+      {
+        'day': 'Mon',
+        'height': 0.60,
+        'color': isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100],
+      },
+      {
+        'day': 'Tue',
+        'height': 0.45,
+        'color': isDarkMode ? Colors.red[800]!.withAlpha(102) : Colors.red[200],
+      },
+      {
+        'day': 'Wed',
+        'height': 0.85,
+        'color': isDarkMode ? Colors.red[700]!.withAlpha(128) : Colors.red[300],
+      },
       {'day': 'Thu', 'height': 0.35, 'color': primaryColor.withAlpha(102)},
       {'day': 'Fri', 'height': 0.70, 'color': primaryColor.withAlpha(153)},
       {'day': 'Sat', 'height': 0.95, 'color': primaryColor.withAlpha(204)},
@@ -227,7 +334,10 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: data['color'],
-                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(6)),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(6),
+                          topRight: Radius.circular(6),
+                        ),
                       ),
                     ),
                   ),
@@ -237,8 +347,12 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                   data['day'],
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: data['day'] == 'Sun' ? FontWeight.bold : FontWeight.normal,
-                    color: data['day'] == 'Sun' ? primaryColor : Colors.grey[400],
+                    fontWeight: data['day'] == 'Sun'
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: data['day'] == 'Sun'
+                        ? primaryColor
+                        : Colors.grey[400],
                   ),
                 ),
               ],
@@ -248,14 +362,24 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
       ),
     );
   }
-  
-  Widget _buildInsightsSection(Color surfaceColor, Color borderColor, Color primaryColor, bool isDarkMode) {
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
+
+  Widget _buildInsightsSection(
+    Color surfaceColor,
+    Color borderColor,
+    Color primaryColor,
+    bool isDarkMode,
+    int stepGoal,
+    int todaySteps,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-          child: Text('Insights', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Text(
+            'Insights',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(height: 8),
         GridView.count(
@@ -271,7 +395,9 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
               borderColor: borderColor,
               icon: Icons.speed,
               iconColor: primaryColor,
-              iconBgColor: isDarkMode ? primaryColor.withAlpha(51) : Colors.red[50],
+              iconBgColor: isDarkMode
+                  ? primaryColor.withAlpha(51)
+                  : Colors.red[50],
               title: 'Weekly Average',
               value: '7,124',
               subtitle: '↑ 12% vs last week',
@@ -282,20 +408,32 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
               borderColor: borderColor,
               icon: Icons.timeline,
               iconColor: Colors.blue,
-              iconBgColor: isDarkMode ? Colors.blue[900]!.withAlpha(102) : Colors.blue[50],
+              iconBgColor: isDarkMode
+                  ? Colors.blue[900]!.withAlpha(102)
+                  : Colors.blue[50],
               title: 'Total Distance',
               value: '5.2 km',
               subtitle: '7,400 steps avg/km',
             ),
           ],
         ),
-         const SizedBox(height: 16),
-        _buildStreakCard(primaryColor, isDarkMode),
+        const SizedBox(height: 16),
+        _buildStreakCard(primaryColor, isDarkMode, stepGoal, todaySteps),
       ],
     );
   }
-  
-  Widget _buildInsightCard({required Color surfaceColor, required Color borderColor, required IconData icon, required Color iconColor, Color? iconBgColor, required String title, required String value, required String subtitle, Color? subtitleColor}) {
+
+  Widget _buildInsightCard({
+    required Color surfaceColor,
+    required Color borderColor,
+    required IconData icon,
+    required Color iconColor,
+    Color? iconBgColor,
+    required String title,
+    required String value,
+    required String subtitle,
+    Color? subtitleColor,
+  }) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
@@ -306,31 +444,58 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: iconColor, size: 24),
           ),
           const Spacer(),
-          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[500],
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(fontSize: 10, color: subtitleColor ?? Colors.grey[400], fontWeight: FontWeight.w600)),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: subtitleColor ?? Colors.grey[400],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
-  
-  Widget _buildStreakCard(Color primaryColor, bool isDarkMode) {
-     return Container(
+
+  Widget _buildStreakCard(Color primaryColor, bool isDarkMode, int stepGoal, int todaySteps) {
+    int remaining = stepGoal - todaySteps;
+    String subtitleText = remaining > 0 
+        ? "Keep going! You're only $remaining steps away from your goal."
+        : "You've reached your step goal today!";
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.red[900]!.withAlpha(26) : primaryColor.withAlpha(10),
+        color: isDarkMode
+            ? Colors.red[900]!.withAlpha(26)
+            : primaryColor.withAlpha(10),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: isDarkMode ? const Color(0xff2d1f1f) : Colors.white,
               shape: BoxShape.circle,
@@ -338,29 +503,50 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             child: Icon(Icons.emoji_events, color: primaryColor, fill: 1),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Daily Streak: 5 Days', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                SizedBox(height: 2),
-                Text('Keep going! You\'re only 1,568 steps away from your goal.', style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4)),
+                const Text(
+                  'Daily Streak: 5 Days',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitleText,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricCard({required Color surfaceColor, required Color borderColor, required Widget child, EdgeInsets? padding}) {
+  Widget _buildMetricCard({
+    required Color surfaceColor,
+    required Color borderColor,
+    required Widget child,
+    EdgeInsets? padding,
+  }) {
     return Container(
       padding: padding ?? const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: borderColor, width: 1.0),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );

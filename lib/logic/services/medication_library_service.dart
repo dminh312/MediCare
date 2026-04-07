@@ -7,7 +7,7 @@ class MedicationLibraryService {
   // Hàm tìm kiếm thuốc từ Firebase
   Future<List<String>> searchMedications(String query) async {
     if (query.isEmpty) return [];
-    
+
     final lowercaseQuery = query.toLowerCase();
     final snapshot = await _firestore
         .collection(_collection)

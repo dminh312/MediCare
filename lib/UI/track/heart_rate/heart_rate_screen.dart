@@ -46,10 +46,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
     final surface = isDark ? const Color(0xFF2d1f1f) : Colors.white;
-    final borderColor =
-        isDark ? Colors.red.shade900.withAlpha(26) : const Color(0xFFffeaea);
-    final subtleText =
-        isDark ? Colors.grey[400]! : const Color(0xFF534343);
+    final borderColor = isDark
+        ? Colors.red.shade900.withAlpha(26)
+        : const Color(0xFFffeaea);
+    final subtleText = isDark ? Colors.grey[400]! : const Color(0xFF534343);
 
     return Scaffold(
       backgroundColor: bg,
@@ -63,8 +63,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
             surfaceTintColor: Colors.transparent,
             shadowColor: _primary.withAlpha(13),
             leading: IconButton(
-              icon: Icon(Icons.arrow_back,
-                  color: isDark ? Colors.white : const Color(0xFF1a1111)),
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDark ? Colors.white : const Color(0xFF1a1111),
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
@@ -236,8 +238,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   // Animated ECG waveform card
   // ─────────────────────────────────────────
   Widget _buildEcgCard(bool isDark, Color surface, Color border) {
-    final bgLow =
-        isDark ? const Color(0xFF3a2020) : const Color(0xFFfff5f5);
+    final bgLow = isDark ? const Color(0xFF3a2020) : const Color(0xFFfff5f5);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: _cardDecoration(surface, border),
@@ -255,8 +256,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _primary.withAlpha(26),
                   borderRadius: BorderRadius.circular(999),
@@ -302,26 +305,61 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   // Min / Max / Rest stats
   // ─────────────────────────────────────────
   Widget _buildStatsRow(
-      bool isDark, Color surface, Color border, Color subtleText) {
+    bool isDark,
+    Color surface,
+    Color border,
+    Color subtleText,
+  ) {
     return Row(
       children: [
         Expanded(
-            child: _buildStatCard(
-                isDark, surface, border, subtleText, 'MIN', '58', _primary)),
+          child: _buildStatCard(
+            isDark,
+            surface,
+            border,
+            subtleText,
+            'MIN',
+            '58',
+            _primary,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
-            child: _buildStatCard(
-                isDark, surface, border, subtleText, 'MAX', '142', _secondary)),
+          child: _buildStatCard(
+            isDark,
+            surface,
+            border,
+            subtleText,
+            'MAX',
+            '142',
+            _secondary,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
-            child: _buildStatCard(
-                isDark, surface, border, subtleText, 'REST', '62', _tertiary)),
+          child: _buildStatCard(
+            isDark,
+            surface,
+            border,
+            subtleText,
+            'REST',
+            '62',
+            _tertiary,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(bool isDark, Color surface, Color border,
-      Color subtleText, String label, String value, Color accent) {
+  Widget _buildStatCard(
+    bool isDark,
+    Color surface,
+    Color border,
+    Color subtleText,
+    String label,
+    String value,
+    Color accent,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -330,9 +368,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
         border: Border(left: BorderSide(color: accent, width: 4)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 10,
-              offset: const Offset(0, 4))
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -381,7 +420,11 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   // 7-Day Trend bar chart
   // ─────────────────────────────────────────
   Widget _buildTrendCard(
-      bool isDark, Color surface, Color border, Color subtleText) {
+    bool isDark,
+    Color surface,
+    Color border,
+    Color subtleText,
+  ) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     // Heights as fraction of max (0.0–1.0). Wed is highlighted (current).
     final heights = [0.57, 0.86, 1.0, 0.71, 0.43, 0.50, 0.64];
@@ -437,9 +480,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                         width: 10,
                         height: 90 * heights[i],
                         decoration: BoxDecoration(
-                          color: isActive
-                              ? _primary
-                              : _primaryContainer,
+                          color: isActive ? _primary : _primaryContainer,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -468,14 +509,20 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   // Intensity Zones progress bars
   // ─────────────────────────────────────────
   Widget _buildZonesCard(
-      bool isDark, Color surface, Color border, Color subtleText) {
+    bool isDark,
+    Color surface,
+    Color border,
+    Color subtleText,
+  ) {
     final zones = [
       ('Resting (0–60)', 0.65, _primaryFixedDim),
       ('Warm-up (60–100)', 0.20, _tertiaryFixed),
       ('Cardio (100–140)', 0.12, _primary),
       ('Peak (140+)', 0.03, _secondary),
     ];
-    final trackColor = isDark ? const Color(0xFF3a2020) : const Color(0xFFfff5f5);
+    final trackColor = isDark
+        ? const Color(0xFF3a2020)
+        : const Color(0xFFfff5f5);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -516,7 +563,9 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1a1111),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF1a1111),
                         ),
                       ),
                     ],
@@ -526,10 +575,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                     borderRadius: BorderRadius.circular(999),
                     child: Stack(
                       children: [
-                        Container(
-                          height: 8,
-                          color: trackColor,
-                        ),
+                        Container(height: 8, color: trackColor),
                         FractionallySizedBox(
                           widthFactor: fraction,
                           child: Container(
@@ -563,9 +609,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: _primary.withAlpha(64),
-              blurRadius: 20,
-              offset: const Offset(0, 8)),
+            color: _primary.withAlpha(64),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Stack(
@@ -612,8 +659,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                   backgroundColor: Colors.white,
                   foregroundColor: _primary,
                   elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -641,9 +690,10 @@ class _HeartRateScreenState extends State<HeartRateScreen>
       border: Border.all(color: border),
       boxShadow: [
         BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 10,
-            offset: const Offset(0, 4))
+          color: Colors.black.withAlpha(8),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
       ],
     );
   }
@@ -698,8 +748,7 @@ class _EcgPainter extends CustomPainter {
     }
 
     // Clip to reveal only up to `revealX` (trailing wipe).
-    final clip = Path()
-      ..addRect(Rect.fromLTWH(0, 0, revealX, size.height));
+    final clip = Path()..addRect(Rect.fromLTWH(0, 0, revealX, size.height));
 
     canvas.clipPath(clip);
     canvas.drawPath(path, paint);

@@ -6,16 +6,18 @@ import 'package:medicare/logic/services/health_services.dart';
 class HealthDataViewModel extends ChangeNotifier {
   bool _isConnected = false;
   bool _isLoading = true;
-  
+
   int _todaySteps = 0;
   int _latestHeartRate = 0;
   String _sleepDuration = "0h 0m";
+  int _stepGoal = 10000;
 
   bool get isConnected => _isConnected;
   bool get isLoading => _isLoading;
   int get todaySteps => _todaySteps;
   int get latestHeartRate => _latestHeartRate;
   String get sleepDuration => _sleepDuration;
+  int get stepGoal => _stepGoal;
 
   final HealthService _healthService = HealthService();
   final Health _health = Health();
@@ -27,6 +29,14 @@ class HealthDataViewModel extends ChangeNotifier {
   Future<void> checkConnectionStatus() async {
     final prefs = await SharedPreferences.getInstance();
     _isConnected = prefs.getBool('health_connect_connected') ?? false;
+    _stepGoal = prefs.getInt('step_goal') ?? 10000;
+    notifyListeners();
+  }
+
+  Future<void> updateStepGoal(int newGoal) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('step_goal', newGoal);
+    _stepGoal = newGoal;
     notifyListeners();
   }
 
@@ -60,7 +70,9 @@ class HealthDataViewModel extends ChangeNotifier {
         hrPoints.sort((a, b) => b.dateTo.compareTo(a.dateTo));
         final latestPoint = hrPoints.first;
         if (latestPoint.value is NumericHealthValue) {
-          _latestHeartRate = (latestPoint.value as NumericHealthValue).numericValue.round();
+          _latestHeartRate = (latestPoint.value as NumericHealthValue)
+              .numericValue
+              .round();
         }
       }
 
@@ -70,15 +82,17 @@ class HealthDataViewModel extends ChangeNotifier {
         endTime: now,
         types: [HealthDataType.SLEEP_ASLEEP],
       );
-      
+
       if (sleepPoints.isNotEmpty) {
         int totalSleepMinutes = 0;
         for (var point in sleepPoints) {
           if (point.value is NumericHealthValue) {
-            totalSleepMinutes += (point.value as NumericHealthValue).numericValue.round();
+            totalSleepMinutes += (point.value as NumericHealthValue)
+                .numericValue
+                .round();
           }
         }
-        
+
         if (totalSleepMinutes > 0) {
           int hours = totalSleepMinutes ~/ 60;
           int remainingMinutes = totalSleepMinutes % 60;
@@ -87,7 +101,6 @@ class HealthDataViewModel extends ChangeNotifier {
       } else {
         _sleepDuration = "0h 0m";
       }
-
     } catch (e) {
       debugPrint("Error fetching local health data: \$e");
     }

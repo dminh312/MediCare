@@ -33,18 +33,63 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            _buildNavItem(Icons.home, Icons.home_outlined, "Home", 0, primaryColor, primaryDarkColor, primaryLightColor, isDarkMode),
-            _buildNavItem(Icons.monitor_heart, Icons.monitor_heart, "Track", 1, primaryColor, primaryDarkColor, primaryLightColor, isDarkMode),
+            _buildNavItem(
+              Icons.home,
+              Icons.home_outlined,
+              "Home",
+              0,
+              primaryColor,
+              primaryDarkColor,
+              primaryLightColor,
+              isDarkMode,
+            ),
+            _buildNavItem(
+              Icons.monitor_heart,
+              Icons.monitor_heart,
+              "Track",
+              1,
+              primaryColor,
+              primaryDarkColor,
+              primaryLightColor,
+              isDarkMode,
+            ),
             _buildChatbotItem(),
-            _buildNavItem(Icons.medication, Icons.medication_outlined, "Meds", 2, primaryColor, primaryDarkColor, primaryLightColor, isDarkMode),
-            _buildNavItem(Icons.person, Icons.person_outline, "Profile", 3, primaryColor, primaryDarkColor, primaryLightColor, isDarkMode),
+            _buildNavItem(
+              Icons.medication,
+              Icons.medication_outlined,
+              "Meds",
+              2,
+              primaryColor,
+              primaryDarkColor,
+              primaryLightColor,
+              isDarkMode,
+            ),
+            _buildNavItem(
+              Icons.person,
+              Icons.person_outline,
+              "Profile",
+              3,
+              primaryColor,
+              primaryDarkColor,
+              primaryLightColor,
+              isDarkMode,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, String label, int index, Color primaryColor, Color primaryDarkColor, Color primaryLightColor, bool isDarkMode) {
+  Widget _buildNavItem(
+    IconData activeIcon,
+    IconData inactiveIcon,
+    String label,
+    int index,
+    Color primaryColor,
+    Color primaryDarkColor,
+    Color primaryLightColor,
+    bool isDarkMode,
+  ) {
     final isSelected = widget.selectedIndex == index;
     return Expanded(
       child: InkWell(
@@ -58,12 +103,18 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               height: 32,
               width: 64,
               decoration: BoxDecoration(
-                color: isSelected ? (isDarkMode ? primaryColor.withOpacity(0.3) : primaryLightColor) : Colors.transparent,
+                color: isSelected
+                    ? (isDarkMode
+                          ? primaryColor.withOpacity(0.3)
+                          : primaryLightColor)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                color: isSelected ? (isDarkMode ? primaryLightColor : primaryDarkColor) : Colors.grey,
+                color: isSelected
+                    ? (isDarkMode ? primaryLightColor : primaryDarkColor)
+                    : Colors.grey,
                 size: 24,
               ),
             ),
@@ -73,9 +124,11 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? (isDarkMode ? primaryLightColor : primaryDarkColor) : Colors.grey,
+                color: isSelected
+                    ? (isDarkMode ? primaryLightColor : primaryDarkColor)
+                    : Colors.grey,
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -91,7 +144,9 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(height: 36), // Placeholder for icon area and to push text down
+            SizedBox(
+              height: 36,
+            ), // Placeholder for icon area and to push text down
             Text(
               "Chatbot",
               style: TextStyle(

@@ -18,12 +18,16 @@ class SaveHistoryBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     const primaryColor = Color(0xFFea2a33);
     final backgroundColor = isDarkMode ? const Color(0xFF211111) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : const Color(0xFF0f172a); // slate-900
-    final secondaryTextColor = isDarkMode ? const Color(0xFF94a3b8) : const Color(0xFF475569); // slate-400 / slate-600
-    
+    final textColor = isDarkMode
+        ? Colors.white
+        : const Color(0xFF0f172a); // slate-900
+    final secondaryTextColor = isDarkMode
+        ? const Color(0xFF94a3b8)
+        : const Color(0xFF475569); // slate-400 / slate-600
+
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -52,7 +56,7 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              
+
               // Icon/Illustration
               Container(
                 width: 80,
@@ -68,7 +72,7 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                   color: primaryColor,
                 ),
               ),
-              
+
               // Title
               Text(
                 'Do you want to save your chat history in the MediCare+ database?',
@@ -82,7 +86,7 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Description
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -97,7 +101,7 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Save History Button
               SizedBox(
                 width: double.infinity,
@@ -125,7 +129,7 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Don't Save Button
               SizedBox(
                 width: double.infinity,
@@ -154,21 +158,23 @@ class SaveHistoryBottomSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Privacy Note
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Your data is encrypted and secure. ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: secondaryTextColor,
-                    ),
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       'Privacy Policy',

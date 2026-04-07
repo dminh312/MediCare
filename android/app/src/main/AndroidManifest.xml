@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
     <uses-permission android:name="android.permission.health.READ_SLEEP"/>
@@ -58,7 +59,7 @@
 
             <!-- Health Connect: show permissions rationale -->
             <intent-filter>
-                <action android:name="androidx.health.connect.client.SHOW_PERMISSIONS_RATIONALE" />
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
 
@@ -91,10 +92,15 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
         </intent>
-        <!-- Required to check if Health Connect app is installed -->
+        <!-- Required to check if Health Connect app is installed (Android 13 standalone app) -->
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- Required to resolve Health Connect permission intents -->
         <intent>
-            <action android:name="androidx.health.connect.client.SHOW_PERMISSIONS_RATIONALE" />
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+        </intent>
+        <!-- Android 13: Required to launch Health Connect permission request -->
+        <intent>
+            <action android:name="androidx.health.ACTION_REQUEST_HEALTH_PERMISSIONS" />
         </intent>
     </queries>
 
