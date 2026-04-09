@@ -494,16 +494,24 @@ class _MedsScreenState extends State<MedsScreen> {
     return Dismissible(
           key: Key(medViewData.log.id),
           background: Container(
-            color: Colors.blue,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.blue[400],
+              borderRadius: BorderRadius.circular(24),
+            ),
             alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 20),
-            child: const Icon(Icons.edit, color: Colors.white),
+            padding: const EdgeInsets.only(left: 24),
+            child: const Icon(Icons.edit, color: Colors.white, size: 28),
           ),
           secondaryBackground: Container(
-            color: Colors.red,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFff5252),
+              borderRadius: BorderRadius.circular(24),
+            ),
             alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            child: const Icon(Icons.delete, color: Colors.white),
+            padding: const EdgeInsets.only(right: 24),
+            child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
           ),
           onDismissed: (direction) {
             if (direction == DismissDirection.endToStart) {
@@ -697,104 +705,133 @@ class _MedsScreenState extends State<MedsScreen> {
         break;
     }
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF2d1f1f) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF2d1f1f) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          title: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.medical_information,
-                color: Theme.of(context).primaryColor,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  med.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withAlpha(26),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.medical_information,
+                      color: Theme.of(context).primaryColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      med.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildDetailRow(
+                Icons.science_outlined,
+                'Dose/Form',
+                '${med.dosage} (${med.form.name})',
+              ),
+              const SizedBox(height: 16),
+              _buildDetailRow(
+                Icons.access_time,
+                'Schedule',
+                med.time.format(context),
+              ),
+              const SizedBox(height: 16),
+              _buildDetailRow(Icons.calendar_today_outlined, 'Timing', med.timing),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 24, color: Colors.grey),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Status',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withAlpha(38),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(),
-                const SizedBox(height: 8),
-                _buildDetailRow(
-                  Icons.science,
-                  'Dose/Form',
-                  '${med.dosage} (${med.form.name})',
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  Icons.access_time,
-                  'Schedule',
-                  med.time.format(context),
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(Icons.calendar_today, 'Timing', med.timing),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Status',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          const SizedBox(height: 2),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withAlpha(38),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              statusText,
-                              style: TextStyle(
-                                color: statusColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
         );
       },
     );
@@ -804,8 +841,8 @@ class _MedsScreenState extends State<MedsScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Colors.grey),
-        const SizedBox(width: 12),
+        Icon(icon, size: 24, color: Colors.grey),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

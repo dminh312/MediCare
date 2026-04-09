@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class SleepSetupScreen extends StatefulWidget {
   const SleepSetupScreen({super.key});
@@ -10,12 +12,28 @@ class SleepSetupScreen extends StatefulWidget {
 class _SleepSetupScreenState extends State<SleepSetupScreen> {
   static const Color _primary = Color(0xFFff5252);
 
-  TimeOfDay _bedtime = const TimeOfDay(hour: 22, minute: 30);
-  TimeOfDay _wakeUpTime = const TimeOfDay(hour: 6, minute: 30);
-  bool _alarmEnabled = true;
+  late TimeOfDay _bedtime;
+  late TimeOfDay _wakeUpTime;
+  late bool _alarmEnabled;
 
   final List<String> _days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  final Set<int> _selectedDays = {0, 1, 2, 3, 4}; // Mon-Fri
+  late Set<int> _selectedDays;
+
+  @override
+  void initState() {
+    super.initState();
+    final healthVM = context.read<HealthDataViewModel>();
+    _bedtime = TimeOfDay(
+      hour: int.tryParse(healthVM.bedtimeHour) ?? 22,
+      minute: int.tryParse(healthVM.bedtimeMinute) ?? 30,
+    );
+    _wakeUpTime = TimeOfDay(
+      hour: int.tryParse(healthVM.wakeUpHour) ?? 6,
+      minute: int.tryParse(healthVM.wakeUpMinute) ?? 30,
+    );
+    _alarmEnabled = healthVM.alarmEnabled;
+    _selectedDays = healthVM.selectedSleepDays.toSet();
+  }
 
   Future<void> _selectTime(BuildContext context, bool isBedtime) async {
     final initialTime = isBedtime ? _bedtime : _wakeUpTime;
@@ -120,7 +138,7 @@ class _SleepSetupScreenState extends State<SleepSetupScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '8h 00m',
+                    _calculateDuration(),
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
@@ -255,15 +273,25 @@ class _SleepSetupScreenState extends State<SleepSetupScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  // Simulate saving
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sleep schedule saved!'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                onPressed: () async {
+                  final healthVM = context.read<HealthDataViewModel>();
+                  await healthVM.saveSleepSchedule(
+                    bedtimeHour: _bedtime.hour.toString(),
+                    bedtimeMinute: _bedtime.minute.toString(),
+                    wakeUpHour: _wakeUpTime.hour.toString(),
+                    wakeUpMinute: _wakeUpTime.minute.toString(),
+                    alarmEnabled: _alarmEnabled,
+                    selectedDays: _selectedDays.toList(),
                   );
-                  Navigator.of(context).pop();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sleep schedule saved!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primary,

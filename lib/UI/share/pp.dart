@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-class PrivacyPolicyScreen extends StatelessWidget {
+class PrivacyPolicyScreen extends StatefulWidget {
   final bool isReadOnly;
 
   const PrivacyPolicyScreen({super.key, this.isReadOnly = true});
+
+  @override
+  State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();
+}
+
+class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
+  bool _isChecked = false;
 
   @override
   Widget build(BuildContext context) {
@@ -193,27 +201,76 @@ class PrivacyPolicyScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               // Disclaimer Box
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? surfaceColor
-                      : const Color(0xFFf8fafc), // slate-50
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: dividerColor),
-                ),
-                child: Text(
-                  'By continuing to use MediCare+, you acknowledge that you have read and understood this Privacy Policy. We regularly update this document to reflect new safety standards and will notify you of any material changes.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    fontStyle: FontStyle.italic,
+              if (widget.isReadOnly)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
                     color: isDarkMode
-                        ? const Color(0xFF94a3b8)
-                        : const Color(0xFF64748b),
+                        ? surfaceColor
+                        : const Color(0xFFf8fafc), // slate-50
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: Text(
+                    'By continuing to use MediCare+, you acknowledge that you have read and understood this Privacy Policy. We regularly update this document to reflect new safety standards and will notify you of any material changes.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      fontStyle: FontStyle.italic,
+                      color: isDarkMode
+                          ? const Color(0xFF94a3b8)
+                          : const Color(0xFF64748b),
+                    ),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isChecked = !_isChecked;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? surfaceColor : const Color(0xFFf8fafc),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: dividerColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: _isChecked ? primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _isChecked ? primaryColor : Colors.grey.shade400,
+                              width: 2,
+                            ),
+                          ),
+                          child: _isChecked
+                              ? const Icon(Icons.check, color: Colors.white, size: 16)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'By continuing to use MediCare+, you acknowledge that you have read and understood this Privacy Policy.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.5,
+                              color: isDarkMode
+                                  ? const Color(0xFF94a3b8)
+                                  : const Color(0xFF64748b),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 24),
 
               // Button
@@ -221,27 +278,31 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 60,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
+                  onPressed: (widget.isReadOnly || _isChecked) ? () => Navigator.of(context).pop(true) : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
+                    disabledBackgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                     foregroundColor: Colors.white,
-                    elevation: 8,
+                    elevation: (widget.isReadOnly || _isChecked) ? 8 : 0,
                     shadowColor: primaryColor.withOpacity(0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: Text(
-                    isReadOnly ? 'I Understand' : 'Accept and Continue',
-                    style: const TextStyle(
+                    widget.isReadOnly ? 'I Understand' : 'Accept and Continue',
+                    style: TextStyle(
                       fontSize: 18,
+                      color: (widget.isReadOnly || _isChecked) 
+                          ? Colors.white 
+                          : (isDarkMode ? Colors.grey[500] : Colors.grey[600]),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-            ],
+            ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad),
           ),
         ),
       ),

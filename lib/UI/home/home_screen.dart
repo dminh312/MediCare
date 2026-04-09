@@ -8,6 +8,8 @@ import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
+import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
+import 'package:medicare/UI/components/permission_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -275,7 +277,14 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StepActivityScreen(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
@@ -378,21 +387,6 @@ class _HomePageState extends State<HomePage> {
                           surfaceColor: surfaceColor,
                         ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: "Water",
-                    value: "1.5L",
-                    icon: Icons.water_drop,
-                    iconColor: Colors.blue[600]!,
-                    iconBgDark: Colors.blue[900]!.withValues(alpha: 0.3),
-                    iconBgLight: Colors.blue[100]!,
-                    trendValue: "12%",
-                    trendUp: true,
-                    isDarkMode: isDarkMode,
-                    surfaceColor: surfaceColor,
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -433,18 +427,7 @@ class _HomePageState extends State<HomePage> {
   void _showUnauthorizedDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("App Permission Required"),
-        content: const Text(
-          "You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
+      builder: (context) => const PermissionDialog(),
     );
   }
 
@@ -460,7 +443,6 @@ class _HomePageState extends State<HomePage> {
     return GestureDetector(
       onTap: () => _showUnauthorizedDialog(context),
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
@@ -471,37 +453,73 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? iconBgDark : iconBgLight,
-                    shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            children: [
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? iconBgDark : iconBgLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: iconColor, size: 20),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "...", // Placeholder line
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.grey[900],
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, color: iconColor, size: 20),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+              ),
+              Positioned.fill(
+                child: Container(
+                  color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.lock_outline_rounded,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Locked",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Locked",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -514,7 +532,6 @@ class _HomePageState extends State<HomePage> {
     Color textColor,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
@@ -523,58 +540,98 @@ class _HomePageState extends State<HomePage> {
               ? Colors.white10
               : Colors.red[900]!.withValues(alpha: 0.05),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.red[900]!.withValues(alpha: 0.3)
-                          : Colors.red[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.favorite,
-                      color: Colors.red[600],
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Heart Rate",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isDarkMode
-                              ? Colors.grey[400]
-                              : Colors.grey[500],
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Colors.red[900]!.withValues(alpha: 0.3)
+                                : Colors.red[100],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.favorite,
+                            color: Colors.red[600],
+                            size: 20,
+                          ),
                         ),
-                      ),
-                      const Text(
-                        "Locked",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Heart Rate",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[500],
+                              ),
+                            ),
+                            Text(
+                              "...",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(width: 80, height: 40),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Locked",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

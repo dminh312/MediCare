@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 import 'sleep_setup_screen.dart';
 
 class SleepAnaScreen extends StatelessWidget {
@@ -8,8 +10,17 @@ class SleepAnaScreen extends StatelessWidget {
   static const Color _secondary = Color(0xFFff4081);
   static const Color _secondaryContainer = Color(0xFFffd9e2);
 
+  String _formatDuration(int totalMinutes) {
+    int hours = totalMinutes ~/ 60;
+    int mins = totalMinutes % 60;
+    if (hours > 0) return '${hours}h ${mins}m';
+    return '${mins}m';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final healthVM = context.watch<HealthDataViewModel>();
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF1a1111) : const Color(0xFFfffbfb);
     final surface = isDark ? const Color(0xFF2d1f1f) : Colors.white;
@@ -17,6 +28,23 @@ class SleepAnaScreen extends StatelessWidget {
         ? Colors.red.shade900.withAlpha(26)
         : const Color(0xFFffeaea);
     final subtleText = isDark ? Colors.grey[400]! : const Color(0xFF534343);
+
+    int totalDetailed = healthVM.sleepDeepMinutes + healthVM.sleepLightMinutes + healthVM.sleepAwakeMinutes + healthVM.sleepRemMinutes;
+    int deepFlex = 30;
+    int lightFlex = 55;
+    int awakeFlex = 15;
+
+    if (totalDetailed > 0) {
+      deepFlex = ((healthVM.sleepDeepMinutes / totalDetailed) * 100).round();
+      lightFlex = (((healthVM.sleepLightMinutes + healthVM.sleepRemMinutes) / totalDetailed) * 100).round();
+      awakeFlex = ((healthVM.sleepAwakeMinutes / totalDetailed) * 100).round();
+      if (deepFlex == 0) deepFlex = 1;
+      if (lightFlex == 0) lightFlex = 1;
+      if (awakeFlex == 0) awakeFlex = 1;
+    }
+
+    String bedtimeStr = "\${healthVM.bedtimeHour.padLeft(2, '0')}:\${healthVM.bedtimeMinute.padLeft(2, '0')}";
+    String wakeupStr = "\${healthVM.wakeUpHour.padLeft(2, '0')}:\${healthVM.wakeUpMinute.padLeft(2, '0')}";
 
     return Scaffold(
       backgroundColor: bg,
@@ -89,18 +117,18 @@ class SleepAnaScreen extends StatelessWidget {
                                   color: _primary.withAlpha(26),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.star,
                                       color: _primary,
                                       size: 14,
                                       fill: 1,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      'GOOD',
-                                      style: TextStyle(
+                                      healthVM.sleepScore >= 80 ? 'GOOD' : (healthVM.sleepScore >= 60 ? 'FAIR' : 'POOR'),
+                                      style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         color: _primary,
@@ -114,7 +142,7 @@ class SleepAnaScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '7h 20m',
+                            healthVM.sleepDuration,
                             style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.bold,
@@ -125,7 +153,7 @@ class SleepAnaScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Total sleep time was 12% higher than your average.',
+                            healthVM.sleepScore >= 80 ? 'Total sleep time is optimal.' : 'Consider adjusting your sleep schedule.',
                             style: TextStyle(fontSize: 13, color: subtleText),
                           ),
                         ],
@@ -163,21 +191,21 @@ class SleepAnaScreen extends StatelessWidget {
                                   child: Row(
                                     children: [
                                       Expanded(
-                                        flex: 30,
+                                        flex: deepFlex,
                                         child: Container(
                                           height: 32,
                                           color: _primary,
                                         ),
                                       ),
                                       Expanded(
-                                        flex: 55,
+                                        flex: lightFlex,
                                         child: Container(
                                           height: 32,
                                           color: _secondary,
                                         ),
                                       ),
                                       Expanded(
-                                        flex: 15,
+                                        flex: awakeFlex,
                                         child: Container(
                                           height: 32,
                                           color: _secondaryContainer,
@@ -190,14 +218,14 @@ class SleepAnaScreen extends StatelessWidget {
                                 _buildStageLegend(
                                   Colors.red.shade400,
                                   'Deep Sleep',
-                                  '2h 15m',
+                                  _formatDuration(healthVM.sleepDeepMinutes),
                                   subtleText,
                                 ),
                                 const SizedBox(height: 10),
                                 _buildStageLegend(
                                   _secondary,
                                   'Light Sleep',
-                                  '4h 10m',
+                                  _formatDuration(healthVM.sleepLightMinutes + healthVM.sleepRemMinutes),
                                   subtleText,
                                 ),
                                 const SizedBox(height: 10),
@@ -206,7 +234,7 @@ class SleepAnaScreen extends StatelessWidget {
                                       ? Colors.pink.shade900
                                       : Colors.pink.shade100,
                                   'Awake',
-                                  '55m',
+                                  _formatDuration(healthVM.sleepAwakeMinutes),
                                   subtleText,
                                 ),
                               ],
@@ -242,7 +270,7 @@ class SleepAnaScreen extends StatelessWidget {
                                         width: 120,
                                         height: 120,
                                         child: CircularProgressIndicator(
-                                          value: 0.85,
+                                          value: healthVM.sleepScore / 100,
                                           strokeWidth: 8,
                                           strokeCap: StrokeCap.round,
                                           color: _primary,
@@ -253,7 +281,7 @@ class SleepAnaScreen extends StatelessWidget {
                                             MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            '85',
+                                            healthVM.sleepScore.toString(),
                                             style: TextStyle(
                                               fontSize: 30,
                                               fontWeight: FontWeight.w800,
@@ -287,16 +315,16 @@ class SleepAnaScreen extends StatelessWidget {
                                           : const Color(0xFF1a1111),
                                       height: 1.5,
                                     ),
-                                    children: const [
-                                      TextSpan(text: 'You slept better than '),
+                                    children: [
+                                      const TextSpan(text: 'You slept better than '),
                                       TextSpan(
-                                        text: '80%',
-                                        style: TextStyle(
+                                        text: '\${healthVM.sleepScore}%',
+                                        style: const TextStyle(
                                           color: _primary,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      TextSpan(
+                                      const TextSpan(
                                         text: ' of users in your demographic.',
                                       ),
                                     ],
@@ -372,7 +400,7 @@ class SleepAnaScreen extends StatelessWidget {
                                   _buildScheduleItem(
                                     icon: Icons.bedtime,
                                     label: 'BEDTIME',
-                                    time: '10:30 PM',
+                                    time: bedtimeStr,
                                     bgColor: const Color(0xFFffebee),
                                     iconColor: _primary,
                                     surface: surface,
@@ -382,7 +410,7 @@ class SleepAnaScreen extends StatelessWidget {
                                   _buildScheduleItem(
                                     icon: Icons.wb_sunny,
                                     label: 'WAKE UP',
-                                    time: '6:30 AM',
+                                    time: wakeupStr,
                                     bgColor: _secondaryContainer,
                                     iconColor: _secondary,
                                     surface: surface,
@@ -400,85 +428,86 @@ class SleepAnaScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // ── Sleeping Heart Rate Card ──
-                    _buildCard(
-                      surface: surface,
-                      border: borderColor,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Sleeping Heart Rate',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1a1111),
-                                ),
-                              ),
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.favorite,
-                                    color: _primary,
-                                    size: 16,
-                                    fill: 1,
+                    if (healthVM.sleepingHeartRateAvg > 0)
+                      _buildCard(
+                        surface: surface,
+                        border: borderColor,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Sleeping Heart Rate',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1a1111),
                                   ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    '58 BPM',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.favorite,
+                                      color: _primary,
+                                      size: 16,
+                                      fill: 1,
                                     ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '\${healthVM.sleepingHeartRateAvg} BPM',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            _SleepHeartRateChart(isDark: isDark, heights: healthVM.sleepingHeartRateChart),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Start',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: subtleText,
+                                    letterSpacing: 1,
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          _SleepHeartRateChart(isDark: isDark),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '10 PM',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: subtleText,
-                                  letterSpacing: 1,
                                 ),
-                              ),
-                              Text(
-                                '2 AM',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: subtleText,
-                                  letterSpacing: 1,
+                                Text(
+                                  'Mid',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: subtleText,
+                                    letterSpacing: 1,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '6 AM',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: subtleText,
-                                  letterSpacing: 1,
+                                Text(
+                                  'End',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: subtleText,
+                                    letterSpacing: 1,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
+                    
+                    if (healthVM.sleepingHeartRateAvg > 0) const SizedBox(height: 16),
 
                     // ── Expert Insight Card ──
                     Container(
@@ -657,34 +686,18 @@ class SleepAnaScreen extends StatelessWidget {
 // ── Heart Rate Bar Chart ──
 class _SleepHeartRateChart extends StatelessWidget {
   final bool isDark;
-  const _SleepHeartRateChart({required this.isDark});
-
-  static const List<double> _heights = [
-    0.40,
-    0.45,
-    0.38,
-    0.50,
-    0.60,
-    0.55,
-    0.48,
-    0.75,
-    0.65,
-    0.58,
-    0.50,
-    0.42,
-    0.40,
-    0.35,
-    0.38,
-    0.45,
-  ];
+  final List<double> heights;
+  const _SleepHeartRateChart({required this.isDark, required this.heights});
 
   @override
   Widget build(BuildContext context) {
+    List<double> displayHeights = heights.isNotEmpty ? heights : List.filled(16, 0.1);
+    
     return SizedBox(
       height: 96,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: _heights.map((h) {
+        children: displayHeights.map((h) {
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -693,7 +706,7 @@ class _SleepHeartRateChart extends StatelessWidget {
                 heightFactor: h,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: h == 0.75
+                    color: h >= 0.70
                         ? SleepAnaScreen._primary.withAlpha(77)
                         : SleepAnaScreen._primary.withAlpha(26),
                     borderRadius: const BorderRadius.vertical(

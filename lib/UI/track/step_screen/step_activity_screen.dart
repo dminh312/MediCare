@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 class StepActivityScreen extends StatefulWidget {
@@ -11,40 +12,240 @@ class StepActivityScreen extends StatefulWidget {
 }
 
 class _StepActivityScreenState extends State<StepActivityScreen> {
+  int _sedentaryInterval = 60;
 
-  void _showEditGoalDialog() {
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _sedentaryInterval = prefs.getInt('sedentaryInterval') ?? 60;
+    });
+  }
+
+  Future<void> _saveInterval(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('sedentaryInterval', value);
+    setState(() {
+      _sedentaryInterval = value;
+    });
+  }
+
+  void _showEditGoalBottomSheet() {
     final viewModel = Provider.of<HealthDataViewModel>(context, listen: false);
     final controller = TextEditingController(text: viewModel.stepGoal.toString());
-    showDialog(
+    
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Set New Goal'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              hintText: 'Enter your new step goal',
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        final primaryColor = const Color(0xffff5252);
+        final surfaceColor = isDarkMode ? const Color(0xff1a1111) : Colors.white;
+        final textColor = isDarkMode ? Colors.white : const Color(0xff1a1111);
+        final subtitleColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(20),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Container(
+                  width: 48,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Target Setting',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: primaryColor,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Set New Goal',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.flag_rounded, color: primaryColor, size: 28),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                // Input Field
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          autofocus: true,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          style: TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                            letterSpacing: -1.5,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: '10000',
+                            hintStyle: TextStyle(
+                              color: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'steps',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: subtitleColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final newGoal = int.tryParse(controller.text);
+                          if (newGoal != null && newGoal > 0) {
+                            viewModel.updateStepGoal(newGoal);
+                          }
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Save Goal',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Contextual Tip
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withAlpha(25),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lightbulb_outline, color: Colors.amber[700], size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Setting a realistic goal helps you stay motivated consistently.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDarkMode ? Colors.amber[100] : Colors.amber[900],
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final newGoal = int.tryParse(controller.text);
-                if (newGoal != null && newGoal > 0) {
-                  viewModel.updateStepGoal(newGoal);
-                }
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -84,6 +285,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             borderColor,
             primaryColor,
             isDarkMode,
+            viewModel,
           ),
           const SizedBox(height: 24),
           _buildInsightsSection(
@@ -91,8 +293,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             borderColor,
             primaryColor,
             isDarkMode,
-            viewModel.stepGoal,
-            viewModel.todaySteps,
+            viewModel,
           ),
         ],
       );
@@ -174,7 +375,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
               ),
               const SizedBox(height: 8),
               InkWell(
-                onTap: _showEditGoalDialog,
+                onTap: _showEditGoalBottomSheet,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -265,6 +466,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
     Color borderColor,
     Color primaryColor,
     bool isDarkMode,
+    HealthDataViewModel viewModel,
   ) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
@@ -288,34 +490,34 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildWeeklyBarChart(primaryColor, isDarkMode),
+          _buildWeeklyBarChart(primaryColor, isDarkMode, viewModel),
         ],
       ),
     );
   }
 
-  Widget _buildWeeklyBarChart(Color primaryColor, bool isDarkMode) {
-    final List<Map<String, dynamic>> weeklyData = [
-      {
-        'day': 'Mon',
-        'height': 0.60,
-        'color': isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100],
-      },
-      {
-        'day': 'Tue',
-        'height': 0.45,
-        'color': isDarkMode ? Colors.red[800]!.withAlpha(102) : Colors.red[200],
-      },
-      {
-        'day': 'Wed',
-        'height': 0.85,
-        'color': isDarkMode ? Colors.red[700]!.withAlpha(128) : Colors.red[300],
-      },
-      {'day': 'Thu', 'height': 0.35, 'color': primaryColor.withAlpha(102)},
-      {'day': 'Fri', 'height': 0.70, 'color': primaryColor.withAlpha(153)},
-      {'day': 'Sat', 'height': 0.95, 'color': primaryColor.withAlpha(204)},
-      {'day': 'Sun', 'height': 0.84, 'color': primaryColor},
-    ];
+  Widget _buildWeeklyBarChart(Color primaryColor, bool isDarkMode, HealthDataViewModel viewModel) {
+    List<int> weeklySteps = viewModel.weeklyStepsChart;
+    int maxSteps = weeklySteps.reduce((curr, next) => curr > next ? curr : next);
+    if (maxSteps < 100) maxSteps = 100; // prevent divide by zero and tiny graphs
+
+    final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // Assuming the 7th element is today, we need to map back to weekday names dynamically if we want.
+    // For simplicity, we just use the last 7 days.
+    List<Map<String, dynamic>> weeklyData = [];
+    final now = DateTime.now();
+    for (int i = 0; i < 7; i++) {
+      int steps = weeklySteps[i];
+      DateTime date = now.subtract(Duration(days: 6 - i));
+      String dayName = days[date.weekday - 1];
+      double heightOffset = steps / maxSteps;
+      bool isToday = (i == 6);
+      weeklyData.add({
+        'day': dayName,
+        'height': heightOffset,
+        'color': isToday ? primaryColor : (isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]),
+      });
+    }
 
     return SizedBox(
       height: 192,
@@ -323,6 +525,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: weeklyData.map((data) {
+          bool isToday = data['color'] == primaryColor;
           return Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -347,10 +550,10 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                   data['day'],
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: data['day'] == 'Sun'
+                    fontWeight: isToday
                         ? FontWeight.bold
                         : FontWeight.normal,
-                    color: data['day'] == 'Sun'
+                    color: isToday
                         ? primaryColor
                         : Colors.grey[400],
                   ),
@@ -368,9 +571,12 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
     Color borderColor,
     Color primaryColor,
     bool isDarkMode,
-    int stepGoal,
-    int todaySteps,
+    HealthDataViewModel viewModel,
   ) {
+    int sum = viewModel.weeklyStepsChart.reduce((a, b) => a + b);
+    int avg = (sum / 7).round();
+    double distanceKm = viewModel.todaySteps * 0.76 / 1000;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -399,8 +605,8 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                   ? primaryColor.withAlpha(51)
                   : Colors.red[50],
               title: 'Weekly Average',
-              value: '7,124',
-              subtitle: '↑ 12% vs last week',
+              value: '\$avg',
+              subtitle: 'From last 7 days',
               subtitleColor: Colors.green[500],
             ),
             _buildInsightCard(
@@ -411,15 +617,98 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
               iconBgColor: isDarkMode
                   ? Colors.blue[900]!.withAlpha(102)
                   : Colors.blue[50],
-              title: 'Total Distance',
-              value: '5.2 km',
-              subtitle: '7,400 steps avg/km',
+              title: 'Today Distance',
+              value: '\${distanceKm.toStringAsFixed(1)} km',
+              subtitle: '0.76m avg stride',
             ),
           ],
         ),
         const SizedBox(height: 16),
-        _buildStreakCard(primaryColor, isDarkMode, stepGoal, todaySteps),
+        _buildSedentaryReminderCard(surfaceColor, borderColor, primaryColor, isDarkMode),
+        const SizedBox(height: 16),
+        _buildStreakCard(primaryColor, isDarkMode, viewModel.stepGoal, viewModel.todaySteps),
       ],
+    );
+  }
+
+  Widget _buildSedentaryReminderCard(
+    Color surfaceColor,
+    Color borderColor,
+    Color primaryColor,
+    bool isDarkMode,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? Colors.blue.shade900.withAlpha(51)
+                  : Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.airline_seat_recline_normal, color: Colors.blue.shade500),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sedentary Reminder',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Remind to move',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: _sedentaryInterval,
+              dropdownColor: surfaceColor,
+              icon: Icon(Icons.arrow_drop_down, color: isDarkMode ? Colors.white : Colors.black87),
+              onChanged: (val) {
+                if (val != null) _saveInterval(val);
+              },
+              items: [30, 45, 60, 90, 120].map((int val) {
+                return DropdownMenuItem<int>(
+                  value: val,
+                  child: Text(
+                    '$val mins',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

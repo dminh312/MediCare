@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/app_lifecycle_manager.dart';
 import 'package:bot_toast/bot_toast.dart';
@@ -24,6 +25,11 @@ final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   await dotenv.load(fileName: ".env");
 
@@ -117,7 +123,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       scaffoldMessengerKey: scaffoldMessengerKey,
-      title: 'MediCare',
+      title: 'MediCare+',
       debugShowCheckedModeBanner: false,
       builder: BotToastInit(), // Initialize BotToast
       navigatorObservers: [

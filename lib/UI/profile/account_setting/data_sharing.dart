@@ -16,10 +16,6 @@ class DataSharingScreen extends StatefulWidget {
 
 class _DataSharingScreenState extends State<DataSharingScreen> {
   // State for the switches
-  bool _healthStatsSharing = true;
-  bool _activityDataSharing = true;
-  bool _medicationHistorySharing = false;
-  bool _anonymizedResearchSharing = true;
   bool _chatbotHistorySharing = true;
 
   bool _isHealthConnectConnected = false;
@@ -59,10 +55,6 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     }
 
     setState(() {
-      _healthStatsSharing = prefs.getBool('health_stats_sharing') ?? true;
-      _activityDataSharing = prefs.getBool('activity_data_sharing') ?? true;
-      _medicationHistorySharing = prefs.getBool('medication_history_sharing') ?? false;
-      _anonymizedResearchSharing = prefs.getBool('anonymized_research_sharing') ?? true;
       _chatbotHistorySharing =
           prefs.getBool('chatbot_save_history_preference') ?? true;
       _isHealthConnectConnected = healthConnectConnected;
@@ -168,51 +160,6 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                       child: Column(
                         children: [
                           _buildSharingOption(
-                            icon: Icons.analytics,
-                            title: 'Health Statistics sharing',
-                            value: _healthStatsSharing,
-                            onChanged: (val) async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('health_stats_sharing', val);
-                              await _updateFirestorePreference('healthStatsSharing', val);
-                              setState(() => _healthStatsSharing = val);
-                            },
-                            iconBackgroundColor: iconBackgroundColor,
-                            primaryColor: primaryColor,
-                            isDarkMode: isDarkMode,
-                          ),
-                          _buildDivider(borderColor),
-                          _buildSharingOption(
-                            icon: Icons.fitness_center,
-                            title: 'Activity data sharing',
-                            value: _activityDataSharing,
-                            onChanged: (val) async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('activity_data_sharing', val);
-                              await _updateFirestorePreference('activityDataSharing', val);
-                              setState(() => _activityDataSharing = val);
-                            },
-                            iconBackgroundColor: iconBackgroundColor,
-                            primaryColor: primaryColor,
-                            isDarkMode: isDarkMode,
-                          ),
-                          _buildDivider(borderColor),
-                          _buildSharingOption(
-                            icon: Icons.medication,
-                            title: 'Medication history sharing',
-                            value: _medicationHistorySharing,
-                            onChanged: (val) async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('medication_history_sharing', val);
-                              await _updateFirestorePreference('medicationHistorySharing', val);
-                              setState(() => _medicationHistorySharing = val);
-                            },
-                            iconBackgroundColor: iconBackgroundColor,
-                            primaryColor: primaryColor,
-                            isDarkMode: isDarkMode,
-                          ),
-                          _buildDivider(borderColor),
-                          _buildSharingOption(
                             icon: Icons.chat,
                             title: 'Medicare+ AI Chatbot History',
                             value: _chatbotHistorySharing,
@@ -224,21 +171,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                                 'chatbot_save_history_preference',
                                 val,
                               );
-                            },
-                            iconBackgroundColor: iconBackgroundColor,
-                            primaryColor: primaryColor,
-                            isDarkMode: isDarkMode,
-                          ),
-                          _buildDivider(borderColor),
-                          _buildSharingOption(
-                            icon: Icons.science,
-                            title: 'Anonymized research data',
-                            value: _anonymizedResearchSharing,
-                            onChanged: (val) async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('anonymized_research_sharing', val);
-                              await _updateFirestorePreference('anonymizedResearchSharing', val);
-                              setState(() => _anonymizedResearchSharing = val);
+                              await _updateFirestorePreference('chatbotHistorySharing', val);
                             },
                             iconBackgroundColor: iconBackgroundColor,
                             primaryColor: primaryColor,
@@ -287,7 +220,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                             isDarkMode: isDarkMode,
                             primaryColor: primaryColor,
                             isSyncing: _isSyncingHealthConnect,
-                            buttonText: _isHealthConnectConnected ? 'Disconnect' : 'Connect',
+                            buttonText: _isHealthConnectConnected ? 'Connected' : 'Connect',
                             onManage: () async {
                               if (_isHealthConnectConnected) {
                                 final prefs = await SharedPreferences.getInstance();
@@ -343,7 +276,7 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                             icon: Icons.sync,
                             title: 'Auto-sync interval',
                             value: _autoSyncInterval,
-                            options: [15, 30, 60, 120],
+                            options: [5, 15, 30, 60, 120],
                             onChanged: _isHealthConnectConnected ? (val) async {
                               if (val != null) {
                                 await _updateFirestorePreference('autoSyncInterval', val);
@@ -483,9 +416,12 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
     String buttonText = 'Connect',
     VoidCallback? onManage,
   }) {
-    final manageButtonBg = isDarkMode
-        ? Colors.red.shade900.withAlpha(51)
-        : Colors.red.shade50;
+    final isConnected = buttonText == 'Connected';
+    final manageButtonBg = isConnected
+        ? (isDarkMode ? Colors.teal.shade900.withAlpha(51) : Colors.teal.shade50)
+        : (isDarkMode ? Colors.red.shade900.withAlpha(51) : Colors.red.shade50);
+    final buttonTextColor = isConnected ? Colors.teal.shade500 : primaryColor;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -537,13 +473,13 @@ class _DataSharingScreenState extends State<DataSharingScreen> {
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: primaryColor,
+                      color: buttonTextColor,
                     ),
                   )
                 : Text(
                     buttonText,
                     style: TextStyle(
-                      color: primaryColor,
+                      color: buttonTextColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),

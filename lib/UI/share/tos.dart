@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-class TermsOfServiceScreen extends StatelessWidget {
+class TermsOfServiceScreen extends StatefulWidget {
   final bool isReadOnly;
 
   const TermsOfServiceScreen({super.key, this.isReadOnly = true});
+
+  @override
+  State<TermsOfServiceScreen> createState() => _TermsOfServiceScreenState();
+}
+
+class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
+  bool _isChecked = false;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +106,7 @@ class TermsOfServiceScreen extends StatelessWidget {
             const SizedBox(height: 40),
             _buildContactUsSection(primaryColor, textColor, subtleTextColor),
             const SizedBox(height: 40),
-            if (!isReadOnly)
+            if (!widget.isReadOnly)
               _buildFooter(
                 context,
                 primaryColor,
@@ -106,7 +114,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                 subtleTextColor,
                 isDarkMode,
               ),
-          ],
+          ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad),
         ),
       ),
     );
@@ -560,56 +568,72 @@ class TermsOfServiceScreen extends StatelessWidget {
   ) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDarkMode ? surfaceColor : Colors.grey[50],
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: primaryColor.withAlpha(51),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.check, color: primaryColor, size: 16),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isChecked = !_isChecked;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDarkMode ? surfaceColor : Colors.grey[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDarkMode ? Colors.grey[800]! : Colors.grey[100]!,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'By proceeding, you acknowledge that you have read and understood the full Terms of Service.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: subtleTextColor,
-                    height: 1.4,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _isChecked ? primaryColor : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _isChecked ? primaryColor : Colors.grey.shade400,
+                      width: 2,
+                    ),
+                  ),
+                  child: _isChecked
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'By proceeding, you acknowledge that you have read and understood the full Terms of Service.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: subtleTextColor,
+                      height: 1.4,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 24),
         ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: _isChecked ? () => Navigator.of(context).pop(true) : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryColor,
+            disabledBackgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[300],
             minimumSize: const Size(double.infinity, 64),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            elevation: 8,
+            elevation: _isChecked ? 8 : 0,
             shadowColor: primaryColor.withAlpha(102),
           ),
-          child: const Text(
+          child: Text(
             'Accept and Continue',
             style: TextStyle(
-              color: Colors.white,
+              color: _isChecked 
+                  ? Colors.white 
+                  : (isDarkMode ? Colors.grey[500] : Colors.grey[600]),
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),

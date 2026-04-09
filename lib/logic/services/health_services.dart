@@ -26,14 +26,42 @@ class HealthService {
         // Android 14+ (SDK 34+) has Health Connect built-in
         if (androidInfo.version.sdkInt >= 33) {
           if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
-            _types.addAll([HealthDataType.SLEEP_ASLEEP, HealthDataType.BLOOD_OXYGEN]);
-            _permissions.addAll([HealthDataAccess.READ, HealthDataAccess.READ]);
+            _types.addAll([
+              HealthDataType.SLEEP_ASLEEP,
+              HealthDataType.SLEEP_AWAKE,
+              HealthDataType.SLEEP_DEEP,
+              HealthDataType.SLEEP_LIGHT,
+              HealthDataType.SLEEP_REM,
+              HealthDataType.BLOOD_OXYGEN
+            ]);
+            _permissions.addAll([
+              HealthDataAccess.READ,
+              HealthDataAccess.READ,
+              HealthDataAccess.READ,
+              HealthDataAccess.READ,
+              HealthDataAccess.READ,
+              HealthDataAccess.READ
+            ]);
           }
         }
       } else if (Platform.isIOS) {
         if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
-          _types.addAll([HealthDataType.SLEEP_ASLEEP, HealthDataType.BLOOD_OXYGEN]);
-          _permissions.addAll([HealthDataAccess.READ, HealthDataAccess.READ]);
+          _types.addAll([
+            HealthDataType.SLEEP_ASLEEP,
+            HealthDataType.SLEEP_AWAKE,
+            HealthDataType.SLEEP_DEEP,
+            HealthDataType.SLEEP_LIGHT,
+            HealthDataType.SLEEP_REM,
+            HealthDataType.BLOOD_OXYGEN
+          ]);
+          _permissions.addAll([
+            HealthDataAccess.READ,
+            HealthDataAccess.READ,
+            HealthDataAccess.READ,
+            HealthDataAccess.READ,
+            HealthDataAccess.READ,
+            HealthDataAccess.READ
+          ]);
         }
       }
       await _health.configure();
@@ -116,6 +144,7 @@ class HealthService {
       types: [HealthDataType.BLOOD_OXYGEN],
     );
   }
+
 
   // Sync data to Firebase
   Future<bool> syncHealthDataToFirebase({int days = 1}) async {

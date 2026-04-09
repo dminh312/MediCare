@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/UI/profile/account_setting/pin_setup_screen.dart';
+import 'package:medicare/UI/profile/account_setting/delete_account_screen.dart';
 
 class SecurityPrivacyScreen extends StatefulWidget {
   const SecurityPrivacyScreen({super.key});
@@ -218,6 +219,23 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                             },
                             iconBackgroundColor: iconBackgroundColor,
                             primaryColor: primaryColor,
+                            isDarkMode: isDarkMode,
+                          ),
+                          _buildDivider(borderColor),
+                          _buildSettingsItem(
+                            icon: Icons.person_remove_outlined,
+                            title: 'Delete Account',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const DeleteAccountScreen(),
+                                ),
+                              );
+                            },
+                            iconBackgroundColor: Colors.red.shade900.withAlpha(51),
+                            primaryColor: const Color(0xFFB51925),
                             isDarkMode: isDarkMode,
                           ),
                         ],

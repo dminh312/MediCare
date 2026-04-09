@@ -15,29 +15,33 @@ class PermissionToggleScreen extends StatefulWidget {
 }
 
 class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
-  bool _healthConnectEnabled = true;
-  bool _notificationsEnabled = true;
+  bool _healthConnectEnabled = false;
+  bool _notificationsEnabled = false;
+  bool _hasGrantedHealthConnect = false;
   bool _isLoading = false;
 
-  void _onAcceptPressed() async {
-    setState(() {
-      _isLoading = true;
-    });
+  void _onHealthConnectToggled(bool val) async {
+    if (val) {
+      setState(() {
+        _isLoading = true;
+      });
 
-    try {
-      if (_healthConnectEnabled) {
+      try {
         bool success = await HealthService().syncHealthDataToFirebase();
         if (success) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('health_connect_connected', true);
           if (mounted) {
             Provider.of<HealthDataViewModel>(context, listen: false).loadData();
+            setState(() {
+              _healthConnectEnabled = true;
+              _hasGrantedHealthConnect = true;
+            });
           }
         } else {
-          // Sync/Permission failed
           if (mounted) {
             setState(() {
-              _isLoading = false;
+              _healthConnectEnabled = false;
             });
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -48,28 +52,60 @@ class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
               ),
             );
           }
-          return; // Stop navigation
+        }
+      } catch (e) {
+        debugPrint("Health Connect Permission error: $e");
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
       }
-
-      if (_notificationsEnabled) {
-        // Notification permissions are typically requested during initialization or on-demand
-        // This acts as a reaffirmation or triggers init if it hasn't somehow
-        await Provider.of<NotificationService>(context, listen: false).init();
-      }
-    } catch (e) {
-      debugPrint("Permission error: $e");
-    } finally {
-      if (mounted && _isLoading) { // _isLoading is false if we returned early
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ThankYouScreen()),
-        );
-      }
+    } else {
+      setState(() {
+        _healthConnectEnabled = false;
+      });
     }
+  }
+
+  void _onNotificationToggled(bool val) async {
+    if (val) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final granted = await Provider.of<NotificationService>(
+          context,
+          listen: false,
+        ).requestPermissions();
+        if (mounted) {
+          setState(() {
+            _notificationsEnabled = granted;
+          });
+        }
+      } catch (e) {
+        debugPrint("Notification Permission error: $e");
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } else {
+      setState(() {
+        _notificationsEnabled = false;
+      });
+    }
+  }
+
+  void _onAcceptPressed() async {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ThankYouScreen()),
+    );
   }
 
   @override
@@ -121,26 +157,23 @@ class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
                 title: 'Health Connect',
                 description: 'Sync steps, sleep & heart rate',
                 value: _healthConnectEnabled,
-                onChanged: (val) {
-                  setState(() => _healthConnectEnabled = val);
-                },
+                onChanged: _isLoading ? (_) {} : _onHealthConnectToggled,
                 delay: 200,
                 isDarkMode: isDarkMode,
                 primaryColor: primaryColor,
               ),
               const SizedBox(height: 20),
-              _buildToggleItem(
-                icon: Icons.notifications_active,
-                title: 'Push Notifications',
-                description: 'Get medication & health reminders',
-                value: _notificationsEnabled,
-                onChanged: (val) {
-                  setState(() => _notificationsEnabled = val);
-                },
-                delay: 300,
-                isDarkMode: isDarkMode,
-                primaryColor: primaryColor,
-              ),
+              if (_hasGrantedHealthConnect)
+                _buildToggleItem(
+                  icon: Icons.notifications_active,
+                  title: 'Push Notifications',
+                  description: 'Get medication & health reminders',
+                  value: _notificationsEnabled,
+                  onChanged: _isLoading ? (_) {} : _onNotificationToggled,
+                  delay: 300,
+                  isDarkMode: isDarkMode,
+                  primaryColor: primaryColor,
+                ),
               const Spacer(),
               SizedBox(
                 width: double.infinity,

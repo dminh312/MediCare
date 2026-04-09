@@ -336,286 +336,340 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      elevation: 0,
       builder: (context) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          builder: (_, controller) {
-            return Container(
-              decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xff1a1111) : Colors.white,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    height: 4,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Chat History',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('chat_sessions')
-                          .where('userId', isEqualTo: user.uid)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            !snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+        final primaryColor = const Color(0xffea2a33);
+        final bgColor = isDarkMode ? const Color(0xff120a0a).withOpacity(0.85) : Colors.white.withOpacity(0.9);
+        final borderColor = isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05);
 
-                        if (!snapshot.hasData ||
-                            snapshot.data!.docs.isEmpty ||
-                            snapshot.hasError) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (_, controller) {
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    border: Border(
+                      top: BorderSide(color: borderColor, width: 1),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 16),
+                        height: 5,
+                        width: 48,
+                        decoration: BoxDecoration(
+                          color: isDarkMode ? Colors.white24 : Colors.black12,
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.5, duration: 400.ms, curve: Curves.easeOutCirc),
+                      
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 64,
-                                  color: Colors.grey.withOpacity(0.3),
-                                ),
-                                const SizedBox(height: 16),
                                 Text(
-                                  snapshot.hasError
-                                      ? 'Error loading history'
-                                      : 'No chat history found',
+                                  'Chat History',
                                   style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 16,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                    color: isDarkMode ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Resume or delete past conversations',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDarkMode ? Colors.white54 : Colors.black54,
                                   ),
                                 ),
                               ],
-                            ),
-                          );
-                        }
-
-                        final docs = snapshot.data!.docs
-                            .map((doc) => doc)
-                            .where((doc) {
-                              final data = doc.data() as Map<String, dynamic>;
-                              return data['isArchived'] != true;
-                            })
-                            .toList();
-                        docs.sort((a, b) {
-                          final aData = a.data() as Map<String, dynamic>;
-                          final bData = b.data() as Map<String, dynamic>;
-                          final aTime =
-                              (aData['updatedAt'] as Timestamp?)?.toDate() ??
-                              DateTime.fromMillisecondsSinceEpoch(0);
-                          final bTime =
-                              (bData['updatedAt'] as Timestamp?)?.toDate() ??
-                              DateTime.fromMillisecondsSinceEpoch(0);
-                          return bTime.compareTo(aTime);
-                        });
-
-                        return ListView.separated(
-                          controller: controller,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: docs.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final doc = docs[index];
-                            final data = doc.data() as Map<String, dynamic>;
-                            final title = data['title'] ?? 'New Chat';
-                            final updatedAt =
-                                (data['updatedAt'] as Timestamp?)?.toDate() ??
-                                DateTime.now();
-                            final timeStr = DateFormat(
-                              'MMM d, hh:mm a',
-                            ).format(updatedAt);
-                            final isSelected = doc.id == _currentSessionId;
-
-                            return Container(
+                            ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: -0.1),
+                            Container(
                               decoration: BoxDecoration(
-                                color: isSelected
-                                    ? (isDarkMode
-                                          ? const Color(
-                                              0xffea2a33,
-                                            ).withOpacity(0.15)
-                                          : const Color(
-                                              0xffea2a33,
-                                            ).withOpacity(0.05))
-                                    : (isDarkMode
-                                          ? const Color(0xff2a1d1d)
-                                          : Colors.white),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xffea2a33).withOpacity(0.3)
-                                      : (isDarkMode
-                                            ? Colors.white10
-                                            : Colors.black.withOpacity(0.05)),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                                boxShadow: isSelected
-                                    ? []
-                                    : [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.02),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                                color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                shape: BoxShape.circle,
                               ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 4,
+                              child: IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 22),
+                                color: isDarkMode ? Colors.white70 : Colors.black87,
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ).animate().scale(delay: 200.ms, duration: 300.ms, curve: Curves.easeOutBack),
+                          ],
+                        ),
+                      ),
+                      Divider(height: 1, color: borderColor),
+                      
+                      // Content
+                      Expanded(
+                        child: StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('chat_sessions')
+                              .where('userId', isEqualTo: user.uid)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                              return Center(
+                                child: CircularProgressIndicator(color: primaryColor),
+                              ).animate().fadeIn();
+                            }
+
+                            if (!snapshot.hasData || snapshot.data!.docs.isEmpty || snapshot.hasError) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.chat_bubble_outline_rounded,
+                                        size: 48,
+                                        color: primaryColor.withOpacity(0.8),
+                                      ),
+                                    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                                     .scaleXY(end: 1.05, duration: 1500.ms)
+                                     .tint(color: Colors.white24, duration: 1500.ms),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      snapshot.hasError ? 'Error loading history' : 'No chat history yet',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.white : Colors.black87,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Start a new conversation to see it here.',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.white54 : Colors.black54,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                leading: Container(
-                                  padding: const EdgeInsets.all(10),
+                              ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1);
+                            }
+
+                            final docs = snapshot.data!.docs
+                                .map((doc) => doc)
+                                .where((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  return data['isArchived'] != true;
+                                })
+                                .toList();
+                            docs.sort((a, b) {
+                              final aData = a.data() as Map<String, dynamic>;
+                              final bData = b.data() as Map<String, dynamic>;
+                              final aTime = (aData['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                              final bTime = (bData['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+                              return bTime.compareTo(aTime);
+                            });
+
+                            return ListView.separated(
+                              controller: controller,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              itemCount: docs.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final doc = docs[index];
+                                final data = doc.data() as Map<String, dynamic>;
+                                final title = data['title'] ?? 'New Chat';
+                                final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                                
+                                final now = DateTime.now();
+                                final isToday = updatedAt.year == now.year && updatedAt.month == now.month && updatedAt.day == now.day;
+                                final timeStr = isToday 
+                                    ? 'Today, ${DateFormat('h:mm a').format(updatedAt)}'
+                                    : DateFormat('MMM d, h:mm a').format(updatedAt);
+                                
+                                final isSelected = doc.id == _currentSessionId;
+
+                                return Container(
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? const Color(0xffea2a33)
-                                        : (isDarkMode
-                                              ? Colors.grey[800]
-                                              : Colors.grey[100]),
-                                    shape: BoxShape.circle,
+                                        ? primaryColor.withOpacity(0.12)
+                                        : (isDarkMode ? Colors.white.withOpacity(0.04) : Colors.white),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? primaryColor.withOpacity(0.5)
+                                          : (isDarkMode ? Colors.white12 : Colors.black.withOpacity(0.05)),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                    boxShadow: isSelected || isDarkMode
+                                        ? []
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.03),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
                                   ),
-                                  child: Icon(
-                                    Icons.forum_outlined,
-                                    size: 20,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.grey[500],
-                                  ),
-                                ),
-                                title: Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    fontSize: 15,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    timeStr,
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        if (!isSelected) {
+                                          _loadSession(doc.id);
+                                        }
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                gradient: isSelected
+                                                    ? LinearGradient(
+                                                        colors: [primaryColor.withOpacity(0.8), primaryColor],
+                                                        begin: Alignment.topLeft,
+                                                        end: Alignment.bottomRight,
+                                                      )
+                                                    : null,
+                                                color: isSelected
+                                                    ? null
+                                                    : (isDarkMode ? Colors.white10 : Colors.grey[100]),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                isSelected ? Icons.forum_rounded : Icons.history_rounded,
+                                                size: 20,
+                                                color: isSelected ? Colors.white : (isDarkMode ? Colors.white60 : Colors.grey[600]),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    title,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                                      fontSize: 16,
+                                                      color: isDarkMode ? Colors.white : Colors.black87,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    timeStr,
+                                                    style: TextStyle(
+                                                      color: isSelected 
+                                                          ? (isDarkMode ? primaryColor.withOpacity(0.8) : primaryColor) 
+                                                          : (isDarkMode ? Colors.white54 : Colors.grey[500]),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete_outline_rounded, size: 22),
+                                              color: isDarkMode ? Colors.white38 : Colors.grey[400],
+                                              splashRadius: 24,
+                                              onPressed: () {
+                                                _showDeleteConfirmation(context, doc.id, primaryColor);
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  if (!isSelected) {
-                                    _loadSession(doc.id);
-                                  }
-                                },
-                                trailing: IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 22,
-                                  ),
-                                  color: Colors.grey[400],
-                                  splashRadius: 24,
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                        ),
-                                        title: const Text('Delete Chat'),
-                                        content: const Text(
-                                          'Are you sure you want to delete this chat session?',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: Text(
-                                              'Cancel',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xffea2a33,
-                                              ),
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              elevation: 0,
-                                            ),
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              _deleteSession(doc.id);
-                                            },
-                                            child: const Text('Delete'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
+                                ).animate()
+                                 .fadeIn(duration: 400.ms, delay: ((index > 10 ? 10 : index) * 50).ms)
+                                 .slideX(begin: 0.1, duration: 400.ms, curve: Curves.easeOutQuad);
+                              },
                             );
                           },
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String sessionId, Color primaryColor) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? const Color(0xff1e1e1e) 
+            : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Delete Chat',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this chat session? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white54 
+                    : Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteSession(sessionId);
+            },
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ).animate().scale(duration: 250.ms, curve: Curves.easeOutBack),
     );
   }
 
@@ -761,15 +815,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: const NetworkImage(
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBWE7Jm66Y2Z2IF6SQOIcDF7F0_vufqELj6rO5h1awRV9CAyoqmpC3iD3syquhXShizfY_MFvjUD8QO7oj3epciP5UZSVObnkI9ocU7BDlNni8Wkk4bajr-11zPG6vfUEncEfM_WzPLQFcIIN5HjyhASKVDa8lQyFdXv1k7uRPa5wviW6OH1lrDU0RsQyHVeSOS0UBvYcLhAIRv2fq0hpbGbkc0IUXOZwfKO-n3eS2bG2Cvn3HfZArAIrHUa9YCi2WHUH16B7SlK_E',
-                    ),
-                    onBackgroundImageError: (exception, stackTrace) {
-                      debugPrint('Image load failed: $exception');
-                    },
                     backgroundColor: isDarkMode
                         ? primaryColor.withAlpha(51)
                         : const Color(0xFFffebee),
+                    child: const Icon(
+                      Icons.medical_services,
+                      color: Color(0xffff5252),
+                      size: 24,
+                    ),
                   ),
                   Positioned(
                     bottom: 0,
@@ -1104,7 +1157,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              Text(
+                'MedicareAI Chatbot chỉ là một công cụ đưa lời khuyên và có thể có sai sót nhé',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(

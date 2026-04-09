@@ -81,6 +81,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   Widget _buildPinIndicator() {
     final currentInput = _isConfirming ? _confirmPin : _initialPin;
     return Row(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(_pinLength, (index) {
         final isFilled = index < currentInput.length;
@@ -223,7 +224,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 height: 1.5,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 48),
             _buildPinIndicator(),
             const Spacer(),
             _buildNumpad(),

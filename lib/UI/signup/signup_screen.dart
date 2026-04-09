@@ -21,6 +21,47 @@ class _SignUpViewState extends State<SignUpView> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  int get _conditionsMet {
+    final p = _passwordController.text;
+    int count = 0;
+    if (RegExp(r'[A-Z]').hasMatch(p)) count++;
+    if (RegExp(r'[a-z]').hasMatch(p)) count++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(p)) count++;
+    return count;
+  }
+
+  int get _passwordStrength {
+    final p = _passwordController.text;
+    if (p.isEmpty) return 0;
+    final met = _conditionsMet;
+    if (met == 0) return 1; // Weak
+    if (met == 1 || met == 2) return 2; // Medium
+    if (met == 3) return 3; // Strong
+    return 0;
+  }
+
+  Color get _passwordColor {
+    switch (_passwordStrength) {
+      case 1:
+        return Colors.red;
+      case 2:
+        return Colors.orange; // Using orange instead of yellow for better visibility
+      case 3:
+        return Colors.green;
+      default:
+        return Colors.grey.shade300;
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -102,7 +143,11 @@ class _SignUpViewState extends State<SignUpView> {
     InputDecoration customInputDecoration({
       required String hintText,
       required IconData suffixIcon,
+      Color? borderColor,
     }) {
+      final defaultColor = Colors.grey.shade300;
+      final effectiveBorderColor = borderColor ?? defaultColor;
+
       return InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
@@ -115,15 +160,18 @@ class _SignUpViewState extends State<SignUpView> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14.0),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderSide: BorderSide(
+              color: effectiveBorderColor, width: borderColor != null ? 1.5 : 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14.0),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          borderSide: BorderSide(
+              color: borderColor != null ? effectiveBorderColor : Colors.grey.shade200,
+              width: borderColor != null ? 1.5 : 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14.0),
-          borderSide: const BorderSide(color: primaryColor, width: 1.5),
+          borderSide: BorderSide(color: borderColor ?? primaryColor, width: 1.5),
         ),
       );
     }
@@ -286,12 +334,69 @@ class _SignUpViewState extends State<SignUpView> {
                                   decoration: customInputDecoration(
                                     hintText: 'Create a password',
                                     suffixIcon: Icons.lock,
+                                    borderColor: _passwordStrength > 0 ? _passwordColor : null,
                                   ),
-                                  validator: (value) =>
-                                      (value == null || value.length < 6)
-                                      ? 'Password must be at least 6 characters'
-                                      : null,
+                                  validator: (value) {
+                                    if (value == null || value.length < 6) {
+                                      return 'Password must be at least 6 characters';
+                                    }
+                                    if (_passwordStrength < 2) {
+                                      return 'Password is too weak. Meet more conditions.';
+                                    }
+                                    return null;
+                                  },
                                 ),
+                                if (_passwordController.text.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.check_circle,
+                                                size: 16,
+                                                color: _passwordStrength >= 1
+                                                    ? _passwordColor
+                                                    : Colors.grey.shade300),
+                                            const SizedBox(width: 4),
+                                            Icon(Icons.check_circle,
+                                                size: 16,
+                                                color: _passwordStrength >= 2
+                                                    ? _passwordColor
+                                                    : Colors.grey.shade300),
+                                            const SizedBox(width: 4),
+                                            Icon(Icons.check_circle,
+                                                size: 16,
+                                                color: _passwordStrength >= 3
+                                                    ? _passwordColor
+                                                    : Colors.grey.shade300),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _passwordStrength == 1
+                                                  ? 'Weak'
+                                                  : (_passwordStrength == 2
+                                                      ? 'Medium'
+                                                      : 'Strong'),
+                                              style: TextStyle(
+                                                color: _passwordColor,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'Requires: uppercase, lowercase, and special character',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: secondaryTextColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'Confirm Password',

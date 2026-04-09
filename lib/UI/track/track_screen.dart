@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
+import 'package:medicare/UI/components/permission_dialog.dart';
 import 'package:medicare/UI/track/sleep_screen/sleep_ana_screen.dart';
 import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
 import 'package:provider/provider.dart';
@@ -74,14 +75,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 isConnected,
                 viewModel.latestHeartRate,
                 viewModel.sleepDuration,
-              ),
-              const SizedBox(height: 16),
-              _buildWaterIntakeCard(
-                context,
-                surfaceColor,
-                borderColor,
-                primaryColor,
-                isDarkMode,
+                viewModel.sleepDeepMinutes,
               ),
             ],
           );
@@ -93,208 +87,7 @@ class _TrackScreenState extends State<TrackScreen> {
   void _showUnauthorizedDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("App Permission Required"),
-        content: const Text(
-          "You have not granted Health Connect permissions to read vital data. Please go to Profile -> Settings -> Data Sharing to connect.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddWaterIntakeSheet(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    const primaryColor = Color(0xffff5252);
-    final surfaceColor = isDarkMode ? const Color(0xff2d1f1f) : Colors.white;
-    final subtleTextColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(32),
-                topRight: Radius.circular(32),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isDarkMode ? Colors.grey[700] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Add Water Intake',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: isDarkMode
-                            ? Colors.grey[800]
-                            : Colors.grey[100],
-                        foregroundColor: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    _buildWaterQuickAddButton(
-                      '250ml',
-                      Icons.local_drink,
-                      isDarkMode,
-                      primaryColor,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildWaterQuickAddButton(
-                      '500ml',
-                      Icons.local_drink,
-                      isDarkMode,
-                      primaryColor,
-                      iconSize: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildWaterQuickAddButton(
-                      '750ml',
-                      Icons.local_drink,
-                      isDarkMode,
-                      primaryColor,
-                      iconSize: 32,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Text(
-                        'Custom Amount',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: subtleTextColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Enter amount',
-                        suffixText: 'ml',
-                        filled: true,
-                        fillColor: isDarkMode
-                            ? Colors.grey[800]!.withAlpha(128)
-                            : Colors.grey[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.add_circle),
-                  label: const Text('Add Water'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 64),
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    shadowColor: primaryColor.withAlpha(77),
-                    elevation: 5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWaterQuickAddButton(
-    String amount,
-    IconData icon,
-    bool isDarkMode,
-    Color primaryColor, {
-    double iconSize = 24.0,
-  }) {
-    return Expanded(
-      child: OutlinedButton(
-        onPressed: () {},
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: isDarkMode
-              ? primaryColor.withAlpha(26)
-              : primaryColor.withAlpha(13),
-          side: BorderSide(
-            color: isDarkMode
-                ? primaryColor.withAlpha(102)
-                : primaryColor.withAlpha(51),
-            width: 2,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: primaryColor, size: iconSize, fill: 1),
-            const SizedBox(height: 8),
-            Text(
-              amount,
-              style: TextStyle(
-                color: isDarkMode ? primaryColor.withAlpha(230) : primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
+      builder: (context) => const PermissionDialog(),
     );
   }
 
@@ -417,61 +210,93 @@ class _TrackScreenState extends State<TrackScreen> {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
+      padding: EdgeInsets.zero,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
+        borderRadius: BorderRadius.circular(23),
+        child: Stack(
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Steps',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[500],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Steps',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                              const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '...',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Goal: 10,000',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Locked',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'Goal: Locked',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: primaryColor,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: _buildStepsRing(0.0, primaryColor, isDarkMode),
                         ),
                       ],
                     ),
-                  ),
-                  SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: _buildStepsRing(0.0, primaryColor, isDarkMode),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    _buildBarChart(primaryColor, isDarkMode),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              _buildBarChart(primaryColor, isDarkMode),
-            ],
-          ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Locked to Track",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -485,6 +310,7 @@ class _TrackScreenState extends State<TrackScreen> {
     bool isConnected,
     int heartRate,
     String sleepDuration,
+    int deepSleepMinutes,
   ) {
     return GridView.count(
       crossAxisCount: 2,
@@ -540,6 +366,7 @@ class _TrackScreenState extends State<TrackScreen> {
                   borderColor,
                   isDarkMode,
                   sleepDuration,
+                  deepSleepMinutes,
                 )
               : _buildLockedVitalCard(
                   surfaceColor,
@@ -686,6 +513,7 @@ class _TrackScreenState extends State<TrackScreen> {
     Color borderColor,
     bool isDarkMode,
     String sleepDuration,
+    int deepSleepMinutes,
   ) {
     final sleepColor1 = isDarkMode ? Colors.indigo[700] : Colors.indigo[200];
     final sleepColor2 = isDarkMode ? Colors.indigo[500] : Colors.indigo[400];
@@ -750,9 +578,9 @@ class _TrackScreenState extends State<TrackScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Deep sleep: 2h 15m',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                Text(
+                  'Deep sleep: \${deepSleepMinutes ~/ 60}h \${deepSleepMinutes % 60}m',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ],
             ),
@@ -773,151 +601,90 @@ class _TrackScreenState extends State<TrackScreen> {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
       borderColor: borderColor,
+      padding: EdgeInsets.zero,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: primaryColor, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[500],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+        borderRadius: BorderRadius.circular(23),
+        child: Stack(
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(icon, color: primaryColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[500],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Locked',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 8),
+                    const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '...',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(height: 20),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWaterIntakeCard(
-    BuildContext context,
-    Color surfaceColor,
-    Color borderColor,
-    Color primaryColor,
-    bool isDarkMode,
-  ) {
-    final waterColor = Colors.blue[400];
-    final filledIconColor = isDarkMode ? Colors.blue[300] : Colors.blue[500];
-    final emptyIconColor = isDarkMode ? Colors.grey[700] : Colors.grey[300];
-    final iconBgColor = isDarkMode
-        ? Colors.blue[900]?.withAlpha(102)
-        : Colors.blue[50];
-
-    return _buildMetricCard(
-      surfaceColor: surfaceColor,
-      borderColor: borderColor,
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
+            ),
+            Positioned.fill(
+              child: Container(
+                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.water_drop, color: waterColor, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Water Intake',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[500],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      size: 28,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Locked",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                '1.2 / 2.5L',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(5, (index) {
-                    return Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: index < 3
-                            ? iconBgColor
-                            : (isDarkMode
-                                  ? Colors.grey[800]
-                                  : Colors.grey[100]),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDarkMode
-                              ? Colors.grey[700]!
-                              : Colors.grey[200]!,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.local_drink,
-                        color: index < 3 ? filledIconColor : emptyIconColor,
-                        size: 20,
-                        fill: 1,
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              const SizedBox(width: 16),
-              FloatingActionButton(
-                onPressed: () => _showAddWaterIntakeSheet(context),
-                mini: true,
-                heroTag: null,
-                backgroundColor: primaryColor,
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildMetricCard({
     required Color surfaceColor,
     required Color borderColor,
     required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(20.0),
   }) {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: padding,
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),

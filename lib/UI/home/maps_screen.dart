@@ -81,22 +81,28 @@ class _MapsScreenState extends State<MapsScreen> {
     final Canvas canvas = Canvas(pictureRecorder);
 
     final Paint paintMain = Paint()
-      ..color = isSelected ? Colors.blue : const Color(0xFFff5252);
-    final Paint paintWhite = Paint()..color = Colors.white;
+      ..color = isSelected ? const Color(0xFF4285F4) : const Color(0xFFff5252)
+      ..isAntiAlias = true;
+    final Paint paintWhite = Paint()
+      ..color = Colors.white
+      ..isAntiAlias = true;
 
-    final double radius = size / 2;
-    // Add a simple drop shadow
+    final double radius = size / 2.0;
+    
+    // Smooth drop shadow
     canvas.drawShadow(
       Path()..addOval(
-        Rect.fromCircle(center: Offset(radius, radius), radius: radius),
+        Rect.fromCircle(center: Offset(radius, radius), radius: radius * 0.85),
       ),
-      Colors.black,
-      4,
+      Colors.black45,
+      2.0,
       true,
     );
-    canvas.drawCircle(Offset(radius, radius), radius, paintWhite);
-    canvas.drawCircle(Offset(radius, radius), radius * 0.8, paintMain);
-    canvas.drawCircle(Offset(radius, radius), radius * 0.3, paintWhite);
+    
+    // Antialiased beautiful smooth circles
+    canvas.drawCircle(Offset(radius, radius), radius * 0.85, paintWhite);
+    canvas.drawCircle(Offset(radius, radius), radius * 0.65, paintMain);
+    canvas.drawCircle(Offset(radius, radius), radius * 0.25, paintWhite);
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
@@ -152,8 +158,8 @@ class _MapsScreenState extends State<MapsScreen> {
         final results = data['results'] as List<dynamic>? ?? [];
 
         _pharmaciesList.clear();
-        _customIconRed ??= await _getMarkerBitmap(36, false);
-        _customIconBlue ??= await _getMarkerBitmap(42, true);
+        _customIconRed ??= await _getMarkerBitmap(28, false);
+        _customIconBlue ??= await _getMarkerBitmap(34, true);
 
         for (var place in results) {
           final baseGeometry = place['geometry'];
@@ -257,8 +263,8 @@ class _MapsScreenState extends State<MapsScreen> {
         final results = data['results'] as List<dynamic>? ?? [];
 
         _pharmaciesList.clear();
-        _customIconRed ??= await _getMarkerBitmap(36, false);
-        _customIconBlue ??= await _getMarkerBitmap(42, true);
+        _customIconRed ??= await _getMarkerBitmap(28, false);
+        _customIconBlue ??= await _getMarkerBitmap(34, true);
 
         for (var place in results) {
           final baseGeometry = place['geometry'];
@@ -473,14 +479,6 @@ class _MapsScreenState extends State<MapsScreen> {
           child: _buildCustomTopBar(isDarkMode),
         ),
 
-        // Quick Filters Overlay
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 140,
-          left: 0,
-          right: 0,
-          child: _buildQuickFilters(isDarkMode),
-        ),
-
         // Floating Action Button for Location
         Positioned(
           bottom: _selectedPharmacy != null ? 240 : 24,
@@ -644,69 +642,7 @@ class _MapsScreenState extends State<MapsScreen> {
         .slideY(begin: -0.2, curve: Curves.easeOut);
   }
 
-  Widget _buildQuickFilters(bool isDarkMode) {
-    return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              _buildFilterChip("Open Now", true, isDarkMode),
-              const SizedBox(width: 8),
-              _buildFilterChip("Home Delivery", false, isDarkMode),
-              const SizedBox(width: 8),
-              _buildFilterChip("Insurance Accepted", false, isDarkMode),
-              const SizedBox(width: 8),
-              _buildFilterChip("24/7 Service", false, isDarkMode),
-            ],
-          ),
-        )
-        .animate()
-        .fade(duration: 400.ms, delay: 200.ms)
-        .slideX(begin: 0.1, curve: Curves.easeOut);
-  }
 
-  Widget _buildFilterChip(String label, bool isPrimary, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isPrimary
-            ? const Color(0xFFff5252)
-            : (isDarkMode ? const Color(0xFF1a1111) : Colors.white),
-        borderRadius: BorderRadius.circular(20),
-        border: isPrimary
-            ? null
-            : Border.all(
-                color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-              ),
-        boxShadow: isPrimary
-            ? [
-                BoxShadow(
-                  color: const Color(0xFFff5252).withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isPrimary
-              ? Colors.white
-              : (isDarkMode ? Colors.grey[300] : Colors.grey[700]),
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
 
   Widget _buildBottomDetailCard(PharmacyDetails pharmacy, bool isDarkMode) {
     return Container(

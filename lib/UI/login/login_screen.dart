@@ -435,18 +435,6 @@ class _LoginViewState extends State<LoginView> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.face_unlock_outlined,
-                size: 36,
-                color: slate400,
-              ),
-              tooltip: 'Use Face ID',
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
             child: TextButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(

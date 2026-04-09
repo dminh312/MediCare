@@ -15,9 +15,8 @@ class NotificationSettingScreen extends StatefulWidget {
 class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
   bool _pushNotifications = true;
   bool _medicationReminders = true;
-  bool _healthTips = true;
-  bool _dailyGoalReminders = false;
   bool _activityAlerts = true;
+  bool _sedentaryAlerts = true;
   bool _quietHoursEnabled = false;
 
   TimeOfDay _startTime = const TimeOfDay(hour: 22, minute: 0);
@@ -34,9 +33,8 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
     setState(() {
       _pushNotifications = prefs.getBool('pushNotifications') ?? true;
       _medicationReminders = prefs.getBool('medicationReminders') ?? true;
-      _healthTips = prefs.getBool('healthTips') ?? true;
-      _dailyGoalReminders = prefs.getBool('dailyGoalReminders') ?? false;
       _activityAlerts = prefs.getBool('activityAlerts') ?? true;
+      _sedentaryAlerts = prefs.getBool('sedentaryAlerts') ?? true;
       _quietHoursEnabled = prefs.getBool('quietHoursEnabled') ?? false;
 
       int startHour = prefs.getInt('quietStartHour') ?? 22;
@@ -259,34 +257,23 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           ),
           _buildDivider(isDarkMode),
           _buildCategoryItem(
-            'Health Tips & Insights',
-            Icons.lightbulb_outline,
-            _healthTips,
-            (val) {
-              setState(() => _healthTips = val);
-              _saveSetting('healthTips', val);
-            },
-            isDarkMode,
-          ),
-          _buildDivider(isDarkMode),
-          _buildCategoryItem(
-            'Daily Goal Reminders',
-            Icons.flag_outlined,
-            _dailyGoalReminders,
-            (val) {
-              setState(() => _dailyGoalReminders = val);
-              _saveSetting('dailyGoalReminders', val);
-            },
-            isDarkMode,
-          ),
-          _buildDivider(isDarkMode),
-          _buildCategoryItem(
             'Activity Alerts',
             Icons.bolt_outlined,
             _activityAlerts,
             (val) {
               setState(() => _activityAlerts = val);
               _saveSetting('activityAlerts', val);
+            },
+            isDarkMode,
+          ),
+          _buildDivider(isDarkMode),
+          _buildCategoryItem(
+            'Sedentary Reminders',
+            Icons.directions_run_outlined,
+            _sedentaryAlerts,
+            (val) {
+              setState(() => _sedentaryAlerts = val);
+              _saveSetting('sedentaryAlerts', val);
             },
             isDarkMode,
           ),

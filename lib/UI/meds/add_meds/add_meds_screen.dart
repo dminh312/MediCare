@@ -7,6 +7,7 @@ import 'package:medicare/logic/services/medication_library_service.dart';
 import 'package:medicare/logic/services/local_medication_service.dart';
 import 'package:medicare/logic/viewmodels/medication_log_viewmodel.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AddMedsScreen extends StatefulWidget {
   final MedicationModel? medication;
@@ -189,8 +190,6 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
             );
           }
         }
-
-        // === XOÁ HOÀN TOÀN KHỐI CODE ĐẶT LỊCH THỪA TẠI ĐÂY ===
 
         if (mounted) {
           Navigator.of(context).pop();
@@ -394,7 +393,7 @@ class _AddMedsScreenState extends State<AddMedsScreen> {
                       style: TextStyle(color: Colors.grey[400], fontSize: 12),
                     ),
                   ),
-                ],
+                ].animate(interval: 50.ms).fade(duration: 300.ms).slideY(begin: 0.1, duration: 300.ms, curve: Curves.easeOut),
               ),
             ),
           ),

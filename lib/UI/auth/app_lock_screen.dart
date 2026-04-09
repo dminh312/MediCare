@@ -96,6 +96,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
   Widget _buildPinIndicator() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(_pinLength, (index) {
         final isFilled = index < _enteredPin.length;
@@ -222,7 +223,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
                         height: 1.5,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 48),
                     _buildPinIndicator(),
                     const Spacer(),
                     _buildNumpad(),

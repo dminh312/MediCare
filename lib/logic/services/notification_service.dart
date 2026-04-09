@@ -31,20 +31,20 @@ class NotificationService {
   static const String _channelId = 'medicare_urgent_v9';
   static const String _channelName = 'Medication Reminders';
 
-  Future<void> init() async {
+  Future<void> init({bool requestPermissions = false}) async {
     _initTimezone();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const DarwinInitializationSettings initializationSettingsIOS =
+    final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: requestPermissions,
+          requestBadgePermission: requestPermissions,
+          requestSoundPermission: requestPermissions,
         );
 
-    const InitializationSettings initializationSettings =
+    final InitializationSettings initializationSettings =
         InitializationSettings(
           android: initializationSettingsAndroid,
           iOS: initializationSettingsIOS,
@@ -79,7 +79,39 @@ class NotificationService {
         );
 
         // Request required permissions for Android 13+ and Android 12+
-        await androidPlugin.requestNotificationsPermission();
+        if (requestPermissions) {
+          await androidPlugin.requestNotificationsPermission();
+          final bool? canSchedule = await androidPlugin
+              .canScheduleExactNotifications();
+          if (canSchedule == false) {
+            await androidPlugin.requestExactAlarmsPermission();
+          }
+        }
+      }
+    }
+  }
+
+  Future<bool> requestPermissions() async {
+    bool granted = false;
+    if (Platform.isIOS) {
+      final iosPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      final result = await iosPlugin?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      granted = result ?? false;
+    } else if (Platform.isAndroid) {
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      if (androidPlugin != null) {
+        final result = await androidPlugin.requestNotificationsPermission();
+        granted = result ?? false;
         final bool? canSchedule = await androidPlugin
             .canScheduleExactNotifications();
         if (canSchedule == false) {
@@ -87,6 +119,7 @@ class NotificationService {
         }
       }
     }
+    return granted;
   }
 
   static void _initTimezone() {

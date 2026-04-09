@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:health/health.dart';
+import 'package:medicare/logic/services/health_services.dart';
 
 class HeartRateScreen extends StatefulWidget {
   const HeartRateScreen({super.key});
@@ -12,6 +14,15 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   late final AnimationController _pingController;
   late final AnimationController _ecgController;
   late final Animation<double> _ecgAnimation;
+
+  final HealthService _healthService = HealthService();
+  bool _isLoading = true;
+  int _currentHr = 0;
+  int _minHr = 0;
+  int _maxHr = 0;
+  int _restHr = 0;
+  List<double> _trendHeights = List.filled(7, 0.1);
+  List<String> _trendDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   static const Color _primary = Color(0xFFff5252);
   static const Color _secondary = Color(0xFFff4081);
@@ -32,6 +43,98 @@ class _HeartRateScreenState extends State<HeartRateScreen>
       duration: const Duration(seconds: 3),
     )..repeat();
     _ecgAnimation = Tween<double>(begin: 0, end: 1).animate(_ecgController);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final now = DateTime.now();
+      final data = await _healthService.fetchHeartRate(days: 7);
+      if (data.isNotEmpty) {
+        data.sort((a, b) => b.dateTo.compareTo(a.dateTo));
+        
+        final latestPoint = data.first;
+        if (latestPoint.value is NumericHealthValue) {
+          _currentHr = (latestPoint.value as NumericHealthValue).numericValue.round();
+        }
+
+        int minHr = 999;
+        int maxHr = 0;
+        int sumHr = 0;
+        int countHr = 0;
+
+        Map<int, List<int>> dailyHrs = {};
+        final startOfDay = DateTime(now.year, now.month, now.day);
+
+        for (var point in data) {
+          if (point.value is NumericHealthValue) {
+            final val = (point.value as NumericHealthValue).numericValue.round();
+            
+            final isToday = point.dateFrom.isAfter(startOfDay) || point.dateFrom.isAtSameMomentAs(startOfDay);
+            if (isToday) {
+              if (val < minHr) minHr = val;
+              if (val > maxHr) maxHr = val;
+              sumHr += val;
+              countHr++;
+            }
+
+            final dayStart = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+            final daysAgo = startOfDay.difference(dayStart).inDays;
+            
+            if (daysAgo >= 0 && daysAgo < 7) {
+              dailyHrs.putIfAbsent(daysAgo, () => []).add(val);
+            }
+          }
+        }
+
+        _minHr = minHr == 999 ? 0 : minHr;
+        _maxHr = maxHr;
+        _restHr = countHr > 0 ? (sumHr / countHr).round() : 0; 
+        if (_minHr > 0 && _restHr == 0) _restHr = _minHr + 4;
+
+        List<double> heights = List.filled(7, 0.1);
+        List<String> days = List.filled(7, '');
+        final weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        int maxDailyAvg = 1;
+        List<int> dailyAvgs = List.filled(7, 0);
+
+        for (int i = 6; i >= 0; i--) {
+          final targetDate = now.subtract(Duration(days: i));
+          days[6 - i] = weekDays[targetDate.weekday - 1];
+
+          final list = dailyHrs[i] ?? [];
+          if (list.isNotEmpty) {
+            final avg = (list.reduce((a, b) => a + b) / list.length).round();
+            dailyAvgs[6 - i] = avg;
+            if (avg > maxDailyAvg) {
+              maxDailyAvg = avg;
+            }
+          }
+        }
+
+        for (int i = 0; i < 7; i++) {
+          if (dailyAvgs[i] > 0) {
+            heights[i] = (dailyAvgs[i] / maxDailyAvg).clamp(0.1, 1.0);
+          }
+        }
+
+        setState(() {
+          _trendDays = days;
+          _trendHeights = heights;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching HR: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -91,7 +194,14 @@ class _HeartRateScreenState extends State<HeartRateScreen>
 
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            sliver: SliverList(
+            sliver: _isLoading 
+              ? const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 100),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                )
+              : SliverList(
               delegate: SliverChildListDelegate([
                 // ── Hero: Current Heart Rate Card ──
                 _buildHeroCard(isDark, surface, borderColor),
@@ -197,7 +307,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '72',
+                    '$_currentHr',
                     style: TextStyle(
                       fontSize: 64,
                       fontWeight: FontWeight.w900,
@@ -319,7 +429,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
             border,
             subtleText,
             'MIN',
-            '58',
+            '$_minHr',
             _primary,
           ),
         ),
@@ -331,7 +441,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
             border,
             subtleText,
             'MAX',
-            '142',
+            '$_maxHr',
             _secondary,
           ),
         ),
@@ -343,7 +453,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
             border,
             subtleText,
             'REST',
-            '62',
+            '$_restHr',
             _tertiary,
           ),
         ),
@@ -425,10 +535,9 @@ class _HeartRateScreenState extends State<HeartRateScreen>
     Color border,
     Color subtleText,
   ) {
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    // Heights as fraction of max (0.0–1.0). Wed is highlighted (current).
-    final heights = [0.57, 0.86, 1.0, 0.71, 0.43, 0.50, 0.64];
-    final activeIdx = 2; // Wed
+    final days = _trendDays;
+    final heights = _trendHeights;
+    final activeIdx = 6; // Today
 
     return Container(
       padding: const EdgeInsets.all(20),

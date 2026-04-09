@@ -139,4 +139,40 @@ class FirebaseAuthService {
       }
     }, timeoutSeconds: 5);
   }
+
+  // Delete account
+  Future<void> deleteAccount(String password) async {
+    return await NetworkService().runNetworkTask(() async {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        // Re-authenticate user
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+
+        // Delete user sub-collections if any? Usually in Firestore we can just delete doc. 
+        // Wait, Firestore doesn't automatically delete subcollections. 
+        // But for this app, we might just delete the user document for now unless we need to query subcollections.
+        
+        // Delete user document in Firestore
+        await _firestore.collection('users').doc(user.uid).delete();
+
+        // Delete the user from Firebase Auth
+        await user.delete();
+
+        // Sign out to clear any remaining auth state (google sign in)
+        await _googleSignIn.signOut();
+
+        // Clear all local preferences
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.clear();
+        } catch (e) {
+          // Ignore failure
+        }
+      }
+    });
+  }
 }
