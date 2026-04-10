@@ -1159,7 +1159,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'MedicareAI Chatbot chỉ là một công cụ đưa lời khuyên và có thể có sai sót nhé',
+                'Medicare+ AI Chatbot can make mistakes. Please verify important health advice.',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDarkMode ? Colors.grey[500] : Colors.grey[600],

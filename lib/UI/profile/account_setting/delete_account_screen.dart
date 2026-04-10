@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:medicare/logic/services/firebase_services.dart';
-import 'package:medicare/UI/auth/login_screen.dart';
+import 'package:medicare/UI/login/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -37,7 +37,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       if (mounted) {
         // Navigate back to login screen
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const LoginView()),
           (Route<dynamic> route) => false,
         );
       }

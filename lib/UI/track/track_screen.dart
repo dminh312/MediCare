@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
+import 'package:medicare/UI/track/blood_oxygen/blood_oxygen_screen.dart';
 import 'package:medicare/UI/components/permission_dialog.dart';
 import 'package:medicare/UI/track/sleep_screen/sleep_ana_screen.dart';
 import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
@@ -58,12 +59,14 @@ class _TrackScreenState extends State<TrackScreen> {
                         primaryColor,
                         isDarkMode,
                         viewModel.todaySteps,
+                        viewModel.stepGoal,
                       )
                     : _buildLockedStepsCard(
                         surfaceColor,
                         borderColor,
                         primaryColor,
                         isDarkMode,
+                        viewModel.stepGoal,
                       ),
               ),
               const SizedBox(height: 16),
@@ -74,6 +77,7 @@ class _TrackScreenState extends State<TrackScreen> {
                 isDarkMode,
                 isConnected,
                 viewModel.latestHeartRate,
+                viewModel.latestBloodOxygen,
                 viewModel.sleepDuration,
                 viewModel.sleepDeepMinutes,
               ),
@@ -140,6 +144,7 @@ class _TrackScreenState extends State<TrackScreen> {
     Color primaryColor,
     bool isDarkMode,
     int steps,
+    int stepGoal,
   ) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
@@ -174,7 +179,7 @@ class _TrackScreenState extends State<TrackScreen> {
                       ),
                     ),
                     Text(
-                      'Goal: 10,000',
+                      'Goal: ${stepGoal >= 1000 ? '${(stepGoal / 1000).toString().replaceAll(RegExp(r'\\.0\$'), '')}k' : stepGoal}',
                       style: TextStyle(
                         fontSize: 12,
                         color: primaryColor,
@@ -187,7 +192,7 @@ class _TrackScreenState extends State<TrackScreen> {
               SizedBox(
                 width: 80,
                 height: 80,
-                child: _buildStepsRing((steps / 10000).clamp(0.0, 1.0), primaryColor, isDarkMode),
+                child: _buildStepsRing(stepGoal > 0 ? (steps / stepGoal).clamp(0.0, 1.0) : 0.0, primaryColor, isDarkMode),
               ),
             ],
           ),
@@ -206,6 +211,7 @@ class _TrackScreenState extends State<TrackScreen> {
     Color borderColor,
     Color primaryColor,
     bool isDarkMode,
+    int stepGoal,
   ) {
     return _buildMetricCard(
       surfaceColor: surfaceColor,
@@ -249,7 +255,7 @@ class _TrackScreenState extends State<TrackScreen> {
                                 ),
                               ),
                               Text(
-                                'Goal: 10,000',
+                                'Goal: ${stepGoal >= 1000 ? '${(stepGoal / 1000).toString().replaceAll(RegExp(r'\\.0\$'), '')}k' : stepGoal}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: primaryColor,
@@ -309,6 +315,7 @@ class _TrackScreenState extends State<TrackScreen> {
     bool isDarkMode,
     bool isConnected,
     int heartRate,
+    int spO2,
     String sleepDuration,
     int deepSleepMinutes,
   ) {
@@ -374,6 +381,33 @@ class _TrackScreenState extends State<TrackScreen> {
                   Colors.indigo[400]!,
                   'Sleep',
                   Icons.bedtime,
+                  isDarkMode,
+                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            if (isConnected) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BloodOxygenScreen()),
+              );
+            } else {
+              _showUnauthorizedDialog(context);
+            }
+          },
+          child: isConnected
+              ? _buildSpO2Card(
+                  surfaceColor,
+                  borderColor,
+                  isDarkMode,
+                  spO2,
+                )
+              : _buildLockedVitalCard(
+                  surfaceColor,
+                  borderColor,
+                  Colors.cyan[400]!,
+                  'Blood Oxygen',
+                  Icons.water_drop,
                   isDarkMode,
                 ),
         ),
@@ -579,10 +613,75 @@ class _TrackScreenState extends State<TrackScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Deep sleep: \${deepSleepMinutes ~/ 60}h \${deepSleepMinutes % 60}m',
+                  'Deep sleep: ${deepSleepMinutes ~/ 60}h ${deepSleepMinutes % 60}m',
                   style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpO2Card(
+    Color surfaceColor,
+    Color borderColor,
+    bool isDarkMode,
+    int spO2,
+  ) {
+    return _buildMetricCard(
+      surfaceColor: surfaceColor,
+      borderColor: borderColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.water_drop, color: Colors.cyan[500], size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'SpO2',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[500],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$spO2',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text('%', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Opacity(
+              opacity: spO2 > 0 ? 1.0 : 0.2,
+              child: CustomPaint(
+                painter: SpO2Painter(Colors.cyan[500]!),
+                size: const Size(double.infinity, double.infinity),
+              ),
             ),
           ),
         ],
@@ -734,6 +833,39 @@ class HeartRatePainter extends CustomPainter {
     path.lineTo(size.width * 0.80, size.height * 0.625);
     path.lineTo(size.width * 0.85, size.height * 0.5);
     path.lineTo(size.width, size.height * 0.5);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class SpO2Painter extends CustomPainter {
+  final Color color;
+  SpO2Painter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    final path = Path();
+    path.moveTo(0, size.height * 0.7);
+    path.quadraticBezierTo(
+      size.width * 0.25,
+      size.height * 0.3,
+      size.width * 0.5,
+      size.height * 0.5,
+    );
+    path.quadraticBezierTo(
+      size.width * 0.75,
+      size.height * 0.7,
+      size.width,
+      size.height * 0.3,
+    );
 
     canvas.drawPath(path, paint);
   }

@@ -27,14 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? const [Color(0xFF020617), Color(0xFF0F172A)]
-                : const [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
-          ),
+        decoration: const BoxDecoration(
+          color: Colors.black,
         ),
         child: SafeArea(
           child: Column(

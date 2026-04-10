@@ -516,6 +516,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
         'day': dayName,
         'height': heightOffset,
         'color': isToday ? primaryColor : (isDarkMode ? Colors.red[900]!.withAlpha(51) : Colors.red[100]),
+        'steps': steps,
       });
     }
 
@@ -530,6 +531,19 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (isToday) ...[
+                  Text(
+                    '${data['steps']}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ] else ...[
+                  const SizedBox(height: 18),
+                ],
                 Flexible(
                   child: FractionallySizedBox(
                     heightFactor: data['height'],
@@ -605,7 +619,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                   ? primaryColor.withAlpha(51)
                   : Colors.red[50],
               title: 'Weekly Average',
-              value: '\$avg',
+              value: '$avg',
               subtitle: 'From last 7 days',
               subtitleColor: Colors.green[500],
             ),
@@ -618,7 +632,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
                   ? Colors.blue[900]!.withAlpha(102)
                   : Colors.blue[50],
               title: 'Today Distance',
-              value: '\${distanceKm.toStringAsFixed(1)} km',
+              value: '${distanceKm.toStringAsFixed(1)} km',
               subtitle: '0.76m avg stride',
             ),
           ],
@@ -626,7 +640,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
         const SizedBox(height: 16),
         _buildSedentaryReminderCard(surfaceColor, borderColor, primaryColor, isDarkMode),
         const SizedBox(height: 16),
-        _buildStreakCard(primaryColor, isDarkMode, viewModel.stepGoal, viewModel.todaySteps),
+        _buildStreakCard(primaryColor, isDarkMode, viewModel),
       ],
     );
   }
@@ -767,11 +781,23 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
     );
   }
 
-  Widget _buildStreakCard(Color primaryColor, bool isDarkMode, int stepGoal, int todaySteps) {
+  Widget _buildStreakCard(Color primaryColor, bool isDarkMode, HealthDataViewModel viewModel) {
+    int stepGoal = viewModel.stepGoal;
+    int todaySteps = viewModel.todaySteps;
     int remaining = stepGoal - todaySteps;
     String subtitleText = remaining > 0 
         ? "Keep going! You're only $remaining steps away from your goal."
         : "You've reached your step goal today!";
+
+    int streak = 0;
+    for (int i = 6; i >= 0; i--) {
+      if (viewModel.weeklyStepsChart[i] >= stepGoal) {
+        streak++;
+      } else if (i < 6) {
+        break;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -796,8 +822,8 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Daily Streak: 5 Days',
+                Text(
+                  'Daily Streak: $streak Days',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 2),

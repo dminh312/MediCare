@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:medicare/logic/services/health_services.dart';
+import 'package:medicare/UI/track/heart_rate/heart_rate_history_screen.dart';
 
 class HeartRateScreen extends StatefulWidget {
   const HeartRateScreen({super.key});
@@ -23,6 +24,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
   int _restHr = 0;
   List<double> _trendHeights = List.filled(7, 0.1);
   List<String> _trendDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  List<int> _trendValues = List.filled(7, 0);
 
   static const Color _primary = Color(0xFFff5252);
   static const Color _secondary = Color(0xFFff4081);
@@ -98,6 +100,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
 
         int maxDailyAvg = 1;
         List<int> dailyAvgs = List.filled(7, 0);
+        List<int> values = List.filled(7, 0);
 
         for (int i = 6; i >= 0; i--) {
           final targetDate = now.subtract(Duration(days: i));
@@ -107,6 +110,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
           if (list.isNotEmpty) {
             final avg = (list.reduce((a, b) => a + b) / list.length).round();
             dailyAvgs[6 - i] = avg;
+            values[6 - i] = avg;
             if (avg > maxDailyAvg) {
               maxDailyAvg = avg;
             }
@@ -122,6 +126,7 @@ class _HeartRateScreenState extends State<HeartRateScreen>
         setState(() {
           _trendDays = days;
           _trendHeights = heights;
+          _trendValues = values;
           _isLoading = false;
         });
       } else {
@@ -182,12 +187,6 @@ class _HeartRateScreenState extends State<HeartRateScreen>
             ),
             actions: [
               Icon(Icons.notifications_none, color: _primary),
-              const SizedBox(width: 12),
-              const CircleAvatar(
-                radius: 16,
-                backgroundColor: _primaryContainer,
-                child: Icon(Icons.person, color: _primary, size: 18),
-              ),
               const SizedBox(width: 16),
             ],
           ),
@@ -556,7 +555,14 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HeartRateHistoryScreen(),
+                    ),
+                  );
+                },
                 style: TextButton.styleFrom(
                   foregroundColor: _primary,
                   padding: EdgeInsets.zero,
@@ -574,15 +580,32 @@ class _HeartRateScreenState extends State<HeartRateScreen>
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 120,
+            height: 140,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(days.length, (i) {
                 final isActive = i == activeIdx;
+                int val = _trendValues[i];
+                int maxVal = _trendValues.isNotEmpty ? _trendValues.reduce((a, b) => a > b ? a : b) : 0;
+                bool isHighest = val > 0 && val == maxVal;
+
                 return Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (isHighest) ...[
+                        Text(
+                          '$val',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: _primary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ] else ...[
+                        const SizedBox(height: 18),
+                      ],
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.easeOut,
@@ -759,30 +782,6 @@ class _HeartRateScreenState extends State<HeartRateScreen>
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 13,
                   height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: _primary,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'READ FULL REPORT',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
                 ),
               ),
             ],

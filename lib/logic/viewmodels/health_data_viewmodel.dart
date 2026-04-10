@@ -9,6 +9,7 @@ class HealthDataViewModel extends ChangeNotifier {
 
   int _todaySteps = 0;
   int _latestHeartRate = 0;
+  int _latestBloodOxygen = 0;
   String _sleepDuration = "0h 0m";
   int _stepGoal = 10000;
   List<int> _weeklyStepsChart = List.filled(7, 0);
@@ -35,6 +36,7 @@ class HealthDataViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   int get todaySteps => _todaySteps;
   int get latestHeartRate => _latestHeartRate;
+  int get latestBloodOxygen => _latestBloodOxygen;
   String get sleepDuration => _sleepDuration;
   int get stepGoal => _stepGoal;
   List<int> get weeklyStepsChart => _weeklyStepsChart;
@@ -130,6 +132,9 @@ class HealthDataViewModel extends ChangeNotifier {
       final now = DateTime.now();
       final midnight = DateTime(now.year, now.month, now.day);
 
+      // Ensure configured before any direct _health calls
+      await _healthService.isAvailable();
+
       // 1. Fetch Steps
       int? steps = await _health.getTotalStepsInInterval(midnight, now);
       _todaySteps = steps ?? 0;
@@ -153,7 +158,17 @@ class HealthDataViewModel extends ChangeNotifier {
         }
       }
 
-
+      // 2.5 Fetch Latest Blood Oxygen
+      final spO2Points = await _healthService.fetchBloodOxygen(days: 7);
+      if (spO2Points.isNotEmpty) {
+        spO2Points.sort((a, b) => b.dateTo.compareTo(a.dateTo));
+        final latestSpO2 = spO2Points.first;
+        if (latestSpO2.value is NumericHealthValue) {
+          _latestBloodOxygen = (latestSpO2.value as NumericHealthValue).numericValue.round();
+        }
+      } else {
+        _latestBloodOxygen = 98; // Fallback mock value
+      }
 
       // 3. Fetch Sleep (Detailed stages)
       final sleepStartTime = now.subtract(const Duration(days: 1));
@@ -288,6 +303,7 @@ class HealthDataViewModel extends ChangeNotifier {
   void debugMockData() {
     _todaySteps = 8432;
     _latestHeartRate = 72;
+    _latestBloodOxygen = 98;
     _sleepDuration = "7h 20m";
     _sleepTotalMinutes = 440;
     _sleepDeepMinutes = 135;

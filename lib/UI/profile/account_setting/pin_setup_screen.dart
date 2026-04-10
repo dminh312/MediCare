@@ -108,16 +108,20 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   Widget _buildNumpad() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Wrap(
-          alignment: WrapAlignment.center,
-          spacing: constraints.maxWidth > 400 ? 40 : 20,
-          runSpacing: 20,
-          children: [
-            for (int i = 1; i <= 9; i++) _buildPadButton(i.toString()),
-            _buildPadButton('', isTransparent: true),
-            _buildPadButton('0'),
-            _buildPadButton('⌫', isDelete: true),
-          ],
+        double spacing = constraints.maxWidth > 400 ? 40 : 20;
+        return SizedBox(
+          width: (72 * 3) + (spacing * 2),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: spacing,
+            runSpacing: 20,
+            children: [
+              for (int i = 1; i <= 9; i++) _buildPadButton(i.toString()),
+              _buildPadButton('', isTransparent: true),
+              _buildPadButton('0'),
+              _buildPadButton('⌫', isDelete: true),
+            ],
+          ),
         );
       }
     );
@@ -198,8 +202,10 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            children: [
             const SizedBox(height: 60),
             Text(
               _isConfirming ? 'Confirm your new PIN' : 'Create a new PIN',
@@ -231,6 +237,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             const SizedBox(height: 48),
           ],
         ),
+      ),
       ),
     );
   }

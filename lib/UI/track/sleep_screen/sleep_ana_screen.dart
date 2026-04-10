@@ -43,8 +43,8 @@ class SleepAnaScreen extends StatelessWidget {
       if (awakeFlex == 0) awakeFlex = 1;
     }
 
-    String bedtimeStr = "\${healthVM.bedtimeHour.padLeft(2, '0')}:\${healthVM.bedtimeMinute.padLeft(2, '0')}";
-    String wakeupStr = "\${healthVM.wakeUpHour.padLeft(2, '0')}:\${healthVM.wakeUpMinute.padLeft(2, '0')}";
+    String bedtimeStr = "${healthVM.bedtimeHour.padLeft(2, '0')}:${healthVM.bedtimeMinute.padLeft(2, '0')}";
+    String wakeupStr = "${healthVM.wakeUpHour.padLeft(2, '0')}:${healthVM.wakeUpMinute.padLeft(2, '0')}";
 
     return Scaffold(
       backgroundColor: bg,
@@ -318,7 +318,7 @@ class SleepAnaScreen extends StatelessWidget {
                                     children: [
                                       const TextSpan(text: 'You slept better than '),
                                       TextSpan(
-                                        text: '\${healthVM.sleepScore}%',
+                                        text: '${healthVM.sleepScore}%',
                                         style: const TextStyle(
                                           color: _primary,
                                           fontWeight: FontWeight.bold,
@@ -458,7 +458,7 @@ class SleepAnaScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      '\${healthVM.sleepingHeartRateAvg} BPM',
+                                      '${healthVM.sleepingHeartRateAvg} BPM',
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,

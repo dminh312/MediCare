@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:medicare/UI/home/notification/notification_center_screen.dart';
 import 'package:medicare/UI/home/maps_screen.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
+import 'package:medicare/UI/track/blood_oxygen/blood_oxygen_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
@@ -343,51 +344,56 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    await viewModel.loadData();
+                  },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFff5252),
                     padding: EdgeInsets.zero,
                   ),
-                  child: const Text(
-                    "See All",
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  child: viewModel.isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFff5252),
+                          ),
+                        )
+                      : const Text(
+                          "Sync Now",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                    child: isConnected
-                        ? _buildMetricCard(
-                            title: "Steps",
-                            value: "${viewModel.todaySteps}",
-                            icon: Icons.directions_walk,
-                          iconColor: Colors.orange[600]!,
-                          iconBgDark: Colors.orange[900]!.withValues(
-                            alpha: 0.3,
-                          ),
-                          iconBgLight: Colors.orange[100]!,
-                          trendValue: "Goal 10k",
-                          trendUp: true,
-                          isDarkMode: isDarkMode,
-                          surfaceColor: surfaceColor,
-                        )
-                      : _buildLockedCard(
-                          title: "Steps",
-                          icon: Icons.directions_walk,
-                          iconColor: Colors.orange[600]!,
-                          iconBgDark: Colors.orange[900]!.withValues(
-                            alpha: 0.3,
-                          ),
-                          iconBgLight: Colors.orange[100]!,
-                          isDarkMode: isDarkMode,
-                          surfaceColor: surfaceColor,
-                        ),
-                ),
-              ],
+            GestureDetector(
+              onTap: () {
+                if (isConnected) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StepActivityScreen(),
+                    ),
+                  );
+                } else {
+                  _showUnauthorizedDialog(context);
+                }
+              },
+              child: isConnected
+                  ? _buildStepsCard(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                      viewModel.todaySteps,
+                      viewModel.stepGoal,
+                    )
+                  : _buildLockedStepsCard(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                    ),
             ),
             const SizedBox(height: 16),
             GestureDetector(
@@ -411,6 +417,33 @@ class _HomePageState extends State<HomePage> {
                       viewModel.latestHeartRate,
                     )
                   : _buildLockedHeartRateCard(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                    ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                if (isConnected) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BloodOxygenScreen(),
+                    ),
+                  );
+                } else {
+                  _showUnauthorizedDialog(context);
+                }
+              },
+              child: isConnected
+                  ? _buildSpO2Card(
+                      isDarkMode,
+                      surfaceColor,
+                      textColor,
+                      viewModel.latestBloodOxygen,
+                    )
+                  : _buildLockedSpO2Card(
                       isDarkMode,
                       surfaceColor,
                       textColor,
@@ -851,6 +884,409 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpO2Card(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+    int spO2,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.cyan[900]!.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? Colors.cyan[900]!.withValues(alpha: 0.3)
+                      : Colors.cyan[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.water_drop, color: Colors.cyan[600], size: 20),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Blood Oxygen",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "$spO2",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Text(
+                          "%",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Icon(Icons.chevron_right, color: Colors.grey[400]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockedSpO2Card(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.cyan[900]!.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Colors.cyan[900]!.withValues(alpha: 0.3)
+                                : Colors.cyan[50],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.water_drop,
+                            color: Colors.cyan[600],
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Blood Oxygen",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                              ),
+                            ),
+                            Text(
+                              "...",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 24, height: 40),
+                  ],
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Locked",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepsCard(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+    int steps,
+    int stepGoal,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.orange[900]!.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? Colors.orange[900]!.withValues(alpha: 0.3)
+                      : Colors.orange[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.directions_walk, color: Colors.orange[600], size: 20),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Steps",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "$steps",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.arrow_upward_rounded,
+                              color: Colors.green[600],
+                              size: 16,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              "Goal ${stepGoal >= 1000 ? '${(stepGoal / 1000).toString().replaceAll(RegExp(r'\\.0\$'), '')}k' : stepGoal}",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Icon(Icons.chevron_right, color: Colors.grey[400]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockedStepsCard(
+    bool isDarkMode,
+    Color surfaceColor,
+    Color textColor,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.orange[900]!.withValues(alpha: 0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Colors.orange[900]!.withValues(alpha: 0.3)
+                                : Colors.orange[50],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.directions_walk,
+                            color: Colors.orange[600],
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Steps",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                              ),
+                            ),
+                            Text(
+                              "...",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 24, height: 40),
+                  ],
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Locked",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -123,16 +123,20 @@ class _AppLockScreenState extends State<AppLockScreen> {
   Widget _buildNumpad() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Wrap(
-          alignment: WrapAlignment.center,
-          spacing: constraints.maxWidth > 400 ? 40 : 20,
-          runSpacing: 20,
-          children: [
-            for (int i = 1; i <= 9; i++) _buildPadButton(i.toString()),
-            _buildBiometricButton(),
-            _buildPadButton('0'),
-            _buildPadButton('⌫', isDelete: true),
-          ],
+        double spacing = constraints.maxWidth > 400 ? 40 : 20;
+        return SizedBox(
+          width: (72 * 3) + (spacing * 2),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: spacing,
+            runSpacing: 20,
+            children: [
+              for (int i = 1; i <= 9; i++) _buildPadButton(i.toString()),
+              _buildBiometricButton(),
+              _buildPadButton('0'),
+              _buildPadButton('⌫', isDelete: true),
+            ],
+          ),
         );
       }
     );
@@ -198,8 +202,10 @@ class _AppLockScreenState extends State<AppLockScreen> {
         backgroundColor: const Color(0xFFFFFBFB),
         body: SafeArea(
           child: _showPinScreen
-              ? Column(
-                  children: [
+              ? SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
                     const SizedBox(height: 60),
                     const Icon(Icons.lock_outline, size: 48, color: Color(0xFFFF5252)),
                     const SizedBox(height: 16),
@@ -229,7 +235,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
                     _buildNumpad(),
                     const SizedBox(height: 48),
                   ],
-                ).animate().fade()
+                ),
+              ).animate().fade()
               : Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
