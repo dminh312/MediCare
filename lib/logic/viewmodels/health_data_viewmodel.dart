@@ -1,17 +1,21 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/logic/services/health_services.dart';
-
+import 'package:medicare/logic/services/notification_service.dart';
 class HealthDataViewModel extends ChangeNotifier {
   bool _isConnected = false;
   bool _isLoading = true;
+
+  DateTime _targetDate = DateTime.now();
+  Timer? _midnightTimer;
 
   int _todaySteps = 0;
   int _latestHeartRate = 0;
   int _latestBloodOxygen = 0;
   String _sleepDuration = "0h 0m";
-  int _stepGoal = 10000;
+  int _stepGoal = 100;
   List<int> _weeklyStepsChart = List.filled(7, 0);
 
   // Detailed Sleep Metrics
@@ -34,6 +38,7 @@ class HealthDataViewModel extends ChangeNotifier {
 
   bool get isConnected => _isConnected;
   bool get isLoading => _isLoading;
+  DateTime get targetDate => _targetDate;
   int get todaySteps => _todaySteps;
   int get latestHeartRate => _latestHeartRate;
   int get latestBloodOxygen => _latestBloodOxygen;
@@ -62,6 +67,36 @@ class HealthDataViewModel extends ChangeNotifier {
 
   HealthDataViewModel() {
     loadData();
+    _setupMidnightTimer();
+  }
+
+  void setTargetDate(DateTime date) {
+    _targetDate = date;
+    loadData();
+  }
+
+  void _setupMidnightTimer() {
+    _midnightTimer?.cancel();
+    final currentNow = DateTime.now();
+    final nextMidnight = DateTime(currentNow.year, currentNow.month, currentNow.day + 1);
+    
+    _midnightTimer = Timer(nextMidnight.difference(currentNow), () {
+      final realNow = DateTime.now();
+      final isLookingAtToday = _targetDate.day == currentNow.day && 
+                               _targetDate.month == currentNow.month && 
+                               _targetDate.year == currentNow.year;
+      if (isLookingAtToday) {
+        _targetDate = realNow;
+      }
+      loadData();
+      _setupMidnightTimer(); // Re-arm for next day
+    });
+  }
+
+  @override
+  void dispose() {
+    _midnightTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> checkConnectionStatus() async {
@@ -129,8 +164,12 @@ class HealthDataViewModel extends ChangeNotifier {
 
   Future<void> _fetchTodayData() async {
     try {
-      final now = DateTime.now();
-      final midnight = DateTime(now.year, now.month, now.day);
+      final realNow = DateTime.now();
+      final isToday = _targetDate.year == realNow.year && _targetDate.month == realNow.month && _targetDate.day == realNow.day;
+      
+      final endOfDay = isToday ? realNow : DateTime(_targetDate.year, _targetDate.month, _targetDate.day, 23, 59, 59);
+      final midnight = DateTime(_targetDate.year, _targetDate.month, _targetDate.day);
+      final now = endOfDay;
 
       // Ensure configured before any direct _health calls
       await _healthService.isAvailable();
@@ -139,11 +178,26 @@ class HealthDataViewModel extends ChangeNotifier {
       int? steps = await _health.getTotalStepsInInterval(midnight, now);
       _todaySteps = steps ?? 0;
 
+      if (_todaySteps >= _stepGoal && _stepGoal > 0) {
+        final prefs = await SharedPreferences.getInstance();
+        final lastNotifiedDate = prefs.getString('last_step_goal_notified_date');
+        final todayString = "${realNow.year}-${realNow.month}-${realNow.day}";
+        if (lastNotifiedDate != todayString) {
+          await prefs.setString('last_step_goal_notified_date', todayString);
+          await NotificationService().showInstantNotification(
+            id: 'step_goal'.hashCode,
+            title: '🎉 Mục tiêu hoàn thành!',
+            body: 'Chúc mừng bạn đã đạt mục tiêu $_stepGoal bước chân hôm nay!',
+          );
+        }
+      }
+
       // 1.5 Fetch Weekly Steps
       _weeklyStepsChart = List.filled(7, 0);
       for (int i = 0; i < 7; i++) {
         final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: 6 - i));
-        final end = (i == 6) ? now : start.add(const Duration(days: 1));
+        // end time for a past day is 23:59:59 of that day
+        final end = (i == 6) ? now : DateTime(start.year, start.month, start.day, 23, 59, 59);
         int? daySteps = await _health.getTotalStepsInInterval(start, end);
         _weeklyStepsChart[i] = daySteps ?? 0;
       }
@@ -167,7 +221,7 @@ class HealthDataViewModel extends ChangeNotifier {
           _latestBloodOxygen = (latestSpO2.value as NumericHealthValue).numericValue.round();
         }
       } else {
-        _latestBloodOxygen = 98; // Fallback mock value
+        _latestBloodOxygen = 0;
       }
 
       // 3. Fetch Sleep (Detailed stages)

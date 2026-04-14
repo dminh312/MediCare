@@ -11,59 +11,27 @@ class HealthService {
   List<HealthDataType> _types = [
     HealthDataType.HEART_RATE,
     HealthDataType.STEPS,
+    HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_AWAKE,
+    HealthDataType.SLEEP_DEEP,
+    HealthDataType.SLEEP_LIGHT,
+    HealthDataType.SLEEP_REM,
+    HealthDataType.BLOOD_OXYGEN,
   ];
 
   List<HealthDataAccess> _permissions = [
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
     HealthDataAccess.READ,
     HealthDataAccess.READ,
   ];
 
   Future<void> _ensureConfigured() async {
     if (!_isConfigured) {
-      if (Platform.isAndroid) {
-        final androidInfo = await DeviceInfoPlugin().androidInfo;
-        // Android 13 (SDK 33) uses standalone Health Connect app from Play Store
-        // Android 14+ (SDK 34+) has Health Connect built-in
-        if (androidInfo.version.sdkInt >= 33) {
-          if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
-            _types.addAll([
-              HealthDataType.SLEEP_ASLEEP,
-              HealthDataType.SLEEP_AWAKE,
-              HealthDataType.SLEEP_DEEP,
-              HealthDataType.SLEEP_LIGHT,
-              HealthDataType.SLEEP_REM,
-              HealthDataType.BLOOD_OXYGEN
-            ]);
-            _permissions.addAll([
-              HealthDataAccess.READ,
-              HealthDataAccess.READ,
-              HealthDataAccess.READ,
-              HealthDataAccess.READ,
-              HealthDataAccess.READ,
-              HealthDataAccess.READ
-            ]);
-          }
-        }
-      } else if (Platform.isIOS) {
-        if (!_types.contains(HealthDataType.SLEEP_ASLEEP)) {
-          _types.addAll([
-            HealthDataType.SLEEP_ASLEEP,
-            HealthDataType.SLEEP_AWAKE,
-            HealthDataType.SLEEP_DEEP,
-            HealthDataType.SLEEP_LIGHT,
-            HealthDataType.SLEEP_REM,
-            HealthDataType.BLOOD_OXYGEN
-          ]);
-          _permissions.addAll([
-            HealthDataAccess.READ,
-            HealthDataAccess.READ,
-            HealthDataAccess.READ,
-            HealthDataAccess.READ,
-            HealthDataAccess.READ,
-            HealthDataAccess.READ
-          ]);
-        }
-      }
       await _health.configure();
       _isConfigured = true;
     }

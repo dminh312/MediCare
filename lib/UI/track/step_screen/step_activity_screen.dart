@@ -505,7 +505,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
     // Assuming the 7th element is today, we need to map back to weekday names dynamically if we want.
     // For simplicity, we just use the last 7 days.
     List<Map<String, dynamic>> weeklyData = [];
-    final now = DateTime.now();
+    final now = viewModel.targetDate;
     for (int i = 0; i < 7; i++) {
       int steps = weeklySteps[i];
       DateTime date = now.subtract(Duration(days: 6 - i));
@@ -608,7 +608,7 @@ class _StepActivityScreenState extends State<StepActivityScreen> {
           mainAxisSpacing: 16,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.05,
           children: [
             _buildInsightCard(
               surfaceColor: surfaceColor,

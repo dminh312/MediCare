@@ -76,6 +76,15 @@ class PermissionExplanationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _buildPermissionInfo(
+                icon: Icons.location_on_outlined,
+                title: 'Location Access',
+                description:
+                    'To help you find nearby pharmacies, hospitals, and clinics effortlessly.',
+                delay: 450,
+                isDarkMode: isDarkMode,
+              ),
+              const SizedBox(height: 24),
+              _buildPermissionInfo(
                 icon: Icons.notifications_active_outlined,
                 title: 'Notifications',
                 description:

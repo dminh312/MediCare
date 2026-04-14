@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
+  final GlobalKey? trackKey;
+  final GlobalKey? medsKey;
 
   const CustomBottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onItemTapped,
+    this.trackKey,
+    this.medsKey,
   });
 
   @override
@@ -52,6 +57,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               primaryDarkColor,
               primaryLightColor,
               isDarkMode,
+              widget.trackKey,
+              'Track your health metrics and sleep!',
             ),
             _buildChatbotItem(),
             _buildNavItem(
@@ -63,6 +70,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               primaryDarkColor,
               primaryLightColor,
               isDarkMode,
+              widget.medsKey,
+              'Set reminders and manage medications!',
             ),
             _buildNavItem(
               Icons.person,
@@ -89,50 +98,60 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
     Color primaryDarkColor,
     Color primaryLightColor,
     bool isDarkMode,
+    [GlobalKey? showcaseKey,
+    String? showcaseDescription]
   ) {
     final isSelected = widget.selectedIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => widget.onItemTapped(index),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 32,
-              width: 64,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? (isDarkMode
-                          ? primaryColor.withOpacity(0.3)
-                          : primaryLightColor)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                color: isSelected
-                    ? (isDarkMode ? primaryLightColor : primaryDarkColor)
-                    : Colors.grey,
-                size: 24,
-              ),
+    Widget item = InkWell(
+      onTap: () => widget.onItemTapped(index),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            height: 32,
+            width: 64,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? (isDarkMode
+                        ? primaryColor.withOpacity(0.3)
+                        : primaryLightColor)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? (isDarkMode ? primaryLightColor : primaryDarkColor)
-                    : Colors.grey,
-              ),
+            child: Icon(
+              isSelected ? activeIcon : inactiveIcon,
+              color: isSelected
+                  ? (isDarkMode ? primaryLightColor : primaryDarkColor)
+                  : Colors.grey,
+              size: 24,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected
+                  ? (isDarkMode ? primaryLightColor : primaryDarkColor)
+                  : Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
+
+    if (showcaseKey != null && showcaseDescription != null) {
+      item = Showcase(
+        key: showcaseKey,
+        description: showcaseDescription,
+        child: item,
+      );
+    }
+
+    return Expanded(child: item);
   }
 
   Widget _buildChatbotItem() {

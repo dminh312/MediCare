@@ -119,7 +119,18 @@ class _TrackScreenState extends State<TrackScreen> {
                 padding: const EdgeInsets.only(right: 12.0),
                 child: IconButton(
                   icon: const Icon(Icons.calendar_today, size: 22),
-                  onPressed: () {},
+                  onPressed: () async {
+                    final viewModel = context.read<HealthDataViewModel>();
+                    final selected = await showDatePicker(
+                      context: context,
+                      initialDate: viewModel.targetDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (selected != null) {
+                      viewModel.setTargetDate(selected);
+                    }
+                  },
                   style: IconButton.styleFrom(
                     backgroundColor: isDarkMode
                         ? Colors.grey[800]

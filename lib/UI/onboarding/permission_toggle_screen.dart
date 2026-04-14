@@ -6,6 +6,7 @@ import 'package:medicare/logic/services/notification_service.dart';
 import 'package:medicare/UI/onboarding/thank_you_screen.dart';
 import 'package:medicare/logic/services/health_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 class PermissionToggleScreen extends StatefulWidget {
   const PermissionToggleScreen({super.key});
@@ -17,7 +18,9 @@ class PermissionToggleScreen extends StatefulWidget {
 class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
   bool _healthConnectEnabled = false;
   bool _notificationsEnabled = false;
+  bool _locationEnabled = false;
   bool _hasGrantedHealthConnect = false;
+  bool _hasGrantedLocation = false;
   bool _isLoading = false;
 
   void _onHealthConnectToggled(bool val) async {
@@ -101,6 +104,61 @@ class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
     }
   }
 
+  void _onLocationToggled(bool val) async {
+    if (val) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Location services are disabled. Please enable them in settings.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } else {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+
+          if (mounted) {
+            setState(() {
+              _locationEnabled = permission == LocationPermission.whileInUse ||
+                  permission == LocationPermission.always;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint("Location Permission error: $e");
+        if (mounted) {
+          setState(() {
+            _locationEnabled = false;
+          });
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _hasGrantedLocation = true;
+          });
+        }
+      }
+    } else {
+      setState(() {
+        _locationEnabled = false;
+        _hasGrantedLocation = true;
+      });
+    }
+  }
+
   void _onAcceptPressed() async {
     Navigator.pushReplacement(
       context,
@@ -163,17 +221,31 @@ class _PermissionToggleScreenState extends State<PermissionToggleScreen> {
                 primaryColor: primaryColor,
               ),
               const SizedBox(height: 20),
-              if (_hasGrantedHealthConnect)
+              if (_hasGrantedHealthConnect) ...[
                 _buildToggleItem(
-                  icon: Icons.notifications_active,
-                  title: 'Push Notifications',
-                  description: 'Get medication & health reminders',
-                  value: _notificationsEnabled,
-                  onChanged: _isLoading ? (_) {} : _onNotificationToggled,
-                  delay: 300,
+                  icon: Icons.location_on,
+                  title: 'Location Access',
+                  description: 'Find nearby pharmacies effortlessly',
+                  value: _locationEnabled,
+                  onChanged: _isLoading ? (_) {} : _onLocationToggled,
+                  delay: 50,
                   isDarkMode: isDarkMode,
                   primaryColor: primaryColor,
                 ),
+                if (_hasGrantedLocation) ...[
+                  const SizedBox(height: 20),
+                  _buildToggleItem(
+                    icon: Icons.notifications_active,
+                    title: 'Push Notifications',
+                    description: 'Get medication & health reminders',
+                    value: _notificationsEnabled,
+                    onChanged: _isLoading ? (_) {} : _onNotificationToggled,
+                    delay: 50,
+                    isDarkMode: isDarkMode,
+                    primaryColor: primaryColor,
+                  ),
+                ],
+              ],
               const Spacer(),
               SizedBox(
                 width: double.infinity,
