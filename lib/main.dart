@@ -19,6 +19,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/UI/onboarding/welcome_screen.dart';
+import 'package:medicare/UI/onboarding/app_onboarding_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -193,7 +194,26 @@ class AuthWrapper extends StatelessWidget {
             },
           );
         }
-        return const LoginView();
+        
+        return FutureBuilder<SharedPreferences>(
+          future: SharedPreferences.getInstance(),
+          builder: (context, prefSnapshot) {
+            if (prefSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final prefs = prefSnapshot.data;
+            final hasSeenAppOnboarding =
+                prefs?.getBool('has_seen_app_onboarding') ?? false;
+
+            if (!hasSeenAppOnboarding) {
+              return const AppOnboardingScreen();
+            }
+
+            return const LoginView();
+          },
+        );
       },
     );
   }

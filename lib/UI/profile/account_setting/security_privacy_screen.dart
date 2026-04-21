@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:medicare/UI/profile/account_setting/change_password_screen.dart';
 import 'package:medicare/UI/profile/account_setting/data_sharing.dart';
 import 'package:medicare/UI/share/pp.dart';
@@ -154,7 +155,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                                     }
                                   } catch (e) {
                                     debugPrint('Biometric Error: $e');
+                                    BotToast.showText(text: 'Biometric Error: $e');
                                   }
+                                } else {
+                                  BotToast.showText(text: 'Biometric authentication is not available or not set up.');
                                 }
                               } else {
                                 final prefs = await SharedPreferences.getInstance();
