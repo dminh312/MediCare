@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:medicare/logic/services/health_services.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_history_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class HeartRateScreen extends StatefulWidget {
   const HeartRateScreen({super.key});
@@ -50,7 +52,14 @@ class _HeartRateScreenState extends State<HeartRateScreen>
 
   Future<void> _loadData() async {
     try {
-      final now = DateTime.now();
+      final viewModel = Provider.of<HealthDataViewModel>(context, listen: false);
+      final targetDate = viewModel.targetDate;
+      final realNow = DateTime.now();
+      final isToday = targetDate.year == realNow.year && targetDate.month == realNow.month && targetDate.day == realNow.day;
+      
+      final endOfDay = isToday ? realNow : DateTime(targetDate.year, targetDate.month, targetDate.day, 23, 59, 59);
+      final now = endOfDay;
+
       final data = await _healthService.fetchHeartRate(days: 7);
       if (data.isNotEmpty) {
         data.sort((a, b) => b.dateTo.compareTo(a.dateTo));
@@ -730,9 +739,6 @@ class _HeartRateScreenState extends State<HeartRateScreen>
     );
   }
 
-  // ─────────────────────────────────────────
-  // Vitality Tip card
-  // ─────────────────────────────────────────
   Widget _buildTipCard() {
     return Container(
       padding: const EdgeInsets.all(24),

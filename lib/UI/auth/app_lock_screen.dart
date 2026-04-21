@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AppLockScreen extends StatefulWidget {
-  const AppLockScreen({super.key});
+  final VoidCallback? onUnlock;
+  const AppLockScreen({super.key, this.onUnlock});
 
   @override
   State<AppLockScreen> createState() => _AppLockScreenState();
@@ -44,7 +45,11 @@ class _AppLockScreenState extends State<AppLockScreen> {
         );
 
         if (didAuthenticate && mounted) {
-          Navigator.of(context).pop(); // Unlock successful
+          if (widget.onUnlock != null) {
+            widget.onUnlock!();
+          } else {
+            Navigator.of(context).pop(); // Unlock successful
+          }
         } else {
           // Failed or canceled
           setState(() {
@@ -74,7 +79,11 @@ class _AppLockScreenState extends State<AppLockScreen> {
       
       if (_enteredPin.length == _pinLength) {
         if (_enteredPin == _correctPin) {
-          Navigator.of(context).pop(); // Correct PIN, unlock
+          if (widget.onUnlock != null) {
+            widget.onUnlock!();
+          } else {
+            Navigator.of(context).pop(); // Correct PIN, unlock
+          }
         } else {
           setState(() {
             _hasError = true;

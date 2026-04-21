@@ -46,7 +46,6 @@ app.*.map.json
 
 Fixing Meds screen/
 Fixing change pw, security enhacement/
-Android-MCP/
 
 # Firebase configuration
 android/app/google-services.json

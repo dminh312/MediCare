@@ -36,30 +36,28 @@ void main() async {
   final notificationService = NotificationService();
 
   try {
-    debugPrint("[SYSTEM] Initializing Firebase...");
     await Firebase.initializeApp();
-
-    debugPrint("[SYSTEM] Initializing Notification Service...");
     await notificationService.init();
-    debugPrint("[SYSTEM] Notification Service is ready!");
   } catch (e) {
-    debugPrint("[SYSTEM ERROR] Initialization error: $e");
+    // ignore
   }
 
   runApp(
-    MultiProvider(
-      providers: [
-        Provider<NotificationService>.value(value: notificationService),
-        ChangeNotifierProvider(create: (_) => LoginViewModel()),
-        ChangeNotifierProvider(create: (_) => SignUpViewModel()),
-        ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
-        ChangeNotifierProvider(
-          create: (_) =>
-              MedicationLogViewModel(notificationService: notificationService),
-        ),
-        ChangeNotifierProvider(create: (_) => HealthDataViewModel()),
-      ],
-      child: const MyApp(),
+    AppLifecycleManager(
+      child: MultiProvider(
+        providers: [
+          Provider<NotificationService>.value(value: notificationService),
+          ChangeNotifierProvider(create: (_) => LoginViewModel()),
+          ChangeNotifierProvider(create: (_) => SignUpViewModel()),
+          ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
+          ChangeNotifierProvider(
+            create: (_) =>
+                MedicationLogViewModel(notificationService: notificationService),
+          ),
+          ChangeNotifierProvider(create: (_) => HealthDataViewModel()),
+        ],
+        child: const MyApp(),
+      ),
     ),
   );
 }
@@ -112,7 +110,6 @@ class _MyAppState extends State<MyApp> {
     );
 
     notificationService.onNotificationClick.stream.listen((payload) {
-      debugPrint("[APP] User clicked notification with payload: $payload");
       if (payload != null && payload.isNotEmpty) {
         medicationLogViewModel.handleNotificationTap(payload);
       }
@@ -146,7 +143,7 @@ class _MyAppState extends State<MyApp> {
           },
         ),
       ),
-      home: const AppLifecycleManager(child: AuthWrapper()),
+      home: const AuthWrapper(),
     );
   }
 }

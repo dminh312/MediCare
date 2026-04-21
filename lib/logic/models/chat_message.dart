@@ -14,7 +14,7 @@ class ChatMessage {
     required this.timestamp,
     required this.isSupport,
   });
-
+  //nhận dữ liệu từ firestore
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ChatMessage(
@@ -25,7 +25,7 @@ class ChatMessage {
       isSupport: data['isSupport'] ?? false,
     );
   }
-
+  // gửi dữ liệu lên firestore
   Map<String, dynamic> toFirestore() {
     return {
       'senderId': senderId,

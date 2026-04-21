@@ -13,9 +13,7 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
   }
-  debugPrint(
-    "[BACKGROUND] Clicked notification: ${notificationResponse.payload}",
-  );
+  // background handled
 }
 
 class NotificationService {
@@ -35,7 +33,7 @@ class NotificationService {
     _initTimezone();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
@@ -142,9 +140,6 @@ class NotificationService {
       final bool medsEnabled = prefs.getBool('medicationReminders') ?? true;
 
       if (!masterEnabled || !medsEnabled) {
-        debugPrint(
-          "[SERVICE] Skipped medication reminder ($title) because user disabled notifications.",
-        );
         return;
       }
 
@@ -163,7 +158,7 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.max,
             showWhen: true,
-            icon: '@mipmap/ic_launcher',
+            icon: '@mipmap/launcher_icon',
             styleInformation: BigTextStyleInformation(
               body,
               contentTitle: title,
@@ -176,11 +171,41 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      debugPrint(
-        "[SERVICE] Scheduled medication: $title at $scheduledDate (ID: $safeId)",
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<void> showInstantNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool masterEnabled = prefs.getBool('pushNotifications') ?? true;
+      if (!masterEnabled) return;
+
+      final safeId = id & 0x7FFFFFFF;
+      await flutterLocalNotificationsPlugin.show(
+        safeId,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            importance: Importance.max,
+            priority: Priority.max,
+            showWhen: true,
+            icon: '@mipmap/launcher_icon',
+          ),
+        ),
+        payload: payload,
       );
     } catch (e) {
-      debugPrint("[SERVICE ERROR] Error scheduling medication: $e");
+      // ignore
     }
   }
 

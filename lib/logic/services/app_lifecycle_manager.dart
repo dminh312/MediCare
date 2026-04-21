@@ -13,6 +13,7 @@ class AppLifecycleManager extends StatefulWidget {
 class _AppLifecycleManagerState extends State<AppLifecycleManager> with WidgetsBindingObserver {
   DateTime? _pausedTime;
   bool _isLockScreenShowing = false;
+  bool _shouldLock = false;
 
   @override
   void initState() {
@@ -49,24 +50,35 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager> with WidgetsB
     final isLockEnabled = prefs.getBool('is_biometric_lock_enabled') ?? false;
 
     if (isLockEnabled && !_isLockScreenShowing) {
-      _isLockScreenShowing = true;
-      if (mounted) {
-        await Navigator.push(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const AppLockScreen(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
-        _isLockScreenShowing = false;
-        _pausedTime = DateTime.now();
-      }
+      setState(() {
+        _shouldLock = true;
+        _isLockScreenShowing = true;
+      });
     }
+  }
+
+  void _onUnlock() {
+    setState(() {
+      _shouldLock = false;
+      _isLockScreenShowing = false;
+      _pausedTime = DateTime.now();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_shouldLock) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+          useMaterial3: true,
+        ),
+        home: AppLockScreen(
+          onUnlock: _onUnlock,
+        ),
+      );
+    }
     return widget.child;
   }
 }

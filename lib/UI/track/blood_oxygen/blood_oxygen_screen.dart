@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:medicare/logic/services/health_services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 
 class BloodOxygenScreen extends StatefulWidget {
   const BloodOxygenScreen({super.key});
@@ -41,7 +43,14 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
 
   Future<void> _loadData() async {
     try {
-      final now = DateTime.now();
+      final viewModel = Provider.of<HealthDataViewModel>(context, listen: false);
+      final targetDate = viewModel.targetDate;
+      final realNow = DateTime.now();
+      final isToday = targetDate.year == realNow.year && targetDate.month == realNow.month && targetDate.day == realNow.day;
+      
+      final endOfDay = isToday ? realNow : DateTime(targetDate.year, targetDate.month, targetDate.day, 23, 59, 59);
+      final now = endOfDay;
+
       final data = await _healthService.fetchBloodOxygen(days: 7);
       
       if (data.isNotEmpty) {
@@ -85,12 +94,7 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
         _maxSpO2 = maxVal;
         _avgSpO2 = countVal > 0 ? (sumVal / countVal).round() : 0; 
         
-        // Mock fallback if SpO2 doesn't have real data to show nicely
-        if (_currentSpO2 == 0) _currentSpO2 = 98;
-        if (_minSpO2 == 0) _minSpO2 = 95;
-        if (_maxSpO2 == 0) _maxSpO2 = 99;
-        if (_avgSpO2 == 0) _avgSpO2 = 97;
-
+        // Removed mock fallback
         List<double> heights = List.filled(7, 0.1);
         List<String> days = List.filled(7, '');
         List<int> values = List.filled(7, 0);
@@ -106,9 +110,8 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
             heights[6 - i] = (avg / 100.0).clamp(0.1, 1.0);
             values[6 - i] = avg;
           } else {
-            // Mock height for visual appeal if empty
-            heights[6 - i] = (95 + (i % 3)) / 100.0;
-            values[6 - i] = (95 + (i % 3));
+            heights[6 - i] = 0.1;
+            values[6 - i] = 0;
           }
         }
 
@@ -119,15 +122,14 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
           _isLoading = false;
         });
       } else {
-        // Mock Data for display purposes as Blood Oxygen often needs watch connection
         setState(() {
-          _currentSpO2 = 98;
-          _minSpO2 = 95;
-          _maxSpO2 = 100;
-          _avgSpO2 = 97;
+          _currentSpO2 = 0;
+          _minSpO2 = 0;
+          _maxSpO2 = 0;
+          _avgSpO2 = 0;
           _isLoading = false;
-          _trendHeights = [0.96, 0.98, 0.95, 0.99, 0.97, 0.98, 0.98];
-          _trendValues = [96, 98, 95, 99, 97, 98, 98];
+          _trendHeights = List.filled(7, 0.1);
+          _trendValues = List.filled(7, 0);
         });
       }
     } catch (e) {
@@ -273,16 +275,22 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: _currentSpO2 >= 95 ? const Color(0xFF006856).withOpacity(0.1) : Colors.red.withOpacity(0.1),
+              color: _currentSpO2 == 0 
+                  ? Colors.grey.withOpacity(0.1) 
+                  : (_currentSpO2 >= 95 ? const Color(0xFF006856).withOpacity(0.1) : Colors.red.withOpacity(0.1)),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              _currentSpO2 >= 95 ? 'HEALTHY RANGE' : 'ATTENTION NEEDED',
+              _currentSpO2 == 0 
+                  ? 'NO DATA' 
+                  : (_currentSpO2 >= 95 ? 'HEALTHY RANGE' : 'ATTENTION NEEDED'),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
-                color: _currentSpO2 >= 95 ? const Color(0xFF006856) : Colors.red,
+                color: _currentSpO2 == 0 
+                    ? Colors.grey 
+                    : (_currentSpO2 >= 95 ? const Color(0xFF006856) : Colors.red),
               ),
             ),
           ).animate().fadeIn(delay: 200.ms),

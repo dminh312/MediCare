@@ -29,6 +29,10 @@ class _HomeContent extends StatefulWidget {
 class _HomeContentState extends State<_HomeContent> {
   int _selectedIndex = 0;
   final GlobalKey _fabKey = GlobalKey();
+  final GlobalKey _homeKey = GlobalKey();
+  final GlobalKey _trackKey = GlobalKey();
+  final GlobalKey _medsKey = GlobalKey();
+  final GlobalKey _profileKey = GlobalKey();
 
   // List of pages to be displayed
   static final List<Widget> _widgetOptions = <Widget>[
@@ -47,7 +51,7 @@ class _HomeContentState extends State<_HomeContent> {
       if (!seen && mounted) {
         Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) {
-            ShowCaseWidget.of(context).startShowCase([_fabKey]);
+            ShowCaseWidget.of(context).startShowCase([_homeKey, _trackKey, _medsKey, _profileKey, _fabKey]);
             prefs.setBool('has_seen_walkthrough', true);
           }
         });
@@ -93,6 +97,10 @@ class _HomeContentState extends State<_HomeContent> {
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
+        homeKey: _homeKey,
+        trackKey: _trackKey,
+        medsKey: _medsKey,
+        profileKey: _profileKey,
       ),
     );
   }

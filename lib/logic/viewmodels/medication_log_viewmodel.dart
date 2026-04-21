@@ -32,11 +32,8 @@ class MedicationLogViewModel extends ChangeNotifier {
           time: medication.time,
           payload: medication.id,
         );
-        debugPrint(
-          "[VM_NOTIF] Successfully scheduled medication: ${medication.name}",
-        );
       } catch (e) {
-        debugPrint("[VM_NOTIF ERROR] Error scheduling: $e");
+        // ignore
       }
     }
 
@@ -173,7 +170,6 @@ class MedicationLogViewModel extends ChangeNotifier {
         await batch.commit();
       });
     } catch (e) {
-      debugPrint("Error cleaning up old logs: $e");
       GlobalErrorHandler.handleError(e);
     }
 
@@ -194,7 +190,7 @@ class MedicationLogViewModel extends ChangeNotifier {
           payload: medication.id,
         );
       } catch (e) {
-        debugPrint("[VM_NOTIF ERROR] Error scheduling local: $e");
+        // ignore
       }
     }
 
@@ -234,7 +230,6 @@ class MedicationLogViewModel extends ChangeNotifier {
         }
       });
     } catch (e) {
-      debugPrint("Error rescheduling: $e");
       GlobalErrorHandler.handleError(e);
     }
   }
