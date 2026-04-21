@@ -15,7 +15,7 @@ class HealthDataViewModel extends ChangeNotifier {
   int _latestHeartRate = 0;
   int _latestBloodOxygen = 0;
   String _sleepDuration = "0h 0m";
-  int _stepGoal = 100;
+  int _stepGoal = 1000;
   List<int> _weeklyStepsChart = List.filled(7, 0);
 
   // Detailed Sleep Metrics
@@ -102,7 +102,7 @@ class HealthDataViewModel extends ChangeNotifier {
   Future<void> checkConnectionStatus() async {
     final prefs = await SharedPreferences.getInstance();
     _isConnected = prefs.getBool('health_connect_connected') ?? false;
-    _stepGoal = prefs.getInt('step_goal') ?? 10000;
+    _stepGoal = prefs.getInt('step_goal') ?? 1000;
     
     _bedtimeHour = prefs.getString('sleep_bedtime_hour') ?? "22";
     _bedtimeMinute = prefs.getString('sleep_bedtime_minute') ?? "30";

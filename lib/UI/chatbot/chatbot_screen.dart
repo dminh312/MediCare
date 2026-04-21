@@ -63,12 +63,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         if (shouldSave != null) {
           await prefs.setBool('chatbot_save_history_preference', shouldSave);
         } else {
-          // If the user dismisses the modal without picking, default to True for now
-          // or we can prompt them again next time.
           await prefs.setBool('chatbot_save_history_preference', true);
         }
 
-        // Ensure state is updated since preference might have changed
         setState(() {
           _shouldSaveHistory = shouldSave ?? true;
         });
@@ -215,7 +212,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           }
         }
 
-        // We only want to set state once we have reconstructed everything
         setState(() {
           _currentSessionId = sessionId;
           _messages = loadedMessages;
@@ -320,8 +316,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             ),
           ),
         );
-        // Removed manual pop and reopen to prevent UI flash
-        // StreamBuilder will handle the state update automatically
       }
     } catch (e) {
       debugPrint("Error handling session delete/archive: $e");
@@ -1159,7 +1153,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Medicare+ AI Chatbot can make mistakes. Please verify important health advice.',
+                'Medicare+ AI Chatbot can make mistakes. Please verify important health advice from Doctor.',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDarkMode ? Colors.grey[500] : Colors.grey[600],

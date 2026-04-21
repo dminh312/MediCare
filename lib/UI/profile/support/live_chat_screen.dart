@@ -4,7 +4,9 @@ import 'package:medicare/logic/models/chat_message.dart';
 import 'package:medicare/logic/services/live_chat_service.dart';
 
 class LiveChatScreen extends StatefulWidget {
-  const LiveChatScreen({super.key});
+  final String? topic;
+
+  const LiveChatScreen({super.key, this.topic});
 
   @override
   State<LiveChatScreen> createState() => _LiveChatScreenState();
@@ -14,6 +16,18 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   final LiveChatService _chatService = LiveChatService();
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.topic != null && widget.topic!.isNotEmpty) {
+      // Send the topic as the first message automatically when entering the chat
+      // Small delay to ensure it feels like a natural start to the conversation
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _chatService.sendMessage("I need help with: ${widget.topic}");
+      });
+    }
+  }
 
   void _sendMessage() {
     if (_messageController.text.trim().isNotEmpty) {
@@ -28,13 +42,20 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryBrandColor = Color(0xffff5252);
     final bgColor = isDarkMode ? const Color(0xff1a1111) : const Color(0xfffdf8f8);
+    
+    String titleText = 'Medicare Support';
+    if (widget.topic != null && widget.topic!.isNotEmpty) {
+      titleText = widget.topic!.length > 25 
+          ? '${widget.topic!.substring(0, 25)}...' 
+          : widget.topic!;
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text(
-          'Hello, Medicare Support',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          titleText,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         leading: IconButton(

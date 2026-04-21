@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:medicare/UI/profile/support/live_chat_screen.dart';
+import 'package:medicare/UI/profile/support/support_topic_screen.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -239,7 +239,7 @@ class _SupportScreenState extends State<SupportScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const LiveChatScreen()),
+              MaterialPageRoute(builder: (context) => const SupportTopicScreen()),
             );
           },
         ),
