@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/firebase_services.dart';
+import 'package:medicare/logic/services/onboarding_service.dart';
 import 'package:medicare/logic/utils/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,7 +52,7 @@ class LoginViewModel extends ChangeNotifier {
                 .difference(user.metadata.creationTime!)
                 .inSeconds < 60) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('has_completed_onboarding', false);
+          await OnboardingService.reset(prefs);
         }
       }
       return null;

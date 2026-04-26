@@ -120,15 +120,11 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     // New Design Colors
     const primaryColor = Color(0xFFF43F5E);
-    const backgroundLightColor = Color(0xFFF8FAFC);
     const slate900 = Color(0xFF0F172A); // Roughly slate-900
     const slate500 = Color(0xFF64748B); // Roughly slate-500
     const slate200 = Color(0xFFE2E8F0); // Roughly slate-200
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode
-        ? const Color(0xFF020617)
-        : backgroundLightColor;
     final textColor = isDarkMode ? Colors.white : slate900;
     final secondaryTextColor = isDarkMode ? Colors.grey[400] : slate500;
     final ringColor = isDarkMode ? Colors.grey[700] : slate200;
@@ -214,7 +210,7 @@ class _LoginViewState extends State<LoginView> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: primaryColor.withOpacity(0.4),
+                color: primaryColor.withValues(alpha: 0.4),
                 spreadRadius: 4,
                 blurRadius: 20,
                 offset: const Offset(0, 8),
@@ -289,7 +285,6 @@ class _LoginViewState extends State<LoginView> {
     Color? ringColor,
     Color? secondaryTextColor,
   ) {
-    const slate400 = Color(0xFF94A3B8);
     return Form(
       key: _formKey,
       child: Column(
@@ -417,7 +412,7 @@ class _LoginViewState extends State<LoginView> {
                 borderRadius: BorderRadius.circular(28.0),
               ),
               elevation: 8,
-              shadowColor: primaryColor.withOpacity(0.4),
+              shadowColor: primaryColor.withValues(alpha: 0.4),
             ),
             child: _isLoading
                 ? const CircularProgressIndicator(

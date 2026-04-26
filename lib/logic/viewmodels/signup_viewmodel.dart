@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/firebase_services.dart';
+import 'package:medicare/logic/services/onboarding_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpViewModel extends ChangeNotifier {
@@ -19,10 +20,10 @@ class SignUpViewModel extends ChangeNotifier {
         name,
         phoneNumber,
       );
-      
+
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('has_completed_onboarding', false);
-      
+      await OnboardingService.reset(prefs);
+
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {

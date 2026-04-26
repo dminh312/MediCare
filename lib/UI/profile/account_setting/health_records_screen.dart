@@ -14,6 +14,9 @@ class HealthRecordsScreen extends StatefulWidget {
 }
 
 class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
+  late final User? _user;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>>? _recordsStream;
+
   final Map<String, IconData> _categoryIcons = {
     'Medical Reports': Icons.description,
     'Vaccinations': Icons.vaccines,
@@ -29,6 +32,18 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+    _recordsStream = _user == null
+        ? null
+        : FirebaseFirestore.instance
+              .collection('health_records')
+              .where('userId', isEqualTo: _user.uid)
+              .snapshots();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
@@ -39,18 +54,14 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
     final borderColor = isDarkMode
         ? Colors.red.shade900.withAlpha(26)
         : Colors.red.shade50;
-    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: _buildAppBar(context, isDarkMode, surfaceColor, borderColor),
-      body: user == null
+      body: _user == null
           ? const Center(child: Text('Please log in to view health records'))
-          : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('health_records')
-                  .where('userId', isEqualTo: user.uid)
-                  .snapshots(),
+          : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _recordsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -64,8 +75,8 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
 
                 // Sort locally to avoid Firestore composite index requirement
                 docs.sort((a, b) {
-                  final aData = a.data() as Map<String, dynamic>;
-                  final bData = b.data() as Map<String, dynamic>;
+                  final aData = a.data();
+                  final bData = b.data();
                   final aTime =
                       (aData['uploadedAt'] as Timestamp?)?.toDate() ??
                       DateTime.fromMillisecondsSinceEpoch(0);
@@ -85,7 +96,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
                       _buildUploadPlaceholder(isDarkMode, primaryColor)
                     else
                       ...docs.map((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data();
                         final category =
                             data['category'] as String? ?? 'Medical Reports';
                         final title = data['title'] as String? ?? 'Document';

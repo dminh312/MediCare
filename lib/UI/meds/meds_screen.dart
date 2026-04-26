@@ -40,7 +40,7 @@ class _MedsScreenState extends State<MedsScreen> {
     _today = DateTime.now();
     _selectedDayIndex = 3; // Center on today
     if (_auth.currentUser != null) {
-      _updateMissedMedications().then((_) => _refreshMeds());
+      _refreshMeds();
     }
   }
 
@@ -112,14 +112,14 @@ class _MedsScreenState extends State<MedsScreen> {
           (logSnapshot) async {
             // --- Local data ---
             await localService.updateMissedLocalLogs(user.uid);
-            final localLogs = await localService.getLocalLogsForDateRange(
+            final localLogsFuture = localService.getLocalLogsForDateRange(
               user.uid,
               startOfDay,
               endOfDay,
             );
-            final localMedsList = await localService.getLocalMedications(
-              user.uid,
-            );
+            final localMedsFuture = localService.getLocalMedications(user.uid);
+            final localLogs = await localLogsFuture;
+            final localMedsList = await localMedsFuture;
             final localMedsMap = {for (var med in localMedsList) med.id: med};
 
             // --- Firestore data ---
@@ -130,14 +130,32 @@ class _MedsScreenState extends State<MedsScreen> {
 
             Map<String, MedicationModel> medicationsMap = {};
             if (medicationIds.isNotEmpty) {
-              final medicationSnapshot = await FirebaseFirestore.instance
-                  .collection('medications')
-                  .where(FieldPath.documentId, whereIn: medicationIds)
-                  .get();
-              medicationsMap = {
-                for (var doc in medicationSnapshot.docs)
-                  doc.id: MedicationModel.fromFirestore(doc),
-              };
+              final chunks = <List<String>>[];
+              for (var i = 0; i < medicationIds.length; i += 10) {
+                chunks.add(
+                  medicationIds.sublist(
+                    i,
+                    i + 10 > medicationIds.length
+                        ? medicationIds.length
+                        : i + 10,
+                  ),
+                );
+              }
+
+              final medicationSnapshots = await Future.wait(
+                chunks.map(
+                  (chunk) => FirebaseFirestore.instance
+                      .collection('medications')
+                      .where(FieldPath.documentId, whereIn: chunk)
+                      .get(),
+                ),
+              );
+
+              for (final medicationSnapshot in medicationSnapshots) {
+                for (final doc in medicationSnapshot.docs) {
+                  medicationsMap[doc.id] = MedicationModel.fromFirestore(doc);
+                }
+              }
             }
 
             // --- Merge ---
@@ -511,7 +529,11 @@ class _MedsScreenState extends State<MedsScreen> {
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 24),
-            child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            child: const Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
           onDismissed: (direction) {
             if (direction == DismissDirection.endToStart) {
@@ -771,7 +793,11 @@ class _MedsScreenState extends State<MedsScreen> {
                 med.time.format(context),
               ),
               const SizedBox(height: 16),
-              _buildDetailRow(Icons.calendar_today_outlined, 'Timing', med.timing),
+              _buildDetailRow(
+                Icons.calendar_today_outlined,
+                'Timing',
+                med.timing,
+              ),
               const SizedBox(height: 16),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

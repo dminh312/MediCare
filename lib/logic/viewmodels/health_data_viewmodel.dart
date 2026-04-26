@@ -4,9 +4,13 @@ import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/logic/services/health_services.dart';
 import 'package:medicare/logic/services/notification_service.dart';
+
 class HealthDataViewModel extends ChangeNotifier {
   bool _isConnected = false;
-  bool _isLoading = true;
+  bool _isLoading = false;
+  bool _hasLoaded = false;
+  bool _hasLoadedSleepDetails = false;
+  Future<void>? _loadFuture;
 
   DateTime _targetDate = DateTime.now();
   Timer? _midnightTimer;
@@ -60,35 +64,40 @@ class HealthDataViewModel extends ChangeNotifier {
   String get wakeUpHour => _wakeUpHour;
   String get wakeUpMinute => _wakeUpMinute;
   bool get alarmEnabled => _alarmEnabled;
-  List<int> get selectedSleepDays => _selectedSleepDays.map((e) => int.parse(e)).toList();
+  List<int> get selectedSleepDays =>
+      _selectedSleepDays.map((e) => int.parse(e)).toList();
 
   final HealthService _healthService = HealthService();
   final Health _health = Health();
 
   HealthDataViewModel() {
-    loadData();
     _setupMidnightTimer();
   }
 
   void setTargetDate(DateTime date) {
     _targetDate = date;
-    loadData();
+    loadData(includeSleep: _hasLoadedSleepDetails);
   }
 
   void _setupMidnightTimer() {
     _midnightTimer?.cancel();
     final currentNow = DateTime.now();
-    final nextMidnight = DateTime(currentNow.year, currentNow.month, currentNow.day + 1);
-    
+    final nextMidnight = DateTime(
+      currentNow.year,
+      currentNow.month,
+      currentNow.day + 1,
+    );
+
     _midnightTimer = Timer(nextMidnight.difference(currentNow), () {
       final realNow = DateTime.now();
-      final isLookingAtToday = _targetDate.day == currentNow.day && 
-                               _targetDate.month == currentNow.month && 
-                               _targetDate.year == currentNow.year;
+      final isLookingAtToday =
+          _targetDate.day == currentNow.day &&
+          _targetDate.month == currentNow.month &&
+          _targetDate.year == currentNow.year;
       if (isLookingAtToday) {
         _targetDate = realNow;
       }
-      loadData();
+      loadData(includeSleep: _hasLoadedSleepDetails);
       _setupMidnightTimer(); // Re-arm for next day
     });
   }
@@ -103,15 +112,14 @@ class HealthDataViewModel extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _isConnected = prefs.getBool('health_connect_connected') ?? false;
     _stepGoal = prefs.getInt('step_goal') ?? 1000;
-    
+
     _bedtimeHour = prefs.getString('sleep_bedtime_hour') ?? "22";
     _bedtimeMinute = prefs.getString('sleep_bedtime_minute') ?? "30";
     _wakeUpHour = prefs.getString('sleep_wakeup_hour') ?? "06";
     _wakeUpMinute = prefs.getString('sleep_wakeup_minute') ?? "30";
     _alarmEnabled = prefs.getBool('sleep_alarm_enabled') ?? true;
-    _selectedSleepDays = prefs.getStringList('sleep_selected_days') ?? ["0", "1", "2", "3", "4"];
-    
-    notifyListeners();
+    _selectedSleepDays =
+        prefs.getStringList('sleep_selected_days') ?? ["0", "1", "2", "3", "4"];
   }
 
   Future<void> updateStepGoal(int newGoal) async {
@@ -135,7 +143,10 @@ class HealthDataViewModel extends ChangeNotifier {
     await prefs.setString('sleep_wakeup_hour', wakeUpHour);
     await prefs.setString('sleep_wakeup_minute', wakeUpMinute);
     await prefs.setBool('sleep_alarm_enabled', alarmEnabled);
-    await prefs.setStringList('sleep_selected_days', selectedDays.map((e) => e.toString()).toList());
+    await prefs.setStringList(
+      'sleep_selected_days',
+      selectedDays.map((e) => e.toString()).toList(),
+    );
 
     _bedtimeHour = bedtimeHour;
     _bedtimeMinute = bedtimeMinute;
@@ -146,41 +157,102 @@ class HealthDataViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> ensureLoaded({bool includeSleep = true}) async {
+    if (_loadFuture != null) {
+      await _loadFuture;
+    }
+    if (_hasLoaded && (!includeSleep || _hasLoadedSleepDetails)) return;
+    await loadData(includeSleep: includeSleep);
+  }
 
+  Future<void> loadData({bool includeSleep = true}) async {
+    if (_loadFuture != null) {
+      return _loadFuture;
+    }
 
-  Future<void> loadData() async {
+    _loadFuture = _loadData(includeSleep: includeSleep);
+    try {
+      await _loadFuture;
+    } finally {
+      _loadFuture = null;
+    }
+  }
+
+  Future<void> _loadData({required bool includeSleep}) async {
     _isLoading = true;
     notifyListeners();
 
-    await checkConnectionStatus();
+    try {
+      await checkConnectionStatus();
 
-    if (_isConnected) {
-      await _fetchTodayData();
+      if (_isConnected) {
+        await _fetchTodayData(includeSleep: includeSleep);
+      }
+    } finally {
+      _isLoading = false;
+      _hasLoaded = true;
+      _hasLoadedSleepDetails = includeSleep || !_isConnected;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
-  Future<void> _fetchTodayData() async {
+  Future<void> _fetchTodayData({required bool includeSleep}) async {
     try {
       final realNow = DateTime.now();
-      final isToday = _targetDate.year == realNow.year && _targetDate.month == realNow.month && _targetDate.day == realNow.day;
-      
-      final endOfDay = isToday ? realNow : DateTime(_targetDate.year, _targetDate.month, _targetDate.day, 23, 59, 59);
-      final midnight = DateTime(_targetDate.year, _targetDate.month, _targetDate.day);
+      final isToday =
+          _targetDate.year == realNow.year &&
+          _targetDate.month == realNow.month &&
+          _targetDate.day == realNow.day;
+
+      final endOfDay = isToday
+          ? realNow
+          : DateTime(
+              _targetDate.year,
+              _targetDate.month,
+              _targetDate.day,
+              23,
+              59,
+              59,
+            );
+      final midnight = DateTime(
+        _targetDate.year,
+        _targetDate.month,
+        _targetDate.day,
+      );
       final now = endOfDay;
 
       // Ensure configured before any direct _health calls
       await _healthService.isAvailable();
 
+      final todayStepsFuture = _health.getTotalStepsInInterval(midnight, now);
+      final weeklyStepRequests = List<Future<int?>>.generate(7, (i) {
+        if (i == 6) {
+          return todayStepsFuture;
+        }
+        final start = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: 6 - i));
+        final end = (i == 6)
+            ? now
+            : DateTime(start.year, start.month, start.day, 23, 59, 59);
+        return _health.getTotalStepsInInterval(start, end);
+      });
+
+      final weeklyStepsFuture = Future.wait(weeklyStepRequests);
+      final heartRateFuture = _healthService.fetchHeartRate(days: 1);
+      final bloodOxygenFuture = _healthService.fetchBloodOxygen(days: 7);
+
       // 1. Fetch Steps
-      int? steps = await _health.getTotalStepsInInterval(midnight, now);
+      final steps = await todayStepsFuture;
       _todaySteps = steps ?? 0;
 
       if (_todaySteps >= _stepGoal && _stepGoal > 0) {
         final prefs = await SharedPreferences.getInstance();
-        final lastNotifiedDate = prefs.getString('last_step_goal_notified_date');
+        final lastNotifiedDate = prefs.getString(
+          'last_step_goal_notified_date',
+        );
         final todayString = "${realNow.year}-${realNow.month}-${realNow.day}";
         if (lastNotifiedDate != todayString) {
           await prefs.setString('last_step_goal_notified_date', todayString);
@@ -193,35 +265,38 @@ class HealthDataViewModel extends ChangeNotifier {
       }
 
       // 1.5 Fetch Weekly Steps
-      _weeklyStepsChart = List.filled(7, 0);
-      for (int i = 0; i < 7; i++) {
-        final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: 6 - i));
-        // end time for a past day is 23:59:59 of that day
-        final end = (i == 6) ? now : DateTime(start.year, start.month, start.day, 23, 59, 59);
-        int? daySteps = await _health.getTotalStepsInInterval(start, end);
-        _weeklyStepsChart[i] = daySteps ?? 0;
-      }
+      _weeklyStepsChart = (await weeklyStepsFuture)
+          .map((daySteps) => daySteps ?? 0)
+          .toList(growable: false);
 
       // 2. Fetch Latest Heart Rate
-      final hrPoints = await _healthService.fetchHeartRate(days: 1);
+      final hrPoints = await heartRateFuture;
       if (hrPoints.isNotEmpty) {
         hrPoints.sort((a, b) => b.dateTo.compareTo(a.dateTo));
         final latestPoint = hrPoints.first;
         if (latestPoint.value is NumericHealthValue) {
-          _latestHeartRate = (latestPoint.value as NumericHealthValue).numericValue.round();
+          _latestHeartRate = (latestPoint.value as NumericHealthValue)
+              .numericValue
+              .round();
         }
       }
 
       // 2.5 Fetch Latest Blood Oxygen
-      final spO2Points = await _healthService.fetchBloodOxygen(days: 7);
+      final spO2Points = await bloodOxygenFuture;
       if (spO2Points.isNotEmpty) {
         spO2Points.sort((a, b) => b.dateTo.compareTo(a.dateTo));
         final latestSpO2 = spO2Points.first;
         if (latestSpO2.value is NumericHealthValue) {
-          _latestBloodOxygen = (latestSpO2.value as NumericHealthValue).numericValue.round();
+          _latestBloodOxygen = (latestSpO2.value as NumericHealthValue)
+              .numericValue
+              .round();
         }
       } else {
         _latestBloodOxygen = 0;
+      }
+
+      if (!includeSleep) {
+        return;
       }
 
       // 3. Fetch Sleep (Detailed stages)
@@ -249,7 +324,8 @@ class HealthDataViewModel extends ChangeNotifier {
 
       if (sleepPoints.isNotEmpty) {
         for (var point in sleepPoints) {
-          if (actualSleepStart == null || point.dateFrom.isBefore(actualSleepStart)) {
+          if (actualSleepStart == null ||
+              point.dateFrom.isBefore(actualSleepStart)) {
             actualSleepStart = point.dateFrom;
           }
           if (actualSleepEnd == null || point.dateTo.isAfter(actualSleepEnd)) {
@@ -257,7 +333,8 @@ class HealthDataViewModel extends ChangeNotifier {
           }
 
           if (point.value is NumericHealthValue) {
-            int minutes = (point.value as NumericHealthValue).numericValue.round();
+            int minutes = (point.value as NumericHealthValue).numericValue
+                .round();
             if (point.type == HealthDataType.SLEEP_DEEP) {
               _sleepDeepMinutes += minutes;
             } else if (point.type == HealthDataType.SLEEP_LIGHT) {
@@ -274,7 +351,8 @@ class HealthDataViewModel extends ChangeNotifier {
         }
 
         // Priority to detailed stages if they exist
-        int detailedTotal = _sleepDeepMinutes + _sleepLightMinutes + _sleepRemMinutes;
+        int detailedTotal =
+            _sleepDeepMinutes + _sleepLightMinutes + _sleepRemMinutes;
         if (detailedTotal > 0) {
           _sleepTotalMinutes = detailedTotal;
         }
@@ -282,12 +360,19 @@ class HealthDataViewModel extends ChangeNotifier {
         if (_sleepTotalMinutes > 0) {
           int hours = _sleepTotalMinutes ~/ 60;
           int remainingMinutes = _sleepTotalMinutes % 60;
-          _sleepDuration = "\${hours}h \${remainingMinutes}m";
+          _sleepDuration = "${hours}h ${remainingMinutes}m";
 
           // Calculate a simple mock score
-          double deepRatio = _sleepTotalMinutes > 0 ? (_sleepDeepMinutes / _sleepTotalMinutes) : 0;
-          double durationScore = (_sleepTotalMinutes / 480).clamp(0.0, 1.0); // 8 hours optimal
-          _sleepScore = ((durationScore * 60) + (deepRatio * 150).clamp(0.0, 40.0)).round();
+          double deepRatio = _sleepTotalMinutes > 0
+              ? (_sleepDeepMinutes / _sleepTotalMinutes)
+              : 0;
+          double durationScore = (_sleepTotalMinutes / 480).clamp(
+            0.0,
+            1.0,
+          ); // 8 hours optimal
+          _sleepScore =
+              ((durationScore * 60) + (deepRatio * 150).clamp(0.0, 40.0))
+                  .round();
         }
 
         // Fetch Heart Rate during sleep session
@@ -310,15 +395,23 @@ class HealthDataViewModel extends ChangeNotifier {
             // Segment into 16 parts for the chart
             int segments = 16;
             _sleepingHeartRateChart = List.filled(segments, 0.0);
-            int durationMs = actualSleepEnd.difference(actualSleepStart).inMilliseconds;
-            
+            int durationMs = actualSleepEnd
+                .difference(actualSleepStart)
+                .inMilliseconds;
+
             if (durationMs > 0) {
-              List<List<double>> segmentValues = List.generate(segments, (_) => []);
-              
+              List<List<double>> segmentValues = List.generate(
+                segments,
+                (_) => [],
+              );
+
               for (var pt in sleepHrPoints) {
                 if (pt.value is NumericHealthValue) {
-                  double val = (pt.value as NumericHealthValue).numericValue.toDouble();
-                  int ptOffsetMs = pt.dateFrom.difference(actualSleepStart).inMilliseconds;
+                  double val = (pt.value as NumericHealthValue).numericValue
+                      .toDouble();
+                  int ptOffsetMs = pt.dateFrom
+                      .difference(actualSleepStart)
+                      .inMilliseconds;
                   int index = ((ptOffsetMs / durationMs) * segments).floor();
                   if (index >= 0 && index < segments) {
                     segmentValues[index].add(val);
@@ -329,7 +422,9 @@ class HealthDataViewModel extends ChangeNotifier {
               double maxHr = 1.0; // To normalize
               for (int i = 0; i < segments; i++) {
                 if (segmentValues[i].isNotEmpty) {
-                  double avg = segmentValues[i].reduce((a, b) => a + b) / segmentValues[i].length;
+                  double avg =
+                      segmentValues[i].reduce((a, b) => a + b) /
+                      segmentValues[i].length;
                   _sleepingHeartRateChart[i] = avg;
                   if (avg > maxHr) maxHr = avg;
                 }
@@ -338,7 +433,8 @@ class HealthDataViewModel extends ChangeNotifier {
               // Normalize between 0.3 and 0.8 mostly for UI
               for (int i = 0; i < segments; i++) {
                 if (_sleepingHeartRateChart[i] > 0) {
-                  _sleepingHeartRateChart[i] = 0.3 + ((_sleepingHeartRateChart[i] / maxHr) * 0.5);
+                  _sleepingHeartRateChart[i] =
+                      0.3 + ((_sleepingHeartRateChart[i] / maxHr) * 0.5);
                 } else {
                   _sleepingHeartRateChart[i] = 0.3; // Fallback
                 }
@@ -367,8 +463,22 @@ class HealthDataViewModel extends ChangeNotifier {
     _sleepScore = 85;
     _sleepingHeartRateAvg = 58;
     _sleepingHeartRateChart = [
-      0.40, 0.45, 0.38, 0.50, 0.60, 0.55, 0.48, 0.75,
-      0.65, 0.58, 0.50, 0.42, 0.40, 0.35, 0.38, 0.45,
+      0.40,
+      0.45,
+      0.38,
+      0.50,
+      0.60,
+      0.55,
+      0.48,
+      0.75,
+      0.65,
+      0.58,
+      0.50,
+      0.42,
+      0.40,
+      0.35,
+      0.38,
+      0.45,
     ];
     notifyListeners();
   }

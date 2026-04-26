@@ -325,6 +325,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   void _showHistoryBottomSheet(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final historyStream = FirebaseFirestore.instance
+        .collection('chat_sessions')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots();
 
     showModalBottomSheet(
       context: context,
@@ -414,11 +418,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       
                       // Content
                       Expanded(
-                        child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('chat_sessions')
-                              .where('userId', isEqualTo: user.uid)
-                              .snapshots(),
+                        child:
+                            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                          stream: historyStream,
                           builder: (context, snapshot) {
                             if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                               return Center(
@@ -470,13 +472,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                             final docs = snapshot.data!.docs
                                 .map((doc) => doc)
                                 .where((doc) {
-                                  final data = doc.data() as Map<String, dynamic>;
+                                  final data = doc.data();
                                   return data['isArchived'] != true;
                                 })
                                 .toList();
                             docs.sort((a, b) {
-                              final aData = a.data() as Map<String, dynamic>;
-                              final bData = b.data() as Map<String, dynamic>;
+                              final aData = a.data();
+                              final bData = b.data();
                               final aTime = (aData['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
                               final bTime = (bData['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
                               return bTime.compareTo(aTime);
@@ -489,7 +491,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                               separatorBuilder: (context, index) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
                                 final doc = docs[index];
-                                final data = doc.data() as Map<String, dynamic>;
+                                final data = doc.data();
                                 final title = data['title'] ?? 'New Chat';
                                 final updatedAt = (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
                                 

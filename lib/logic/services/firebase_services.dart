@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:medicare/logic/models/user_model.dart' as model;
 import 'package:medicare/logic/services/network_service.dart';
+import 'package:medicare/logic/services/onboarding_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
@@ -129,7 +130,8 @@ class FirebaseAuthService {
       // Clear app-level preferences that are tied to the user to trigger permissions again
       try {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('has_completed_onboarding');
+        await prefs.remove(OnboardingService.completedKey);
+        await prefs.remove(OnboardingService.flowVersionKey);
         await prefs.remove('health_connect_connected');
         await prefs.remove('chatbot_save_history_preference');
         await prefs.remove('email');
@@ -151,10 +153,6 @@ class FirebaseAuthService {
           password: password,
         );
         await user.reauthenticateWithCredential(credential);
-
-        // Delete user sub-collections if any? Usually in Firestore we can just delete doc. 
-        // Wait, Firestore doesn't automatically delete subcollections. 
-        // But for this app, we might just delete the user document for now unless we need to query subcollections.
         
         // Delete user document in Firestore
         await _firestore.collection('users').doc(user.uid).delete();

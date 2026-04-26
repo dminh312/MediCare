@@ -18,6 +18,15 @@ class TrackScreen extends StatefulWidget {
 
 class _TrackScreenState extends State<TrackScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HealthDataViewModel>().ensureLoaded();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xffff5252);
@@ -124,7 +133,9 @@ class _TrackScreenState extends State<TrackScreen> {
                     final selected = await showDatePicker(
                       context: context,
                       initialDate: viewModel.targetDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 365),
+                      ),
                       lastDate: DateTime.now(),
                     );
                     if (selected != null) {
@@ -203,7 +214,11 @@ class _TrackScreenState extends State<TrackScreen> {
               SizedBox(
                 width: 80,
                 height: 80,
-                child: _buildStepsRing(stepGoal > 0 ? (steps / stepGoal).clamp(0.0, 1.0) : 0.0, primaryColor, isDarkMode),
+                child: _buildStepsRing(
+                  stepGoal > 0 ? (steps / stepGoal).clamp(0.0, 1.0) : 0.0,
+                  primaryColor,
+                  isDarkMode,
+                ),
               ),
             ],
           ),
@@ -291,7 +306,9 @@ class _TrackScreenState extends State<TrackScreen> {
             ),
             Positioned.fill(
               child: Container(
-                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -400,19 +417,16 @@ class _TrackScreenState extends State<TrackScreen> {
             if (isConnected) {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const BloodOxygenScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const BloodOxygenScreen(),
+                ),
               );
             } else {
               _showUnauthorizedDialog(context);
             }
           },
           child: isConnected
-              ? _buildSpO2Card(
-                  surfaceColor,
-                  borderColor,
-                  isDarkMode,
-                  spO2,
-                )
+              ? _buildSpO2Card(surfaceColor, borderColor, isDarkMode, spO2)
               : _buildLockedVitalCard(
                   surfaceColor,
                   borderColor,
@@ -681,7 +695,10 @@ class _TrackScreenState extends State<TrackScreen> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Text('%', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text(
+                  '%',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -747,7 +764,10 @@ class _TrackScreenState extends State<TrackScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '...',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -758,7 +778,9 @@ class _TrackScreenState extends State<TrackScreen> {
             ),
             Positioned.fill(
               child: Container(
-                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -785,7 +807,6 @@ class _TrackScreenState extends State<TrackScreen> {
       ),
     );
   }
-
 
   Widget _buildMetricCard({
     required Color surfaceColor,

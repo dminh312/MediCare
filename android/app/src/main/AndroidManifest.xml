@@ -24,7 +24,9 @@
     <application
         android:label="MediCare+"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
 
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
         

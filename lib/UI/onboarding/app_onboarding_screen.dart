@@ -13,23 +13,30 @@ class AppOnboardingScreen extends StatefulWidget {
 class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const Color _backgroundColor = Color(0xFFFFFBFB);
+  static const Color _primaryColor = Color(0xFFEA2A33);
+  static const Color _textColor = Color(0xFF111827);
+  static const Color _subtleTextColor = Color(0xFF64748B);
 
   final List<Map<String, dynamic>> _pages = [
     {
       'title': 'Your Health,\nOur Priority',
-      'subtitle': 'Manage your health records securely and effortlessly with AI.',
+      'subtitle':
+          'Manage your health records securely and effortlessly with AI.',
       'icon': Icons.health_and_safety_rounded,
       'color': const Color(0xFFFF5252),
     },
     {
       'title': 'Smart Trajectory',
-      'subtitle': 'Track your steps, heart rate, and sleep automatically with Health Connect.',
+      'subtitle':
+          'Track your steps, heart rate, and sleep automatically with Health Connect.',
       'icon': Icons.show_chart_rounded,
       'color': const Color(0xFF5DDbbc),
     },
     {
       'title': 'Absolute Privacy',
-      'subtitle': 'Your data stays encrypted. You have complete control over what is shared.',
+      'subtitle':
+          'Your data stays encrypted. You have complete control over what is shared.',
       'icon': Icons.shield_rounded,
       'color': const Color(0xFFffb4ab),
     },
@@ -45,8 +52,7 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_app_onboarding', true);
     if (!mounted) return;
-    
-  
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginView()),
     );
@@ -61,7 +67,7 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121217),
+      backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -99,12 +105,9 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    (data['color'] as Color).withOpacity(0.2),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.3, 1.0],
+                color: (data['color'] as Color).withValues(alpha: 0.12),
+                border: Border.all(
+                  color: (data['color'] as Color).withValues(alpha: 0.18),
                 ),
               ),
               child: Center(
@@ -122,9 +125,9 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
             style: GoogleFonts.inter(
               fontSize: 36,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: _textColor,
               height: 1.1,
-              letterSpacing: -1,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 20),
@@ -133,7 +136,7 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: Colors.grey.shade400,
+              color: _subtleTextColor,
               height: 1.5,
             ),
           ),
@@ -158,7 +161,9 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
                 height: 8,
                 width: _currentPage == index ? 24 : 8,
                 decoration: BoxDecoration(
-                  color: _currentPage == index ? const Color(0xFFFF5252) : Colors.grey.shade800,
+                  color: _currentPage == index
+                      ? _primaryColor
+                      : const Color(0xFFE5E7EB),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -181,16 +186,16 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
+                  colors: [_primaryColor, Color(0xFFD32F2F)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF5252).withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
+                    color: _primaryColor.withValues(alpha: 0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -206,7 +211,11 @@ class _AppOnboardingScreenState extends State<AppOnboardingScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ],
               ),
             ),

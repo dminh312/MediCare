@@ -6,7 +6,6 @@ import 'package:medicare/UI/home/notification/notification_center_screen.dart';
 import 'package:medicare/UI/home/maps_screen.dart';
 import 'package:medicare/UI/track/heart_rate/heart_rate_screen.dart';
 import 'package:medicare/UI/track/blood_oxygen/blood_oxygen_screen.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 import 'package:medicare/UI/track/step_screen/step_activity_screen.dart';
@@ -21,25 +20,29 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   User? _user;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>>
+  _overdueMedicationLogsStream;
 
   @override
   void initState() {
     super.initState();
     _user = FirebaseAuth.instance.currentUser;
-    _requestLocationPermission();
-  }
-
-  Future<void> _requestLocationPermission() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      await Geolocator.requestPermission();
-    }
+    _overdueMedicationLogsStream = _user != null
+        ? FirebaseFirestore.instance
+              .collection('medication_logs')
+              .where('userId', isEqualTo: _user!.uid)
+              .where('status', isEqualTo: 'upcoming')
+              .where(
+                'scheduledTime',
+                isLessThan: Timestamp.fromDate(DateTime.now()),
+              )
+              .limit(99)
+              .snapshots()
+        : const Stream.empty();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HealthDataViewModel>().ensureLoaded(includeSleep: false);
+    });
   }
 
   @override
@@ -192,131 +195,134 @@ class _HomePageState extends State<HomePage> {
       builder: (context, viewModel, child) {
         int todaySteps = viewModel.todaySteps;
         int stepGoal = viewModel.stepGoal;
-        double progress = stepGoal > 0 ? (todaySteps / stepGoal).clamp(0.0, 1.0) : 0.0;
+        double progress = stepGoal > 0
+            ? (todaySteps / stepGoal).clamp(0.0, 1.0)
+            : 0.0;
         int remaining = stepGoal - todaySteps;
-        String subtitleText = remaining > 0 
-          ? "You're crushing it! Just $remaining more steps to reach your daily target. Keep moving!"
-          : "You've reached your daily step goal! Amazing job!";
+        String subtitleText = remaining > 0
+            ? "You're crushing it! Just $remaining more steps to reach your daily target. Keep moving!"
+            : "You've reached your daily step goal! Amazing job!";
 
         return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white10
-              : Colors.red[900]!.withValues(alpha: 0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 160,
-            color: isDarkMode
-                ? primaryColor.withValues(alpha: 0.1)
-                : primaryLight,
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 96,
-                    height: 96,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 8,
-                      backgroundColor: isDarkMode
-                          ? Colors.red[900]!.withValues(alpha: 0.3)
-                          : Colors.red[100],
-                      color: primaryColor,
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Text(
-                    "${(progress * 100).toInt()}%",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[900],
-                    ),
-                  ),
-                ],
-              ),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white10
+                  : Colors.red[900]!.withValues(alpha: 0.05),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Daily Goal Progress",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.grey[900],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitleText,
-                  style: TextStyle(
-                    height: 1.5,
-                    fontSize: 14,
-                    color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const StepActivityScreen(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 160,
+                color: isDarkMode
+                    ? primaryColor.withValues(alpha: 0.1)
+                    : primaryLight,
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 96,
+                        height: 96,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 8,
+                          backgroundColor: isDarkMode
+                              ? Colors.red[900]!.withValues(alpha: 0.3)
+                              : Colors.red[100],
+                          color: primaryColor,
+                          strokeCap: StrokeCap.round,
+                        ),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
                       Text(
-                        "View Details",
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        "${(progress * 100).toInt()}%",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.grey[900],
+                        ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 18),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Daily Goal Progress",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.grey[900],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitleText,
+                      style: TextStyle(
+                        height: 1.5,
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StepActivityScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text(
+                            "View Details",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, size: 18),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
-    });
   }
 
   Widget _buildHealthMetrics(
@@ -389,11 +395,7 @@ class _HomePageState extends State<HomePage> {
                       viewModel.todaySteps,
                       viewModel.stepGoal,
                     )
-                  : _buildLockedStepsCard(
-                      isDarkMode,
-                      surfaceColor,
-                      textColor,
-                    ),
+                  : _buildLockedStepsCard(isDarkMode, surfaceColor, textColor),
             ),
             const SizedBox(height: 16),
             GestureDetector(
@@ -443,11 +445,7 @@ class _HomePageState extends State<HomePage> {
                       textColor,
                       viewModel.latestBloodOxygen,
                     )
-                  : _buildLockedSpO2Card(
-                      isDarkMode,
-                      surfaceColor,
-                      textColor,
-                    ),
+                  : _buildLockedSpO2Card(isDarkMode, surfaceColor, textColor),
             ),
           ],
         );
@@ -461,101 +459,6 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => const PermissionDialog(),
-    );
-  }
-
-  Widget _buildLockedCard({
-    required String title,
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgDark,
-    required Color iconBgLight,
-    required bool isDarkMode,
-    required Color surfaceColor,
-  }) {
-    return GestureDetector(
-      onTap: () => _showUnauthorizedDialog(context),
-      child: Container(
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDarkMode
-                ? Colors.white10
-                : Colors.red[900]!.withValues(alpha: 0.05),
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
-            children: [
-              ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isDarkMode ? iconBgDark : iconBgLight,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, color: iconColor, size: 20),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "...", // Placeholder line
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.grey[900],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Container(
-                  color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lock_outline_rounded,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Locked",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -642,7 +545,9 @@ class _HomePageState extends State<HomePage> {
             ),
             Positioned.fill(
               child: Container(
-                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -666,102 +571,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgDark,
-    required Color iconBgLight,
-    required String trendValue,
-    required bool trendUp,
-    required bool isDarkMode,
-    required Color surfaceColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white10
-              : Colors.red[900]!.withValues(alpha: 0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isDarkMode ? iconBgDark : iconBgLight,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.grey[900],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: Row(
-                  children: [
-                    Icon(
-                      trendUp ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: Colors.green[600],
-                      size: 16,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      trendValue,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green[600],
-                      ),
-                    ),
-                  ],
-                ),
-                ), // Close Padding
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -833,14 +642,14 @@ class _HomePageState extends State<HomePage> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 2.0),
                         child: Text(
-                        "bpm",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDarkMode
-                              ? Colors.grey[400]
-                              : Colors.grey[500],
+                          "bpm",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[500],
+                          ),
                         ),
-                      ),
                       ), // Close Padding
                     ],
                   ),
@@ -927,7 +736,11 @@ class _HomePageState extends State<HomePage> {
                       : Colors.cyan[50],
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.water_drop, color: Colors.cyan[600], size: 20),
+                child: Icon(
+                  Icons.water_drop,
+                  color: Colors.cyan[600],
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 16),
               Column(
@@ -959,7 +772,9 @@ class _HomePageState extends State<HomePage> {
                           "%",
                           style: TextStyle(
                             fontSize: 14,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[500],
                           ),
                         ),
                       ),
@@ -1034,7 +849,9 @@ class _HomePageState extends State<HomePage> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[500],
                               ),
                             ),
                             Text(
@@ -1056,7 +873,9 @@ class _HomePageState extends State<HomePage> {
             ),
             Positioned.fill(
               child: Container(
-                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1123,7 +942,11 @@ class _HomePageState extends State<HomePage> {
                       : Colors.orange[50],
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.directions_walk, color: Colors.orange[600], size: 20),
+                child: Icon(
+                  Icons.directions_walk,
+                  color: Colors.orange[600],
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 16),
               Column(
@@ -1242,7 +1065,9 @@ class _HomePageState extends State<HomePage> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[500],
                               ),
                             ),
                             Text(
@@ -1264,7 +1089,9 @@ class _HomePageState extends State<HomePage> {
             ),
             Positioned.fill(
               child: Container(
-                color: isDarkMode ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                color: isDarkMode
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1381,28 +1208,10 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       actions: [
-        StreamBuilder<QuerySnapshot>(
-          stream: _user != null
-              ? FirebaseFirestore.instance
-                    .collection('medication_logs')
-                    .where('userId', isEqualTo: _user!.uid)
-                    .where('status', isEqualTo: 'upcoming')
-                    .snapshots()
-              : const Stream.empty(),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _overdueMedicationLogsStream,
           builder: (context, snapshot) {
-            int unreadCount = 0;
-            if (snapshot.hasData) {
-              final now = DateTime.now();
-              for (var doc in snapshot.data!.docs) {
-                final scheduledTime =
-                    (doc.data() as Map<String, dynamic>)['scheduledTime']
-                        as Timestamp?;
-                if (scheduledTime != null &&
-                    scheduledTime.toDate().isBefore(now)) {
-                  unreadCount++;
-                }
-              }
-            }
+            final unreadCount = snapshot.data?.docs.length ?? 0;
 
             return Badge(
               isLabelVisible: unreadCount > 0,

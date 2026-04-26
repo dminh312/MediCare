@@ -18,6 +18,13 @@ class NotificationCenterScreen extends StatefulWidget {
 
 class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   final _auth = FirebaseAuth.instance;
+  late final Stream<List<Map<String, dynamic>>> _notificationStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationStream = _getNotificationStream();
+  }
 
   Stream<List<Map<String, dynamic>>> _getNotificationStream() {
     final user = _auth.currentUser;
@@ -26,6 +33,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     return FirebaseFirestore.instance
         .collection('medication_logs')
         .where('userId', isEqualTo: user.uid)
+        .where('scheduledTime', isLessThan: Timestamp.fromDate(DateTime.now()))
+        .limit(100)
         .snapshots()
         .asyncMap((logSnapshot) async {
           if (logSnapshot.docs.isEmpty) return [];
@@ -59,9 +68,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
             final log = MedicationLog.fromFirestore(logDoc);
             final medication = medicationsMap[log.medicationId];
 
-            // Only show historical logs (past or present), ignore future scheduled alarms
-            if (medication != null &&
-                log.scheduledTime.toDate().isBefore(DateTime.now())) {
+            if (medication != null) {
               viewDataList.add({'log': log, 'medication': medication});
             }
           }
@@ -80,10 +87,14 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? const Color(0xFF191C1E) : const Color(0xFFF7F9FB);
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF191C1E)
+        : const Color(0xFFF7F9FB);
     final surfaceColor = isDarkMode ? const Color(0xFF2D3133) : Colors.white;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF191C1E);
-    final textVariantColor = isDarkMode ? Colors.white70 : const Color(0xFF5B403E);
+    final textVariantColor = isDarkMode
+        ? Colors.white70
+        : const Color(0xFF5B403E);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -112,10 +123,12 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         ).animate().fadeIn(duration: 300.ms),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _getNotificationStream(),
+        stream: _notificationStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFB51925)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFB51925)),
+            );
           }
           if (snapshot.hasError) {
             return Center(
@@ -136,24 +149,27 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: surfaceColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.notifications_off_rounded,
-                      size: 64,
-                      color: textColor.withValues(alpha: 0.3),
-                    ),
-                  ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
+                        child: Icon(
+                          Icons.notifications_off_rounded,
+                          size: 64,
+                          color: textColor.withValues(alpha: 0.3),
+                        ),
+                      )
+                      .animate()
+                      .scale(duration: 500.ms, curve: Curves.easeOutBack)
+                      .fadeIn(),
                   const SizedBox(height: 24),
                   Text(
                     'All caught up',
@@ -188,177 +204,190 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                   right: 16,
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final data = items[index];
-                      final log = data['log'] as MedicationLog;
-                      final med = data['medication'] as MedicationModel;
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final data = items[index];
+                    final log = data['log'] as MedicationLog;
+                    final med = data['medication'] as MedicationModel;
 
-                      final isToday = log.scheduledTime.toDate().day == DateTime.now().day &&
-                          log.scheduledTime.toDate().month == DateTime.now().month &&
-                          log.scheduledTime.toDate().year == DateTime.now().year;
+                    final isToday =
+                        log.scheduledTime.toDate().day == DateTime.now().day &&
+                        log.scheduledTime.toDate().month ==
+                            DateTime.now().month &&
+                        log.scheduledTime.toDate().year == DateTime.now().year;
 
-                      final timeString = isToday 
-                          ? 'Today, ${DateFormat('h:mm a').format(log.scheduledTime.toDate())}'
-                          : DateFormat('MMM d, h:mm a').format(log.scheduledTime.toDate());
+                    final timeString = isToday
+                        ? 'Today, ${DateFormat('h:mm a').format(log.scheduledTime.toDate())}'
+                        : DateFormat(
+                            'MMM d, h:mm a',
+                          ).format(log.scheduledTime.toDate());
 
-                      IconData medIcon;
-                      Color statusColor;
-                      Color statusBgColor;
-                      String statusText;
+                    IconData medIcon;
+                    Color statusColor;
+                    Color statusBgColor;
+                    String statusText;
 
-                      switch (med.form) {
-                        case MedicationForm.pill:
-                        case MedicationForm.tablet:
-                        case MedicationForm.capsule:
-                          medIcon = Icons.medication_rounded;
-                          break;
-                        case MedicationForm.injection:
-                          medIcon = Icons.vaccines_rounded;
-                          break;
-                        case MedicationForm.syrup:
-                          medIcon = Icons.medication_liquid_rounded;
-                          break;
-                      }
+                    switch (med.form) {
+                      case MedicationForm.pill:
+                      case MedicationForm.tablet:
+                      case MedicationForm.capsule:
+                        medIcon = Icons.medication_rounded;
+                        break;
+                      case MedicationForm.injection:
+                        medIcon = Icons.vaccines_rounded;
+                        break;
+                      case MedicationForm.syrup:
+                        medIcon = Icons.medication_liquid_rounded;
+                        break;
+                    }
 
-                      switch (log.status) {
-                        case MedicationStatus.taken:
-                          statusText = 'TAKEN';
-                          statusColor = const Color(0xFF006856); // Tertiary Green
-                          statusBgColor = const Color(0xFFF4FFF9);
-                          break;
-                        case MedicationStatus.missed:
-                          statusText = 'MISSED';
-                          statusColor = const Color(0xFFB51925); // Primary Red
-                          statusBgColor = const Color(0xFFFFF7F7);
-                          break;
-                        case MedicationStatus.upcoming:
-                          statusText = 'UPCOMING';
-                          statusColor = const Color(0xFF005FB8); // Blue
-                          statusBgColor = const Color(0xFFF4FAFF);
-                          break;
-                      }
-                      
-                      if (isDarkMode) {
-                        statusBgColor = statusColor.withValues(alpha: 0.15);
-                      }
+                    switch (log.status) {
+                      case MedicationStatus.taken:
+                        statusText = 'TAKEN';
+                        statusColor = const Color(0xFF006856); // Tertiary Green
+                        statusBgColor = const Color(0xFFF4FFF9);
+                        break;
+                      case MedicationStatus.missed:
+                        statusText = 'MISSED';
+                        statusColor = const Color(0xFFB51925); // Primary Red
+                        statusBgColor = const Color(0xFFFFF7F7);
+                        break;
+                      case MedicationStatus.upcoming:
+                        statusText = 'UPCOMING';
+                        statusColor = const Color(0xFF005FB8); // Blue
+                        statusBgColor = const Color(0xFFF4FAFF);
+                        break;
+                    }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: surfaceColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: isDarkMode 
-                                      ? Colors.white.withValues(alpha: 0.05)
-                                      : Colors.grey.withValues(alpha: 0.1),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 8),
+                    if (isDarkMode) {
+                      statusBgColor = statusColor.withValues(alpha: 0.15);
+                    }
+
+                    return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: surfaceColor.withValues(
+                                    alpha: isDarkMode ? 0.6 : 0.8,
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: statusBgColor,
-                                      borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.grey.withValues(alpha: 0.1),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.03,
+                                      ),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 8),
                                     ),
-                                    child: Icon(medIcon, color: statusColor, size: 26),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                'Take ${med.name}',
-                                                style: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 17,
-                                                  color: textColor,
-                                                  letterSpacing: -0.3,
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: statusBgColor,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        medIcon,
+                                        color: statusColor,
+                                        size: 26,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  'Take ${med.name}',
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 17,
+                                                    color: textColor,
+                                                    letterSpacing: -0.3,
+                                                  ),
                                                 ),
                                               ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                timeString,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: textVariantColor,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Dosage: ${med.dosage} • ${med.timing}',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                              color: textVariantColor,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              timeString,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: statusBgColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              statusText,
                                               style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: textVariantColor,
+                                                color: statusColor,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.5,
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'Dosage: ${med.dosage} • ${med.timing}',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: textVariantColor,
                                           ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: statusBgColor,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            statusText,
-                                            style: GoogleFonts.inter(
-                                              color: statusColor,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ).animate().fadeIn(
-                        duration: 500.ms,
-                        delay: (index * 50).ms,
-                      ).slideY(
-                        begin: 0.1,
-                        duration: 500.ms,
-                        curve: Curves.easeOutQuad,
-                        delay: (index * 50).ms,
-                      );
-                    },
-                    childCount: items.length,
-                  ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 500.ms, delay: (index * 50).ms)
+                        .slideY(
+                          begin: 0.1,
+                          duration: 500.ms,
+                          curve: Curves.easeOutQuad,
+                          delay: (index * 50).ms,
+                        );
+                  }, childCount: items.length),
                 ),
               ),
             ],

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/main.dart'; // To access AuthWrapper
+import 'package:medicare/logic/services/onboarding_service.dart';
 
 class ThankYouScreen extends StatelessWidget {
   const ThankYouScreen({super.key});
 
   void _finishOnboarding(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_completed_onboarding', true);
+    await OnboardingService.markCompleted(prefs);
 
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
@@ -46,7 +47,7 @@ class ThankYouScreen extends StatelessWidget {
                         width: 100,
                         height: 100,
                         decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
+                          color: primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

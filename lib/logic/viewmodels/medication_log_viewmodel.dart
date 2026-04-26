@@ -218,16 +218,23 @@ class MedicationLogViewModel extends ChangeNotifier {
             .where('reminderEnabled', isEqualTo: true)
             .get();
 
+        final requests = <MedicationNotificationRequest>[];
         for (final doc in medications.docs) {
           final med = MedicationModel.fromFirestore(doc);
-          await _notificationService.scheduleDailyMedicationNotification(
-            id: med.id.hashCode,
-            title: 'Time to take ${med.name}!',
-            body: 'Dosage: ${med.dosage}. Don\'t forget!',
-            time: med.time,
-            payload: med.id,
+          requests.add(
+            MedicationNotificationRequest(
+              id: med.id.hashCode,
+              title: 'Time to take ${med.name}!',
+              body: 'Dosage: ${med.dosage}. Don\'t forget!',
+              time: med.time,
+              payload: med.id,
+            ),
           );
         }
+
+        await _notificationService.scheduleDailyMedicationNotifications(
+          requests,
+        );
       });
     } catch (e) {
       GlobalErrorHandler.handleError(e);

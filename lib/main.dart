@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:medicare/logic/services/app_lifecycle_manager.dart';
@@ -16,10 +19,10 @@ import 'package:medicare/logic/viewmodels/health_data_viewmodel.dart';
 import 'package:medicare/UI/signup/verify_email_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/UI/onboarding/welcome_screen.dart';
 import 'package:medicare/UI/onboarding/app_onboarding_screen.dart';
+import 'package:medicare/logic/services/onboarding_service.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -38,7 +41,6 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
-    await notificationService.init();
   } catch (e) {
     // ignore
   }
@@ -52,8 +54,9 @@ void main() async {
           ChangeNotifierProvider(create: (_) => SignUpViewModel()),
           ChangeNotifierProvider(create: (_) => ForgotPasswordViewModel()),
           ChangeNotifierProvider(
-            create: (_) =>
-                MedicationLogViewModel(notificationService: notificationService),
+            create: (_) => MedicationLogViewModel(
+              notificationService: notificationService,
+            ),
           ),
           ChangeNotifierProvider(create: (_) => HealthDataViewModel()),
         ],
@@ -76,8 +79,17 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupNotificationListener();
+      _initializeNotifications();
       _checkInternetConnection();
     });
+  }
+
+  void _initializeNotifications() {
+    final notificationService = Provider.of<NotificationService>(
+      context,
+      listen: false,
+    );
+    unawaited(notificationService.init().catchError((_) {}));
   }
 
   Future<void> _checkInternetConnection() async {
@@ -149,9 +161,23 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  late final Future<SharedPreferences> _prefsFuture;
+  String? _postLoginTasksUserId;
+  bool _isRunningPostLoginTasks = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefsFuture = SharedPreferences.getInstance();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,17 +191,14 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          final isVerified = snapshot.data!.emailVerified;
+          final user = snapshot.data!;
+          final isVerified = user.emailVerified;
           if (!isVerified) {
             return const VerifyEmailScreen();
           }
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _performPostLoginTasks(context);
-          });
-
           return FutureBuilder<SharedPreferences>(
-            future: SharedPreferences.getInstance(),
+            future: _prefsFuture,
             builder: (context, prefSnapshot) {
               if (prefSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
@@ -184,19 +207,23 @@ class AuthWrapper extends StatelessWidget {
               }
               final prefs = prefSnapshot.data;
               final hasCompletedOnboarding =
-                  prefs?.getBool('has_completed_onboarding') ?? false;
+                  prefs != null &&
+                  OnboardingService.hasCompletedCurrentFlow(prefs);
 
               if (!hasCompletedOnboarding) {
                 return const WelcomeScreen();
               }
 
+              _schedulePostLoginTasks(context, user.uid);
+
               return const HomeView();
             },
           );
         }
-        
+
+        _postLoginTasksUserId = null;
         return FutureBuilder<SharedPreferences>(
-          future: SharedPreferences.getInstance(),
+          future: _prefsFuture,
           builder: (context, prefSnapshot) {
             if (prefSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -218,13 +245,31 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 
-  void _performPostLoginTasks(BuildContext context) {
+  void _schedulePostLoginTasks(BuildContext context, String userId) {
+    if (_postLoginTasksUserId == userId || _isRunningPostLoginTasks) {
+      return;
+    }
+
+    _postLoginTasksUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      _isRunningPostLoginTasks = true;
+      try {
+        await _performPostLoginTasks(context);
+      } finally {
+        _isRunningPostLoginTasks = false;
+      }
+    });
+  }
+
+  Future<void> _performPostLoginTasks(BuildContext context) async {
     final logViewModel = Provider.of<MedicationLogViewModel>(
       context,
       listen: false,
     );
 
     // Reschedule notifications
-    logViewModel.rescheduleAllNotifications();
+    await logViewModel.rescheduleAllNotifications();
   }
 }

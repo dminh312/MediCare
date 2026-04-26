@@ -12,6 +12,10 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const Color _backgroundColor = Color(0xFFFFFBFB);
+  static const Color _primaryColor = Color(0xFFEA2A33);
+  static const Color _textColor = Color(0xFF111827);
+  static const Color _subtleTextColor = Color(0xFF64748B);
 
   final List<Map<String, dynamic>> _onboardingData = [
     {
@@ -44,11 +48,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor:
-          isDarkMode ? const Color(0xFF1a0f0f) : const Color(0xFFF8F6F6),
+      backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -76,7 +77,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: (data['color'] as Color).withOpacity(0.2),
+                                color: (data['color'] as Color).withValues(
+                                  alpha: 0.2,
+                                ),
                                 blurRadius: 30,
                                 spreadRadius: 10,
                               ),
@@ -88,9 +91,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             color: data['color'],
                           ),
                         ).animate().scale(
-                              duration: 600.ms,
-                              curve: Curves.easeOutBack,
-                            ),
+                          duration: 600.ms,
+                          curve: Curves.easeOutBack,
+                        ),
                         const SizedBox(height: 40),
                         Text(
                           data['title'],
@@ -98,10 +101,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.w900,
-                            color: isDarkMode
-                                ? Colors.white
-                                : (index == 0 ? const Color(0xFFea2a33) : Colors.black87),
-                            letterSpacing: -1.0,
+                            color: index == 0 ? _primaryColor : _textColor,
+                            letterSpacing: 0,
                           ),
                         ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.5),
                         const SizedBox(height: 24),
@@ -113,8 +114,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               height: 1.5,
-                              color:
-                                  isDarkMode ? Colors.white54 : Colors.black87,
+                              color: _subtleTextColor,
                             ),
                           ),
                         ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.5),
@@ -135,8 +135,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   width: _currentPage == index ? 24 : 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index
-                        ? const Color(0xFFea2a33)
-                        : Colors.grey.withOpacity(0.5),
+                        ? _primaryColor
+                        : const Color(0xFFE5E7EB),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -171,14 +171,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 8,
-                    shadowColor: const Color(0xFFea2a33).withOpacity(0.5),
+                    shadowColor: _primaryColor.withValues(alpha: 0.35),
                   ),
                   child: Text(
                     _currentPage == _onboardingData.length - 1
                         ? 'Get Started'
                         : 'Next',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.5),

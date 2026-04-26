@@ -16,6 +16,22 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
   // background handled
 }
 
+class MedicationNotificationRequest {
+  final int id;
+  final String title;
+  final String body;
+  final TimeOfDay time;
+  final String payload;
+
+  const MedicationNotificationRequest({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.time,
+    required this.payload,
+  });
+}
+
 class NotificationService {
   static final NotificationService _notificationService =
       NotificationService._internal();
@@ -25,11 +41,29 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   final BehaviorSubject<String?> onNotificationClick = BehaviorSubject();
+  Future<void>? _initFuture;
+  bool _isInitialized = false;
 
   static const String _channelId = 'medicare_urgent_v9';
   static const String _channelName = 'Medication Reminders';
 
   Future<void> init({bool requestPermissions = false}) async {
+    if (!_isInitialized) {
+      _initFuture ??= _initializePlugin();
+      try {
+        await _initFuture;
+      } catch (_) {
+        _initFuture = null;
+        rethrow;
+      }
+    }
+
+    if (requestPermissions) {
+      await _requestPlatformPermissions();
+    }
+  }
+
+  Future<void> _initializePlugin() async {
     _initTimezone();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -37,9 +71,9 @@ class NotificationService {
 
     final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-          requestAlertPermission: requestPermissions,
-          requestBadgePermission: requestPermissions,
-          requestSoundPermission: requestPermissions,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         );
 
     final InitializationSettings initializationSettings =
@@ -75,21 +109,18 @@ class NotificationService {
             enableVibration: true,
           ),
         );
-
-        // Request required permissions for Android 13+ and Android 12+
-        if (requestPermissions) {
-          await androidPlugin.requestNotificationsPermission();
-          final bool? canSchedule = await androidPlugin
-              .canScheduleExactNotifications();
-          if (canSchedule == false) {
-            await androidPlugin.requestExactAlarmsPermission();
-          }
-        }
       }
     }
+
+    _isInitialized = true;
   }
 
   Future<bool> requestPermissions() async {
+    await init();
+    return _requestPlatformPermissions();
+  }
+
+  Future<bool> _requestPlatformPermissions() async {
     bool granted = false;
     if (Platform.isIOS) {
       final iosPlugin = flutterLocalNotificationsPlugin
@@ -135,6 +166,7 @@ class NotificationService {
     required String payload,
   }) async {
     try {
+      await init();
       final prefs = await SharedPreferences.getInstance();
       final bool masterEnabled = prefs.getBool('pushNotifications') ?? true;
       final bool medsEnabled = prefs.getBool('medicationReminders') ?? true;
@@ -143,37 +175,77 @@ class NotificationService {
         return;
       }
 
-      final tz.TZDateTime scheduledDate = _nextInstanceOfTime(time);
-      final int safeId = id & 0x7FFFFFFF;
-
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        safeId,
-        title,
-        body,
-        scheduledDate,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            importance: Importance.max,
-            priority: Priority.max,
-            showWhen: true,
-            icon: '@mipmap/launcher_icon',
-            styleInformation: BigTextStyleInformation(
-              body,
-              contentTitle: title,
-            ),
-          ),
-        ),
+      await _scheduleDailyMedicationNotificationUnchecked(
+        id: id,
+        title: title,
+        body: body,
+        time: time,
         payload: payload,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
       // ignore
     }
+  }
+
+  Future<void> scheduleDailyMedicationNotifications(
+    Iterable<MedicationNotificationRequest> requests,
+  ) async {
+    try {
+      await init();
+      final prefs = await SharedPreferences.getInstance();
+      final bool masterEnabled = prefs.getBool('pushNotifications') ?? true;
+      final bool medsEnabled = prefs.getBool('medicationReminders') ?? true;
+
+      if (!masterEnabled || !medsEnabled) {
+        return;
+      }
+
+      for (final request in requests) {
+        await _scheduleDailyMedicationNotificationUnchecked(
+          id: request.id,
+          title: request.title,
+          body: request.body,
+          time: request.time,
+          payload: request.payload,
+        );
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<void> _scheduleDailyMedicationNotificationUnchecked({
+    required int id,
+    required String title,
+    required String body,
+    required TimeOfDay time,
+    required String payload,
+  }) async {
+    final tz.TZDateTime scheduledDate = _nextInstanceOfTime(time);
+    final int safeId = id & 0x7FFFFFFF;
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      safeId,
+      title,
+      body,
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          importance: Importance.max,
+          priority: Priority.max,
+          showWhen: true,
+          icon: '@mipmap/launcher_icon',
+          styleInformation: BigTextStyleInformation(body, contentTitle: title),
+        ),
+      ),
+      payload: payload,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
   }
 
   Future<void> showInstantNotification({
@@ -183,6 +255,7 @@ class NotificationService {
     String? payload,
   }) async {
     try {
+      await init();
       final prefs = await SharedPreferences.getInstance();
       final bool masterEnabled = prefs.getBool('pushNotifications') ?? true;
       if (!masterEnabled) return;
@@ -228,6 +301,8 @@ class NotificationService {
     return scheduledDate;
   }
 
-  Future<void> cancelNotification(int id) async =>
-      await flutterLocalNotificationsPlugin.cancel(id & 0x7FFFFFFF);
+  Future<void> cancelNotification(int id) async {
+    await init();
+    await flutterLocalNotificationsPlugin.cancel(id & 0x7FFFFFFF);
+  }
 }
