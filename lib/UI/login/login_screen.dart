@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:medicare/logic/viewmodels/login_viewmodel.dart';
 import 'package:medicare/UI/signup/signup_screen.dart';
 import 'package:medicare/UI/forgot_password/forgot_password_screen.dart';
-import 'package:medicare/UI/home/home_view.dart';
+import 'package:medicare/UI/onboarding/welcome_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -85,7 +85,7 @@ class _LoginViewState extends State<LoginView> {
 
     if (mounted && errorMessage == null) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeView()),
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       );
     } else if (mounted && errorMessage != null) {
       setState(() {
@@ -106,7 +106,7 @@ class _LoginViewState extends State<LoginView> {
 
     if (mounted && errorMessage == null) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeView()),
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       );
     } else if (mounted && errorMessage != null) {
       setState(() {
@@ -120,9 +120,9 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     // New Design Colors
     const primaryColor = Color(0xFFF43F5E);
-    const slate900 = Color(0xFF0F172A); // Roughly slate-900
-    const slate500 = Color(0xFF64748B); // Roughly slate-500
-    const slate200 = Color(0xFFE2E8F0); // Roughly slate-200
+    const slate900 = Color(0xFF0F172A);
+    const slate500 = Color(0xFF64748B);
+    const slate200 = Color(0xFFE2E8F0);
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDarkMode ? Colors.white : slate900;

@@ -21,6 +21,11 @@ class LoginViewModel extends ChangeNotifier {
         return 'Please verify your email before logging in.';
       }
 
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await OnboardingService.reset(prefs);
+      }
+
       return null; // Return null on success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -44,16 +49,9 @@ class LoginViewModel extends ChangeNotifier {
   Future<String?> signInWithGoogle() async {
     try {
       final user = await _authService.signInWithGoogle();
-      if (user != null &&
-          user.metadata.creationTime != null &&
-          user.metadata.lastSignInTime != null) {
-        // If the account was just created, reset onboarding
-        if (user.metadata.lastSignInTime!
-                .difference(user.metadata.creationTime!)
-                .inSeconds < 60) {
-          final prefs = await SharedPreferences.getInstance();
-          await OnboardingService.reset(prefs);
-        }
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await OnboardingService.reset(prefs);
       }
       return null;
     } on FirebaseAuthException catch (e) {
