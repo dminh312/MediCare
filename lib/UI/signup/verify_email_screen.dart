@@ -51,9 +51,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       if (mounted) {
         String errorMessage = e.toString();
         if (e is FirebaseAuthException && e.code == 'too-many-requests') {
-          errorMessage = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại nhé!';
+          errorMessage = 'You are resquest too many time. Please wait a few minutes!';
         } else if (e.toString().contains('too-many-requests')) {
-          errorMessage = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi vài phút rồi thử lại nhé!';
+          errorMessage = 'You are resquest too many time. Please wait a few minutes!';
         }
 
         ScaffoldMessenger.of(
@@ -112,7 +112,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                             ),
                             const SizedBox(height: 24),
                             const Text(
-                              'A verification email has been sent to your email address.',
+                              'A verification email has been sent to your email address, Please check your email and verify your account. In case you didn\'t receive an email, please click the resend button.',
                               style: TextStyle(fontSize: 20),
                               textAlign: TextAlign.center,
                             ),

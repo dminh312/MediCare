@@ -41,7 +41,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
       if (canCheckBiometrics || isDeviceSupported) {
         final didAuthenticate = await _localAuth.authenticate(
-          localizedReason: 'Please authenticate to unlock MediCare',
+          localizedReason: 'Please authenticate to unlock MediCare+ App',
         );
 
         if (didAuthenticate && mounted) {

@@ -11,10 +11,10 @@ class HealthService {
   List<HealthDataType> _types = [
     HealthDataType.HEART_RATE,
     HealthDataType.STEPS,
-    HealthDataType.SLEEP_ASLEEP,
-    HealthDataType.SLEEP_AWAKE,
+    
     HealthDataType.SLEEP_DEEP,
-    HealthDataType.SLEEP_LIGHT,
+    HealthDataType.SLEEP_LIGHTHealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_AWAKE,,
     HealthDataType.SLEEP_REM,
     HealthDataType.BLOOD_OXYGEN,
   ];

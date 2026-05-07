@@ -66,9 +66,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   final data = _onboardingData[index];
                   return Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                         Container(
                           width: 120,
                           height: 120,
@@ -120,8 +122,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.5),
                       ],
                     ),
-                  );
-                },
+                  ),
+                ),
+              );
+            },
               ),
             ),
             Row(

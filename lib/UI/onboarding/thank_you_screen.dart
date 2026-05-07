@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:medicare/main.dart'; // To access AuthWrapper
+import 'package:medicare/main.dart';
 import 'package:medicare/logic/services/onboarding_service.dart';
 
 class ThankYouScreen extends StatelessWidget {

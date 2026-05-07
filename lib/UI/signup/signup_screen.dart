@@ -54,7 +54,7 @@ class _SignUpViewState extends State<SignUpView> {
       case 1:
         return Colors.red;
       case 2:
-        return Colors.orange; // Using orange instead of yellow for better visibility
+        return Colors.orange; 
       case 3:
         return Colors.green;
       default:

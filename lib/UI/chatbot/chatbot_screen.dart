@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicare/UI/chatbot/accept_save_history.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -128,6 +127,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       model: 'gemini-2.5-flash',
       apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
       systemInstruction: systemInstruction,
+      generationConfig: GenerationConfig(
+        maxOutputTokens: 300,
+        temperature: 0.7,
+      ),
     );
 
     _chat = _model.startChat();
@@ -683,33 +686,95 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
     await _saveMessageToFirestore(userMsg);
 
-    try {
-      final response = await _chat.sendMessage(Content.text(text));
-      final botMsgText = response.text ?? 'Sorry, I failed to process that.';
+    // 1. Guardrail check for dangerous keywords
+    final lowerText = text.toLowerCase();
+    final dangerKeywords = ["overdose", "suicide", "too much", "tự tử", "quá liều", "uống nhầm"];
+    if (dangerKeywords.any((keyword) => lowerText.contains(keyword))) {
       final botMsg = ChatMessage(
-        text: botMsgText,
+        text: "Please consult a doctor immediately or call emergency services right away.",
         isUser: false,
         time: DateTime.now(),
       );
-
       setState(() {
         _isLoading = false;
         _messages.add(botMsg);
       });
       _scrollToBottom();
       await _saveMessageToFirestore(botMsg);
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _messages.add(
-          ChatMessage(
-            text: 'Error: ${e.toString()}',
-            isUser: false,
-            time: DateTime.now(),
-          ),
-        );
-      });
-      _scrollToBottom();
+      return;
+    }
+
+    // 2. Retry mechanism & Streaming
+    int retries = 3;
+    
+    // Add empty message placeholder for streaming
+    final botMsg = ChatMessage(
+      text: "",
+      isUser: false,
+      time: DateTime.now(),
+    );
+    
+    setState(() {
+      _isLoading = false;
+      _messages.add(botMsg);
+    });
+    
+    int messageIndex = _messages.length - 1;
+
+    for (int i = 0; i < retries; i++) {
+      try {
+        final stream = _chat.sendMessageStream(Content.text(text));
+        
+        // Reset text before streaming in case this is a retry
+        setState(() {
+           _messages[messageIndex] = ChatMessage(
+             text: "",
+             isUser: false,
+             time: botMsg.time,
+           );
+        });
+
+        await for (final chunk in stream) {
+          if (chunk.text != null) {
+            setState(() {
+              // Update the last message text incrementally
+              final currentText = _messages[messageIndex].text;
+              _messages[messageIndex] = ChatMessage(
+                text: currentText + chunk.text!,
+                isUser: false,
+                time: botMsg.time,
+              );
+            });
+            _scrollToBottom();
+          }
+        }
+        
+        // Save the final accumulated message to Firestore
+        await _saveMessageToFirestore(_messages[messageIndex]);
+        break; // Exit retry loop on success
+      } catch (e) {
+        if (i == retries - 1) {
+          // Last retry failed
+          setState(() {
+            _messages[messageIndex] = ChatMessage(
+              text: 'Error: ${e.toString()}',
+              isUser: false,
+              time: botMsg.time,
+            );
+          });
+          _scrollToBottom();
+        } else {
+          // Wait before retry
+          await Future.delayed(const Duration(seconds: 1));
+          setState(() {
+            _messages[messageIndex] = ChatMessage(
+              text: "Connection lost, retrying...",
+              isUser: false,
+              time: botMsg.time,
+            );
+          });
+        }
+      }
     }
   }
 

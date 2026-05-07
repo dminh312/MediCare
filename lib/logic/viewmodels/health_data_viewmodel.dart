@@ -186,7 +186,14 @@ class HealthDataViewModel extends ChangeNotifier {
       await checkConnectionStatus();
 
       if (_isConnected) {
-        await _fetchTodayData(includeSleep: includeSleep);
+        final hasPerm = await _healthService.hasPermission();
+        if (!hasPerm) {
+          _isConnected = false;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('health_connect_connected', false);
+        } else {
+          await _fetchTodayData(includeSleep: includeSleep);
+        }
       }
     } finally {
       _isLoading = false;
@@ -241,7 +248,7 @@ class HealthDataViewModel extends ChangeNotifier {
       });
 
       final weeklyStepsFuture = Future.wait(weeklyStepRequests);
-      final heartRateFuture = _healthService.fetchHeartRate(days: 1);
+      final heartRateFuture = _healthService.fetchHeartRate(days: 7);
       final bloodOxygenFuture = _healthService.fetchBloodOxygen(days: 7);
 
       // 1. Fetch Steps
@@ -258,8 +265,8 @@ class HealthDataViewModel extends ChangeNotifier {
           await prefs.setString('last_step_goal_notified_date', todayString);
           await NotificationService().showInstantNotification(
             id: 'step_goal'.hashCode,
-            title: '🎉 Mục tiêu hoàn thành!',
-            body: 'Chúc mừng bạn đã đạt mục tiêu $_stepGoal bước chân hôm nay!',
+            title: '🎉 You reach your goal!',
+            body: 'Congratulation you reach your goal of $_stepGoal steps today!',
           );
         }
       }

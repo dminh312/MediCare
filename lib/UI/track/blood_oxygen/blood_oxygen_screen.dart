@@ -73,13 +73,10 @@ class _BloodOxygenScreenState extends State<BloodOxygenScreen> with TickerProvid
           if (point.value is NumericHealthValue) {
             final val = (point.value as NumericHealthValue).numericValue.round();
             
-            final isToday = point.dateFrom.isAfter(startOfDay) || point.dateFrom.isAtSameMomentAs(startOfDay);
-            if (isToday) {
-              if (val < minVal) minVal = val;
-              if (val > maxVal) maxVal = val;
-              sumVal += val;
-              countVal++;
-            }
+            if (val < minVal) minVal = val;
+            if (val > maxVal) maxVal = val;
+            sumVal += val;
+            countVal++;
 
             final dayStart = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
             final daysAgo = startOfDay.difference(dayStart).inDays;
